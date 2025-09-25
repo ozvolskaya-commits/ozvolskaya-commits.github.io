@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparkcoin Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* Стили для кликабельной монетки */
+        .coin-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .click-coin {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            border-radius: 50%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 
+                0 15px 35px rgba(33, 150, 243, 0.4),
+                inset 0 -8px 15px rgba(0,0,0,0.2),
+                inset 0 8px 15px rgba(255,255,255,0.3);
+            border: 4px solid #64B5F6;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+            user-select: none;
+        }
+        
+        .click-coin:active {
+            transform: scale(0.95);
+            box-shadow: 
+                0 5px 15px rgba(33, 150, 243, 0.6),
+                inset 0 -3px 8px rgba(0,0,0,0.3);
+        }
+        
+        .click-coin::before {
+            content: '';
+            position: absolute;
+            width: 92%;
+            height: 92%;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+        }
+        
+        .coin-letter {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .click-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .click-value {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        /* Анимация появления монеток при клике */
+        .coin-particle {
+            position: fixed;
+            font-size: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+            pointer-events: none;
+            z-index: 1000;
+            animation: coin-float 1s ease-out forwards;
+        }
+        
+        @keyframes coin-float {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+        
+        .balance-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E7D32;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .income-message {
+            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #1565C0;
+            text-align: center;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        
+        .action-button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .action-button.blue {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+        }
+        
+        .upgrades-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+        
+        .upgrade-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .upgrade-button:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+        }
+        
+        .upgrade-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .upgrade-price {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .upgrade-level {
+            font-size: 9px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 4px;
+        }
+        
+        .tab-button {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        @media (max-width: 360px) {
+            .click-coin {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .coin-letter {
+                font-size: 40px;
+            }
+            
+            .balance-amount {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="hidden">
+        <div class="container">
+            <div class="header">
+                <h1>Sparkcoin</h1>
+            </div>
+            
+            <!-- Кликабельная монетка -->
+            <div class="coin-section">
+                <div class="click-coin" onclick="clickCoin()">
+                    <div class="coin-letter">S</div>
+                </div>
+                <div class="click-info">
+                    Нажмите на монетку!<br>
+                    <span class="click-value">+<span id="clickValue">1</span> S за клик</span>
+                </div>
+            </div>
+            
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showSection('main')">🏠 Главная</button>
+                <button class="tab-button" onclick="showSection('click')">👆 Клики</button>
+                <button class="tab-button" onclick="showSection('auto')">⚡ Авто</button>
+            </div>
+            
+            <!-- Главная секция -->
+            <div id="main-section" class="section active">
+                <div class="balance-card">
+                    <div class="balance-amount">
+                        <span id="balanceValue">0</span>
+                        <span>S</span>
+                    </div>
+                    
+                    <div class="income-message" id="incomeMessage">
+                        Кликайте на монетку и улучшайте доход!
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-button blue" onclick="collectAutoIncome()">
+                            <span>💰</span>
+                            Забрать авто-доход
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="incomePerSecond">+0 S/сек</div>
+                        <div class="stat-label">Авто-доход</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalEarned">0 S</div>
+                        <div class="stat-label">Всего заработано</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Улучшения кликов -->
+            <div id="click-section" class="section">
+                <div class="balance-card">
+                    <h3>👆 Улучшения кликов</h3>
+                    <div class="upgrades-grid">
+                        <button class="upgrade-button" onclick="buyUpgrade('click_power')">
+                            <span>💪</span>
+                            Сила клика
+                            <div class="upgrade-level">Ур. <span id="click_power-level">1</span></div>
+                            <div class="upgrade-price" id="click_power-price">50 S</div>
+                        </button>
+                        
+                        <button class="upgrade-button" onclick="buyUpgrade('double_click')">
+                            <span>⚡</span>
+                            Двойной клик
+                            <div class="upgrade-level">Ур. <span id="double_click-level">0</span></div>
+                            <div class="upgrade-price" id="double_click-price">200 S</div>
+                        </button>
+                        
+                        <button class="upgrade-button" onclick="buyUpgrade('triple_click')">
+                            <span>🌀</span>
+                            Тройной клик
+                            <div class="upgrade-level">Ур. <span id="triple_click-level">0</span></div>
+                            <div class="upgrade-price" id="triple_click-price">1000 S</div>
+                        </button>
+                        
+                        <button class="upgrade-button" onclick="buyUpgrade('critical_click')">
+                            <span>💥</span>
+                            Критический удар
+                            <div class="upgrade-level">Ур. <span id="critical_click-level">0</span></div>
+                            <div class="upgrade-price" id="critical_click-price">5000 S</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Авто-улучшения -->
+            <div id="auto-section" class="section">
+                <div class="balance-card">
+                    <h3>⚡ Авто-улучшения</h3>
+                    <div class="upgrades-grid">
+                        <button class="upgrade-button" onclick="buyUpgrade('auto_clicker')">
+                            <span>🤖</span>
+                            Авто-кликер
+                            <div class="upgrade-level">Ур. <span id="auto_clicker-level">0</span></div>
+                            <div class="upgrade-price" id="auto_clicker-price">100 S</div>
+                        </button>
+                        
+                        <button class="upgrade-button" onclick="buyUpgrade('processor')">
+                            <span>💻</span>
+                            Процессор
+                            <div class="upgrade-level">Ур. <span id="processor-level">0</span></div>
+                            <div class="upgrade-price" id="processor-price">500 S</div>
+                        </button>
+                        
+                        <button class="upgrade-button" onclick="buyUpgrade('server')">
+                            <span>🖥️</span>
+                            Сервер
+                            <div class="upgrade-level">Ур. <span id="server-level">0</span></div>
+                            <div class="upgrade-price" id="server-price">2500 S</div>
+                        </button>
+                        
+                        <button class="upgrade-button" onclick="buyUpgrade('farm')">
+                            <span>🏭</span>
+                            Ферма
+                            <div class="upgrade-level">Ур. <span id="farm-level">0</span></div>
+                            <div class="upgrade-price" id="farm-price">10000 S</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading">
+        ⏳ Загрузка Sparkcoin App...
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        let userData = {};
+        let lastUpdateTime = Date.now();
+        let accumulatedIncome = 0;
+        
+        // База улучшений
+        const upgrades = {
+            // Улучшения кликов
+            click_power: { basePrice: 50, baseValue: 1, level: 1, price: 50, type: 'click' },
+            double_click: { basePrice: 200, baseValue: 2, level: 0, price: 200, type: 'click' },
+            triple_click: { basePrice: 1000, baseValue: 3, level: 0, price: 1000, type: 'click' },
+            critical_click: { basePrice: 5000, baseValue: 10, level: 0, price: 5000, type: 'click' },
+            
+            // Авто-улучшения
+            auto_clicker: { basePrice: 100, baseIncome: 0.1, level: 0, price: 100, type: 'auto' },
+            processor: { basePrice: 500, baseIncome: 0.5, level: 0, price: 500, type: 'auto' },
+            server: { basePrice: 2500, baseIncome: 2, level: 0, price: 2500, type: 'auto' },
+            farm: { basePrice: 10000, baseIncome: 10, level: 0, price: 10000, type: 'auto' }
+        };
+        
+        // Инициализация Web App
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        // Расчет дохода за клик
+        function calculateClickValue() {
+            let clickValue = 1;
+            for (const upgrade in upgrades) {
+                if (upgrades[upgrade].type === 'click') {
+                    clickValue += upgrades[upgrade].level * upgrades[upgrade].baseValue;
+                }
+            }
+            return clickValue;
+        }
+        
+        // Расчет авто-дохода в секунду
+        function calculateIncomePerSecond() {
+            let income = 0;
+            for (const upgrade in upgrades) {
+                if (upgrades[upgrade].type === 'auto') {
+                    income += upgrades[upgrade].level * upgrades[upgrade].baseIncome;
+                }
+            }
+            return income;
+        }
+        
+        // Обновление накопленного авто-дохода
+        function updateAccumulatedIncome() {
+            const currentTime = Date.now();
+            const elapsedSeconds = (currentTime - lastUpdateTime) / 1000;
+            const incomePerSecond = calculateIncomePerSecond();
+            accumulatedIncome += incomePerSecond * elapsedSeconds;
+            lastUpdateTime = currentTime;
+            return accumulatedIncome;
+        }
+        
+        // Клик по монетке
+        function clickCoin() {
+            const clickValue = calculateClickValue();
+            let finalValue = clickValue;
+            
+            // Шанс критического удара
+            if (upgrades.critical_click.level > 0 && Math.random() < 0.1) {
+                finalValue = clickValue * upgrades.critical_click.baseValue;
+                createCoinParticle(finalValue, true);
+            } else {
+                createCoinParticle(finalValue, false);
+            }
+            
+            userData.balance += finalValue;
+            userData.totalEarned += finalValue;
+            userData.totalClicks = (userData.totalClicks || 0) + 1;
+            
+            updateUI();
+            sendToBot('coin_clicked', { value: finalValue, totalClicks: userData.totalClicks });
+        }
+        
+        // Создание анимации монетки при клике
+        function createCoinParticle(value, isCritical) {
+            const coin = document.querySelector('.click-coin');
+            const rect = coin.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            
+            const particle = document.createElement('div');
+            particle.className = 'coin-particle';
+            particle.textContent = `+${value}S`;
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            
+            if (isCritical) {
+                particle.style.color = '#FF5722';
+                particle.style.fontSize = '24px';
+                particle.style.fontWeight = 'bold';
+            }
+            
+            // Случайное направление полета
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * 50;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            particle.style.setProperty('--tx', tx + 'px');
+            particle.style.setProperty('--ty', -ty + 'px');
+            
+            document.body.appendChild(particle);
+            
+            setTimeout(() => {
+                document.body.removeChild(particle);
+            }, 1000);
+        }
+        
+        // Покупка улучшения
+        function buyUpgrade(upgradeType) {
+            const upgrade = upgrades[upgradeType];
+            if (userData.balance >= upgrade.price) {
+                userData.balance -= upgrade.price;
+                upgrade.level++;
+                
+                // Увеличиваем цену для следующего уровня
+                upgrade.price = Math.floor(upgrade.basePrice * Math.pow(1.5, upgrade.level));
+                
+                updateUI();
+                sendToBot('upgrade_purchased', { 
+                    upgrade: upgradeType, 
+                    level: upgrade.level,
+                    price: upgrade.price 
+                });
+                
+                tg.showPopup({
+                    title: '✅ Улучшение куплено!',
+                    message: `${upgradeType.replace('_', ' ')} уровень ${upgrade.level}`,
+                    buttons: [{ type: 'ok' }]
+                });
+            } else {
+                tg.showPopup({
+                    title: '❌ Недостаточно средств',
+                    message: `Нужно ещё ${(upgrade.price - userData.balance).toFixed(2)} S`,
+                    buttons: [{ type: 'ok' }]
+                });
+            }
+        }
+        
+        // Забрать авто-доход
+        function collectAutoIncome() {
+            const income = updateAccumulatedIncome();
+            if (income > 0) {
+                userData.balance += income;
+                userData.totalEarned += income;
+                accumulatedIncome = 0;
+                
+                updateUI();
+                sendToBot('auto_income_collected', { amount: income });
+                
+                tg.showPopup({
+                    title: '💰 Авто-доход зачислен!',
+                    message: `Получено: ${income.toFixed(6)} S`,
+                    buttons: [{ type: 'ok' }]
+                });
+            } else {
+                tg.showPopup({
+                    title: '💤 Нет авто-дохода',
+                    message: 'Купите авто-улучшения!',
+                    buttons: [{ type: 'ok' }]
+                });
+            }
+        }
+        
+        // Переключение секций
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            document.getElementById(sectionName + '-section').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Обновление интерфейса
+        function updateUI() {
+            const clickValue = calculateClickValue();
+            const incomePerSecond = calculateIncomePerSecond();
+            const pendingIncome = updateAccumulatedIncome();
+            
+            document.getElementById('balanceValue').textContent = userData.balance.toFixed(2);
+            document.getElementById('clickValue').textContent = clickValue;
+            document.getElementById('incomePerSecond').textContent = `+${incomePerSecond.toFixed(6)} S/сек`;
+            document.getElementById('totalEarned').textContent = `${userData.totalEarned.toFixed(2)} S`;
+            
+            // Обновляем сообщение о доходе
+            document.getElementById('incomeMessage').innerHTML = 
+                pendingIncome > 0 ? 
+                `Накоплено авто-дохода: <strong>${pendingIncome.toFixed(6)} S</strong>` :
+                `Кликайте на монетку! За клик: <strong>+${clickValue} S</strong>`;
+            
+            // Обновляем уровни и цены улучшений
+            for (const upgrade in upgrades) {
+                const element = document.getElementById(upgrade + '-level');
+                const priceElement = document.getElementById(upgrade + '-price');
+                if (element) element.textContent = upgrades[upgrade].level;
+                if (priceElement) priceElement.textContent = upgrades[upgrade].price + ' S';
+            }
+        }
+        
+        // Отправка данных в бота
+        function sendToBot(actionType, data = {}) {
+            const message = {
+                type: actionType,
+                timestamp: Date.now(),
+                balance: userData.balance,
+                ...data
+            };
+            if (tg.sendData) {
+                tg.sendData(JSON.stringify(message));
+            }
+        }
+        
+        // Инициализация приложения
+        function initializeApp() {
+            userData = {
+                balance: 10,
+                totalEarned: 10,
+                totalClicks: 0
+            };
+            
+            lastUpdateTime = Date.now();
+            updateUI();
+            
+            // Запускаем авто-обновление
+            setInterval(updateUI, 1000);
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            
+            if (tg.ready) {
+                tg.ready();
+            }
+            
+            console.log('Sparkcoin App initialized successfully');
+        }
+        
+        // Запуск при загрузке
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
