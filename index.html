@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bytecoin</title>
+    <title>Sparkcoin</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -56,7 +56,7 @@
             margin-bottom: 10px;
         }
         
-        /* Кликабельная монетка */
+        /* Синяя монетка с буквой S */
         .coin-section {
             text-align: center;
             margin: 15px 0;
@@ -65,16 +65,16 @@
         .click-coin {
             width: 100px;
             height: 100px;
-            background: linear-gradient(135deg, #FFD700, #FFA500);
+            background: linear-gradient(135deg, #2196F3, #1976D2);
             border-radius: 50%;
             display: inline-flex;
             justify-content: center;
             align-items: center;
             box-shadow: 
-                0 10px 25px rgba(255, 215, 0, 0.4),
+                0 10px 25px rgba(33, 150, 243, 0.4),
                 inset 0 -5px 10px rgba(0,0,0,0.3),
                 inset 0 5px 10px rgba(255,255,255,0.3);
-            border: 3px solid #FFEC8B;
+            border: 3px solid #64B5F6;
             cursor: pointer;
             transition: all 0.1s ease;
             position: relative;
@@ -84,7 +84,7 @@
         .click-coin:active {
             transform: scale(0.95);
             box-shadow: 
-                0 5px 15px rgba(255, 215, 0, 0.6),
+                0 5px 15px rgba(33, 150, 243, 0.6),
                 inset 0 -3px 8px rgba(0,0,0,0.4);
         }
         
@@ -157,8 +157,8 @@
         }
         
         .nav-tab.active {
-            background: #4CC9F0;
-            color: #1a1a2e;
+            background: #2196F3;
+            color: white;
             font-weight: bold;
         }
         
@@ -170,7 +170,34 @@
             display: block;
         }
         
-        /* Стили для магазина */
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .notification.success {
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .notification.error {
+            border-left: 4px solid #F44336;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translate(-50%, -100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        
+        /* Магазин */
         .shop-category {
             margin-bottom: 15px;
         }
@@ -178,10 +205,10 @@
         .category-title {
             font-size: 16px;
             font-weight: bold;
-            color: #4CC9F0;
+            color: #2196F3;
             margin-bottom: 10px;
             padding-bottom: 5px;
-            border-bottom: 1px solid rgba(76, 201, 240, 0.3);
+            border-bottom: 1px solid rgba(33, 150, 243, 0.3);
         }
         
         .upgrade-item {
@@ -195,14 +222,7 @@
         .upgrade-name {
             font-weight: bold;
             margin-bottom: 5px;
-            color: #FFD700;
-        }
-        
-        .upgrade-description {
-            font-size: 11px;
-            color: #ccc;
-            margin-bottom: 8px;
-            line-height: 1.3;
+            color: #2196F3;
         }
         
         .upgrade-stats {
@@ -210,6 +230,7 @@
             justify-content: space-between;
             font-size: 11px;
             margin-bottom: 8px;
+            flex-wrap: wrap;
         }
         
         .upgrade-bonus {
@@ -223,10 +244,11 @@
         .upgrade-price {
             color: #F44336;
             font-family: 'Courier New', monospace;
+            font-weight: bold;
         }
         
         .buy-button {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
+            background: linear-gradient(135deg, #2196F3, #1976D2);
             border: none;
             color: white;
             padding: 8px 15px;
@@ -238,7 +260,7 @@
         }
         
         .buy-button:hover {
-            background: linear-gradient(135deg, #45a049, #4CAF50);
+            background: linear-gradient(135deg, #1976D2, #2196F3);
         }
         
         .buy-button:disabled {
@@ -247,26 +269,105 @@
             opacity: 0.6;
         }
         
-        /* Анимация частиц */
-        .coin-particle {
-            position: fixed;
-            font-size: 16px;
-            font-weight: bold;
-            color: #FFD700;
-            pointer-events: none;
-            z-index: 1000;
-            animation: coin-float 1s ease-out forwards;
+        /* Рейтинг */
+        .rating-tabs {
+            display: flex;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 5px;
         }
         
-        @keyframes coin-float {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty)) scale(0);
-                opacity: 0;
-            }
+        .rating-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .rating-tab.active {
+            background: #2196F3;
+        }
+        
+        .leaderboard {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .leader-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+        }
+        
+        .leader-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .leader-name {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .leader-balance {
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .leader-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            font-size: 10px;
+            color: #ccc;
+        }
+        
+        /* Игры */
+        .games-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .game-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+        
+        .game-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2196F3;
+        }
+        
+        .game-description {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .play-button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
         }
         
         .hidden {
@@ -282,31 +383,31 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bytecoin</h1>
+            <h1>Sparkcoin</h1>
         </div>
         
         <div class="balance-section">
-            <div class="balance-amount" id="balanceValue">0.000000000</div>
+            <div class="balance-amount" id="balanceValue">0.000000000 S</div>
             
-            <!-- Кликабельная монетка -->
+            <!-- Синяя монетка с буквой S -->
             <div class="coin-section">
                 <div class="click-coin" onclick="clickCoin()">
-                    <div class="coin-letter">₿</div>
+                    <div class="coin-letter">S</div>
                 </div>
                 <div class="click-info">
                     Нажмите на монетку!<br>
-                    <span class="click-value">+<span id="clickValue">0.000000001</span> за клик</span>
+                    <span class="click-value">+<span id="clickValue">0.000000001</span> S за клик</span>
                 </div>
             </div>
             
             <div class="income-stats">
                 <div class="stat-item">
                     Скорость клика: <br>
-                    <span class="stat-value" id="clickSpeed">0.000000001</span>
+                    <span class="stat-value" id="clickSpeed">0.000000001 S/сек</span>
                 </div>
                 <div class="stat-item">
                     Скорость майнинга: <br>
-                    <span class="stat-value" id="mineSpeed">0.000000001</span>
+                    <span class="stat-value" id="mineSpeed">0.000000001 S/сек</span>
                 </div>
             </div>
         </div>
@@ -314,7 +415,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showSection('main')">Главная</button>
             <button class="nav-tab" onclick="showSection('games')">Игры</button>
-            <button class="nav-tab" onclick="showSection('top')">Топ</button>
+            <button class="nav-tab" onclick="showSection('top')">Рейтинг</button>
             <button class="nav-tab" onclick="showSection('shop')">Магазин</button>
             <button class="nav-tab" onclick="showSection('referrals')">Рефералы</button>
         </div>
@@ -322,64 +423,85 @@
         <!-- Главная секция -->
         <div id="main-section" class="section active">
             <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                Добро пожаловать в Bytecoin!<br>
+                Добро пожаловать в Sparkcoin!<br>
                 Кликайте на монетку и улучшайте свои показатели в магазине.
             </div>
         </div>
         
         <!-- Игры -->
         <div id="games-section" class="section">
-            <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                Раздел игр в разработке...<br>
-                Скоро здесь появятся увлекательные игры!
+            <div class="games-grid">
+                <div class="game-card">
+                    <div class="game-title">🎰 Классическая лотерея</div>
+                    <div class="game-description">
+                        Сделайте ставку и выигрывайте крупные суммы! Чем больше ставка - тем выше шанс на победу.
+                    </div>
+                    <button class="play-button" onclick="showGame('lottery')">Играть</button>
+                </div>
+                
+                <div class="game-card">
+                    <div class="game-title">👥 Командная лотерея</div>
+                    <div class="game-description">
+                        Присоединяйтесь к команде Орлов или Решек. Побеждает команда с большей общей ставкой!
+                    </div>
+                    <button class="play-button" onclick="showGame('team_lottery')">Играть</button>
+                </div>
+                
+                <div class="game-card">
+                    <div class="game-title">⚓ Морской бой</div>
+                    <div class="game-description">
+                        Классическая игра с ставками до 100,000 S. Расставляйте корабли и топьте флот противника!
+                    </div>
+                    <button class="play-button" onclick="showGame('battle')">Играть</button>
+                </div>
+                
+                <div class="game-card">
+                    <div class="game-title">🎯 Рулетка</div>
+                    <div class="game-description">
+                        Ставьте на цвет или число. Выигрыш до x36! Испытайте удачу в классической рулетке.
+                    </div>
+                    <button class="play-button" onclick="showGame('roulette')">Играть</button>
+                </div>
             </div>
         </div>
         
-        <!-- Топ игроков -->
+        <!-- Рейтинг -->
         <div id="top-section" class="section">
-            <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                Топ игроков в разработке...
+            <div class="rating-tabs">
+                <button class="rating-tab active" onclick="showRatingTab('balance')">По балансу</button>
+                <button class="rating-tab" onclick="showRatingTab('click')">По клику</button>
+                <button class="rating-tab" onclick="showRatingTab('mining')">По майнингу</button>
+            </div>
+            
+            <div class="leaderboard" id="leaderboard">
+                <!-- Рейтинг загружается динамически -->
             </div>
         </div>
         
         <!-- Магазин -->
         <div id="shop-section" class="section">
             <div class="tab-content">
-                <!-- Видеокарты -->
+                <!-- Мышки -->
                 <div class="shop-category">
-                    <div class="category-title">🎮 Видеокарты</div>
-                    <div class="category-description" style="font-size: 11px; color: #ccc; margin-bottom: 10px;">
-                        Видеокарты увеличивают скорость автоматического майнинга, пока Вы находитесь в игре.
+                    <div class="category-title">🖱️ Игровые мышки</div>
+                    <div class="upgrade-item">
+                        <div class="upgrade-name">Spark Clicker Basic</div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000001 S/клик</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-price">Цена: <span id="mouse1-price">1.00</span> S</div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse1')">Купить</button>
                     </div>
                     
                     <div class="upgrade-item">
-                        <div class="upgrade-name">Интегрированная видеокарта</div>
+                        <div class="upgrade-name">Quantum Click Pro</div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000001 к скорости</span>
-                            <span class="upgrade-owned">Куплено: <span id="gpu1-owned">0</span></span>
+                            <span class="upgrade-bonus">+0.000000008 S/клик</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse2-owned">0</span></span>
                         </div>
-                        <div class="upgrade-price">Цена: <span id="gpu1-price">0.000000819</span></div>
-                        <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
-                    </div>
-                    
-                    <div class="upgrade-item">
-                        <div class="upgrade-name">Видеокарта-затычка</div>
-                        <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000008 к скорости</span>
-                            <span class="upgrade-owned">Куплено: <span id="gpu2-owned">0</span></span>
-                        </div>
-                        <div class="upgrade-price">Цена: <span id="gpu2-price">0.000001606</span></div>
-                        <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
-                    </div>
-                    
-                    <div class="upgrade-item">
-                        <div class="upgrade-name">Видеокарта Mining V100</div>
-                        <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000064 к скорости</span>
-                            <span class="upgrade-owned">Куплено: <span id="gpu3-owned">0</span></span>
-                        </div>
-                        <div class="upgrade-price">Цена: <span id="gpu3-price">0.000025702</span></div>
-                        <button class="buy-button" onclick="buyUpgrade('gpu3')">Купить</button>
+                        <div class="upgrade-price">Цена: <span id="mouse2-price">10.00</span> S</div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse2')">Купить</button>
                     </div>
                 </div>
                 
@@ -387,23 +509,57 @@
                 <div class="shop-category">
                     <div class="category-title">💻 Процессоры</div>
                     <div class="upgrade-item">
-                        <div class="upgrade-name">Базовый процессор</div>
+                        <div class="upgrade-name">Spark Processor S1</div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000001 к клику</span>
+                            <span class="upgrade-bonus">+0.000000001 S/сек</span>
                             <span class="upgrade-owned">Куплено: <span id="cpu1-owned">0</span></span>
                         </div>
-                        <div class="upgrade-price">Цена: <span id="cpu1-price">0.000000500</span></div>
+                        <div class="upgrade-price">Цена: <span id="cpu1-price">5.00</span> S</div>
                         <button class="buy-button" onclick="buyUpgrade('cpu1')">Купить</button>
                     </div>
                     
                     <div class="upgrade-item">
-                        <div class="upgrade-name">Игровой процессор</div>
+                        <div class="upgrade-name">Neural Core X5</div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000005 к клику</span>
+                            <span class="upgrade-bonus">+0.000000064 S/сек</span>
                             <span class="upgrade-owned">Куплено: <span id="cpu2-owned">0</span></span>
                         </div>
-                        <div class="upgrade-price">Цена: <span id="cpu2-price">0.000002000</span></div>
+                        <div class="upgrade-price">Цена: <span id="cpu2-price">100.00</span> S</div>
                         <button class="buy-button" onclick="buyUpgrade('cpu2')">Купить</button>
+                    </div>
+                </div>
+                
+                <!-- Видеокарты -->
+                <div class="shop-category">
+                    <div class="category-title">🎮 Видеокарты</div>
+                    <div class="upgrade-item">
+                        <div class="upgrade-name">Spark Miner GTX</div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000032768 S/сек</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-price">Цена: <span id="gpu1-price">1.12</span> S</div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-name">Blue Earth 54</div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000262144 S/сек</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-price">Цена: <span id="gpu2-price">51.02</span> S</div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-name">Big Bang Ultimate</div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.002097152 S/сек</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-price">Цена: <span id="gpu3-price">1.38K</span> S</div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu3')">Купить</button>
                     </div>
                 </div>
                 
@@ -411,12 +567,12 @@
                 <div class="shop-category">
                     <div class="category-title">🏭 Майнинг-фермы</div>
                     <div class="upgrade-item">
-                        <div class="upgrade-name">Домашняя ферма</div>
+                        <div class="upgrade-name">Spark Farm Mini</div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000100 к скорости</span>
+                            <span class="upgrade-bonus">+0.010000000 S/сек</span>
                             <span class="upgrade-owned">Куплено: <span id="farm1-owned">0</span></span>
                         </div>
-                        <div class="upgrade-price">Цена: <span id="farm1-price">0.000100000</span></div>
+                        <div class="upgrade-price">Цена: <span id="farm1-price">1.00K</span> S</div>
                         <button class="buy-button" onclick="buyUpgrade('farm1')">Купить</button>
                     </div>
                 </div>
@@ -439,64 +595,133 @@
         
         // База улучшений магазина
         const upgrades = {
-            // Видеокарты (увеличивают авто-майнинг)
-            gpu1: { 
-                name: "Интегрированная видеокарта", 
-                basePrice: 0.000000819, 
+            // Мышки (увеличивают клик)
+            mouse1: { 
+                name: "Spark Clicker Basic", 
+                basePrice: 1.00, 
                 baseBonus: 0.000000001, 
                 level: 0, 
-                price: 0.000000819,
+                type: 'click' 
+            },
+            mouse2: { 
+                name: "Quantum Click Pro", 
+                basePrice: 10.00, 
+                baseBonus: 0.000000008, 
+                level: 0, 
+                type: 'click' 
+            },
+            
+            // Процессоры (увеличивают майнинг)
+            cpu1: { 
+                name: "Spark Processor S1", 
+                basePrice: 5.00, 
+                baseBonus: 0.000000001, 
+                level: 0, 
+                type: 'mining' 
+            },
+            cpu2: { 
+                name: "Neural Core X5", 
+                basePrice: 100.00, 
+                baseBonus: 0.000000064, 
+                level: 0, 
+                type: 'mining' 
+            },
+            
+            // Видеокарты (увеличивают майнинг)
+            gpu1: { 
+                name: "Spark Miner GTX", 
+                basePrice: 1.12, 
+                baseBonus: 0.000032768, 
+                level: 0, 
                 type: 'mining' 
             },
             gpu2: { 
-                name: "Видеокарта-затычка", 
-                basePrice: 0.000001606, 
-                baseBonus: 0.000000008, 
+                name: "Blue Earth 54", 
+                basePrice: 51.02, 
+                baseBonus: 0.000262144, 
                 level: 0, 
-                price: 0.000001606,
                 type: 'mining' 
             },
             gpu3: { 
-                name: "Видеокарта Mining V100", 
-                basePrice: 0.000025702, 
-                baseBonus: 0.000000064, 
+                name: "Big Bang Ultimate", 
+                basePrice: 1380.00, 
+                baseBonus: 0.002097152, 
                 level: 0, 
-                price: 0.000025702,
                 type: 'mining' 
             },
             
-            // Процессоры (увеличивают силу клика)
-            cpu1: { 
-                name: "Базовый процессор", 
-                basePrice: 0.000000500, 
-                baseBonus: 0.000000001, 
-                level: 0, 
-                price: 0.000000500,
-                type: 'click' 
-            },
-            cpu2: { 
-                name: "Игровой процессор", 
-                basePrice: 0.000002000, 
-                baseBonus: 0.000000005, 
-                level: 0, 
-                price: 0.000002000,
-                type: 'click' 
-            },
-            
-            // Фермы (увеличивают авто-майнинг)
+            // Фермы (увеличивают майнинг)
             farm1: { 
-                name: "Домашняя ферма", 
-                basePrice: 0.000100000, 
-                baseBonus: 0.000000100, 
+                name: "Spark Farm Mini", 
+                basePrice: 1000.00, 
+                baseBonus: 0.010000000, 
                 level: 0, 
-                price: 0.000100000,
                 type: 'mining' 
             }
         };
-        
+
+        // Рейтинг игроков (пример данных)
+        const leaderboardData = [
+            { name: "Даннил", balance: 162964971.59, clickSpeed: 0.000000001, mineSpeed: 0.000000000 },
+            { name: "Марсель", balance: 100329685.86, clickSpeed: 0.000000001, mineSpeed: 0.000000002 },
+            { name: "Александр Мишуков", balance: 74403132.00, clickSpeed: 0.031357633, mineSpeed: 0.095784341 },
+            { name: "Vadim", balance: 70000000.99, clickSpeed: 0.000000001, mineSpeed: 0.000000001 },
+            { name: "Тема", balance: 1291.67, clickSpeed: 0.000000001, mineSpeed: 0.000000001 }
+        ];
+
         // Инициализация Web App
         tg.expand();
         tg.enableClosingConfirmation();
+        
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
+        }
+        
+        // Загрузка данных пользователя
+        function loadUserData() {
+            const savedData = localStorage.getItem('sparkcoin_user_data');
+            if (savedData) {
+                userData = JSON.parse(savedData);
+                // Загружаем уровни улучшений
+                const savedUpgrades = localStorage.getItem('sparkcoin_upgrades');
+                if (savedUpgrades) {
+                    const upgradesData = JSON.parse(savedUpgrades);
+                    for (const key in upgradesData) {
+                        if (upgrades[key]) {
+                            upgrades[key].level = upgradesData[key];
+                        }
+                    }
+                }
+            } else {
+                userData = {
+                    balance: 10.00,
+                    totalEarned: 10.00,
+                    totalClicks: 0,
+                    username: tg.initDataUnsafe?.user?.first_name || 'Игрок'
+                };
+            }
+            updateUI();
+        }
+        
+        // Сохранение данных пользователя
+        function saveUserData() {
+            localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
+            
+            // Сохраняем уровни улучшений
+            const upgradesData = {};
+            for (const key in upgrades) {
+                upgradesData[key] = upgrades[key].level;
+            }
+            localStorage.setItem('sparkcoin_upgrades', JSON.stringify(upgradesData));
+        }
         
         // Расчет силы клика
         function calculateClickPower() {
@@ -537,79 +762,40 @@
             userData.totalEarned += clickPower;
             userData.totalClicks = (userData.totalClicks || 0) + 1;
             
-            // Создаем анимацию частицы
-            createCoinParticle(clickPower);
-            
             updateUI();
+            saveUserData();
             sendToBot('coin_clicked', { 
                 value: clickPower, 
                 totalClicks: userData.totalClicks 
             });
-        }
-        
-        // Анимация частицы при клике
-        function createCoinParticle(value) {
-            const coin = document.querySelector('.click-coin');
-            const rect = coin.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
             
-            const particle = document.createElement('div');
-            particle.className = 'coin-particle';
-            particle.textContent = `+${value.toFixed(9)}`;
-            particle.style.left = x + 'px';
-            particle.style.top = y + 'px';
-            
-            // Случайное направление
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 30 + Math.random() * 20;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.setProperty('--tx', tx + 'px');
-            particle.style.setProperty('--ty', -ty + 'px');
-            
-            document.body.appendChild(particle);
-            
-            setTimeout(() => {
-                if (particle.parentNode) {
-                    document.body.removeChild(particle);
-                }
-            }, 1000);
+            showNotification(`+${clickPower.toFixed(9)} S`, 'success');
         }
         
         // Покупка улучшения
         function buyUpgrade(upgradeType) {
             const upgrade = upgrades[upgradeType];
-            if (userData.balance >= upgrade.price) {
-                userData.balance -= upgrade.price;
+            const currentPrice = upgrade.basePrice * Math.pow(1.15, upgrade.level);
+            
+            if (userData.balance >= currentPrice) {
+                userData.balance -= currentPrice;
                 upgrade.level++;
                 
-                // Увеличиваем цену для следующего уровня (15% за уровень)
-                upgrade.price = upgrade.basePrice * Math.pow(1.15, upgrade.level);
-                
                 updateUI();
+                saveUserData();
                 sendToBot('upgrade_purchased', { 
                     upgrade: upgradeType, 
                     level: upgrade.level,
-                    price: upgrade.price 
+                    price: currentPrice 
                 });
                 
-                tg.showPopup({
-                    title: '✅ Улучшение куплено!',
-                    message: `${upgrade.name} уровень ${upgrade.level}`,
-                    buttons: [{ type: 'ok' }]
-                });
+                showNotification(`✅ ${upgrade.name} куплено! Уровень ${upgrade.level}`, 'success');
             } else {
-                tg.showPopup({
-                    title: '❌ Недостаточно средств',
-                    message: `Нужно ещё ${(upgrade.price - userData.balance).toFixed(9)}`,
-                    buttons: [{ type: 'ok' }]
-                });
+                showNotification('❌ Недостаточно средств', 'error');
             }
         }
         
-        // Навигация по секциям
+        // Навигация
         function showSection(sectionName) {
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
@@ -620,6 +806,68 @@
             
             document.getElementById(sectionName + '-section').classList.add('active');
             event.target.classList.add('active');
+            
+            if (sectionName === 'top') {
+                loadLeaderboard('balance');
+            }
+        }
+        
+        // Рейтинг
+        function showRatingTab(tab) {
+            document.querySelectorAll('.rating-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            loadLeaderboard(tab);
+        }
+        
+        function loadLeaderboard(type) {
+            const leaderboard = document.getElementById('leaderboard');
+            let sortedData = [...leaderboardData];
+            
+            // Добавляем текущего пользователя в рейтинг
+            const currentUser = {
+                name: userData.username,
+                balance: userData.balance,
+                clickSpeed: calculateClickPower(),
+                mineSpeed: calculateMiningSpeed()
+            };
+            
+            if (!sortedData.find(p => p.name === currentUser.name)) {
+                sortedData.push(currentUser);
+            }
+            
+            // Сортировка по выбранному типу
+            if (type === 'click') {
+                sortedData.sort((a, b) => b.clickSpeed - a.clickSpeed);
+            } else if (type === 'mining') {
+                sortedData.sort((a, b) => b.mineSpeed - a.mineSpeed);
+            } else {
+                sortedData.sort((a, b) => b.balance - a.balance);
+            }
+            
+            leaderboard.innerHTML = '';
+            sortedData.forEach((player, index) => {
+                const item = document.createElement('div');
+                item.className = 'leader-item';
+                item.innerHTML = `
+                    <div class="leader-header">
+                        <span class="leader-name">${player.name}</span>
+                        <span class="leader-balance">${player.balance.toFixed(2)} S</span>
+                    </div>
+                    <div class="leader-stats">
+                        <span>Клик: ${player.clickSpeed.toFixed(9)} S/сек</span>
+                        <span>Майнинг: ${player.mineSpeed.toFixed(9)} S/сек</span>
+                    </div>
+                `;
+                leaderboard.appendChild(item);
+            });
+        }
+        
+        // Игры
+        function showGame(gameType) {
+            showNotification(`🎮 Загрузка игры "${gameType}"...`, 'success');
+            // Здесь будет логика загрузки конкретной игры
         }
         
         // Обновление интерфейса
@@ -628,18 +876,32 @@
             const miningSpeed = calculateMiningSpeed();
             const pendingIncome = updateAccumulatedIncome();
             
-            // Обновляем баланс и показатели
-            document.getElementById('balanceValue').textContent = userData.balance.toFixed(9);
-            document.getElementById('clickValue').textContent = clickPower.toFixed(9);
-            document.getElementById('clickSpeed').textContent = clickPower.toFixed(9);
-            document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9);
+            // Автоматическое зачисление дохода
+            if (pendingIncome > 0.000000001) {
+                userData.balance += pendingIncome;
+                userData.totalEarned += pendingIncome;
+                accumulatedIncome = 0;
+            }
             
-            // Обновляем магазин
+            document.getElementById('balanceValue').textContent = userData.balance.toFixed(2) + ' S';
+            document.getElementById('clickValue').textContent = clickPower.toFixed(9);
+            document.getElementById('clickSpeed').textContent = clickPower.toFixed(9) + ' S/сек';
+            document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
+            
+            // Обновляем цены в магазине
             for (const upgrade in upgrades) {
+                const currentPrice = upgrades[upgrade].basePrice * Math.pow(1.15, upgrades[upgrade].level);
                 const ownedElement = document.getElementById(upgrade + '-owned');
                 const priceElement = document.getElementById(upgrade + '-price');
+                
                 if (ownedElement) ownedElement.textContent = upgrades[upgrade].level;
-                if (priceElement) priceElement.textContent = upgrades[upgrade].price.toFixed(9);
+                if (priceElement) {
+                    if (currentPrice >= 1000) {
+                        priceElement.textContent = (currentPrice/1000).toFixed(2) + 'K';
+                    } else {
+                        priceElement.textContent = currentPrice.toFixed(2);
+                    }
+                }
             }
         }
         
@@ -648,6 +910,8 @@
             const message = {
                 type: actionType,
                 timestamp: Date.now(),
+                user_id: tg.initDataUnsafe?.user?.id,
+                username: userData.username,
                 balance: userData.balance,
                 ...data
             };
@@ -656,33 +920,19 @@
             }
         }
         
-        // Инициализация приложения
+        // Инициализация
         function initializeApp() {
-            userData = {
-                balance: 3.705682499,
-                totalEarned: 3.705682499,
-                totalClicks: 0
-            };
+            loadUserData();
             
-            lastUpdateTime = Date.now();
-            updateUI();
+            // Авто-сохранение каждые 30 секунд
+            setInterval(saveUserData, 30000);
             
-            // Авто-обновление каждую секунду
-            setInterval(() => {
-                const income = updateAccumulatedIncome();
-                if (income > 0) {
-                    userData.balance += income;
-                    userData.totalEarned += income;
-                    accumulatedIncome = 0;
-                    updateUI();
-                }
-            }, 1000);
+            // Авто-обновление интерфейса
+            setInterval(updateUI, 1000);
             
             tg.ready();
-            console.log('Bytecoin App initialized');
         }
         
-        // Запуск при загрузке
         document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
