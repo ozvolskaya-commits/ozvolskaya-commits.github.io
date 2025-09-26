@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparkcoin Mini App</title>
+    <title>Bytecoin</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -14,271 +14,115 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
-            padding: 20px;
             color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding: 0;
         }
         
         .container {
             max-width: 400px;
-            width: 100%;
+            margin: 0 auto;
+            padding: 15px;
         }
         
         .header {
             text-align: center;
             margin-bottom: 20px;
+            padding-top: 10px;
         }
         
         .header h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            color: #4CC9F0;
+            margin-bottom: 5px;
         }
         
-        /* Стили для кликабельной монетки */
-        .coin-section {
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .click-coin {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-            border-radius: 50%;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 
-                0 15px 35px rgba(33, 150, 243, 0.4),
-                inset 0 -8px 15px rgba(0,0,0,0.2),
-                inset 0 8px 15px rgba(255,255,255,0.3);
-            border: 4px solid #64B5F6;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            position: relative;
-            user-select: none;
-        }
-        
-        .click-coin:active {
-            transform: scale(0.95);
-            box-shadow: 
-                0 5px 15px rgba(33, 150, 243, 0.6),
-                inset 0 -3px 8px rgba(0,0,0,0.3);
-        }
-        
-        .click-coin::before {
-            content: '';
-            position: absolute;
-            width: 92%;
-            height: 92%;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-        }
-        
-        .coin-letter {
-            font-size: 48px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 3px 6px rgba(0,0,0,0.3);
-            font-family: 'Arial', sans-serif;
-        }
-        
-        .click-info {
-            margin-top: 15px;
-            font-size: 14px;
-            color: rgba(255,255,255,0.8);
-        }
-        
-        .click-value {
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        
-        /* Анимация появления монеток при клике */
-        .coin-particle {
-            position: fixed;
-            font-size: 20px;
-            font-weight: bold;
-            color: #4CAF50;
-            pointer-events: none;
-            z-index: 1000;
-            animation: coin-float 1s ease-out forwards;
-        }
-        
-        @keyframes coin-float {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty)) scale(0);
-                opacity: 0;
-            }
-        }
-        
-        .balance-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 20px;
+        .balance-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
             margin-bottom: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             text-align: center;
+            border: 1px solid rgba(76, 201, 240, 0.3);
         }
         
         .balance-amount {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: bold;
-            color: #2E7D32;
-            margin-bottom: 10px;
+            color: #4CC9F0;
             font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
         }
         
-        .income-message {
-            background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 13px;
-            color: #1565C0;
-            text-align: center;
-            border-left: 4px solid #2196F3;
-        }
-        
-        .action-buttons {
+        .income-stats {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .nav-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .nav-tab {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tab.active {
+            background: #4CC9F0;
+            color: #1a1a2e;
+        }
+        
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            margin: 12px 0;
+            margin-bottom: 15px;
         }
         
         .action-button {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
+            background: rgba(76, 201, 240, 0.2);
+            border: 1px solid #4CC9F0;
             color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .action-button:hover {
-            transform: translateY(-2px);
-        }
-        
-        .action-button.blue {
-            background: linear-gradient(135deg, #2196F3, #1976D2);
-        }
-        
-        .upgrades-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin: 12px 0;
-        }
-        
-        .upgrade-button {
-            background: rgba(255, 255, 255, 0.9);
-            border: none;
-            border-radius: 10px;
             padding: 12px 8px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #333;
+            border-radius: 10px;
             cursor: pointer;
+            font-size: 12px;
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
         
-        .upgrade-button:hover {
-            background: rgba(255, 255, 255, 1);
-            transform: translateY(-2px);
-        }
-        
-        .upgrade-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .upgrade-price {
-            font-size: 10px;
-            color: #666;
-        }
-        
-        .upgrade-level {
-            font-size: 9px;
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-        }
-        
-        .stat-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .stat-label {
-            font-size: 10px;
-            color: #666;
-            margin-top: 4px;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .tab-buttons {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 15px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 4px;
-        }
-        
-        .tab-button {
-            flex: 1;
-            background: none;
-            border: none;
-            color: white;
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-        
-        .tab-button.active {
-            background: rgba(255,255,255,0.2);
+        .action-button:hover {
+            background: rgba(76, 201, 240, 0.3);
         }
         
         .section {
@@ -289,407 +133,521 @@
             display: block;
         }
         
-        @media (max-width: 360px) {
-            .click-coin {
-                width: 100px;
-                height: 100px;
-            }
-            
-            .coin-letter {
-                font-size: 40px;
-            }
-            
-            .balance-amount {
-                font-size: 32px;
-            }
+        .games-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .game-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #4CC9F0;
+        }
+        
+        .game-description {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .play-button {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        /* Стили для морского боя */
+        .battle-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            margin: 10px 0;
+        }
+        
+        .battle-cell {
+            width: 25px;
+            height: 25px;
+            background: rgba(76, 201, 240, 0.2);
+            border: 1px solid #4CC9F0;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .battle-cell.ship {
+            background: #4CC9F0;
+        }
+        
+        .battle-cell.hit {
+            background: #FF5722;
+        }
+        
+        .battle-cell.miss {
+            background: #666;
+        }
+        
+        .battle-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .bet-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #4CC9F0;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        /* Стили для лотереи */
+        .lottery-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .lottery-timer {
+            color: #FF9800;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .participant-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .participant-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        /* Топ игроков */
+        .leaderboard {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .leader-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .leader-rank {
+            font-weight: bold;
+            color: #4CC9F0;
+            min-width: 30px;
+        }
+        
+        .leader-info {
+            flex-grow: 1;
+            margin: 0 10px;
+        }
+        
+        .leader-name {
+            font-weight: bold;
+        }
+        
+        .leader-balance {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div id="app" class="hidden">
-        <div class="container">
-            <div class="header">
-                <h1>Sparkcoin</h1>
-            </div>
-            
-            <!-- Кликабельная монетка -->
-            <div class="coin-section">
-                <div class="click-coin" onclick="clickCoin()">
-                    <div class="coin-letter">S</div>
+    <div class="container">
+        <div class="header">
+            <h1>Bytecoin</h1>
+        </div>
+        
+        <div class="balance-section">
+            <div class="balance-amount" id="balanceValue">0.000000000</div>
+            <div class="income-stats">
+                <div class="stat-item">
+                    Скорость клика: <br>
+                    <span class="stat-value" id="clickSpeed">0.000000000</span>
                 </div>
-                <div class="click-info">
-                    Нажмите на монетку!<br>
-                    <span class="click-value">+<span id="clickValue">1</span> S за клик</span>
-                </div>
-            </div>
-            
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showSection('main')">🏠 Главная</button>
-                <button class="tab-button" onclick="showSection('click')">👆 Клики</button>
-                <button class="tab-button" onclick="showSection('auto')">⚡ Авто</button>
-            </div>
-            
-            <!-- Главная секция -->
-            <div id="main-section" class="section active">
-                <div class="balance-card">
-                    <div class="balance-amount">
-                        <span id="balanceValue">0</span>
-                        <span>S</span>
-                    </div>
-                    
-                    <div class="income-message" id="incomeMessage">
-                        Кликайте на монетку и улучшайте доход!
-                    </div>
-                    
-                    <div class="action-buttons">
-                        <button class="action-button blue" onclick="collectAutoIncome()">
-                            <span>💰</span>
-                            Забрать авто-доход
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="incomePerSecond">+0 S/сек</div>
-                        <div class="stat-label">Авто-доход</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalEarned">0 S</div>
-                        <div class="stat-label">Всего заработано</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Улучшения кликов -->
-            <div id="click-section" class="section">
-                <div class="balance-card">
-                    <h3>👆 Улучшения кликов</h3>
-                    <div class="upgrades-grid">
-                        <button class="upgrade-button" onclick="buyUpgrade('click_power')">
-                            <span>💪</span>
-                            Сила клика
-                            <div class="upgrade-level">Ур. <span id="click_power-level">1</span></div>
-                            <div class="upgrade-price" id="click_power-price">50 S</div>
-                        </button>
-                        
-                        <button class="upgrade-button" onclick="buyUpgrade('double_click')">
-                            <span>⚡</span>
-                            Двойной клик
-                            <div class="upgrade-level">Ур. <span id="double_click-level">0</span></div>
-                            <div class="upgrade-price" id="double_click-price">200 S</div>
-                        </button>
-                        
-                        <button class="upgrade-button" onclick="buyUpgrade('triple_click')">
-                            <span>🌀</span>
-                            Тройной клик
-                            <div class="upgrade-level">Ур. <span id="triple_click-level">0</span></div>
-                            <div class="upgrade-price" id="triple_click-price">1000 S</div>
-                        </button>
-                        
-                        <button class="upgrade-button" onclick="buyUpgrade('critical_click')">
-                            <span>💥</span>
-                            Критический удар
-                            <div class="upgrade-level">Ур. <span id="critical_click-level">0</span></div>
-                            <div class="upgrade-price" id="critical_click-price">5000 S</div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Авто-улучшения -->
-            <div id="auto-section" class="section">
-                <div class="balance-card">
-                    <h3>⚡ Авто-улучшения</h3>
-                    <div class="upgrades-grid">
-                        <button class="upgrade-button" onclick="buyUpgrade('auto_clicker')">
-                            <span>🤖</span>
-                            Авто-кликер
-                            <div class="upgrade-level">Ур. <span id="auto_clicker-level">0</span></div>
-                            <div class="upgrade-price" id="auto_clicker-price">100 S</div>
-                        </button>
-                        
-                        <button class="upgrade-button" onclick="buyUpgrade('processor')">
-                            <span>💻</span>
-                            Процессор
-                            <div class="upgrade-level">Ур. <span id="processor-level">0</span></div>
-                            <div class="upgrade-price" id="processor-price">500 S</div>
-                        </button>
-                        
-                        <button class="upgrade-button" onclick="buyUpgrade('server')">
-                            <span>🖥️</span>
-                            Сервер
-                            <div class="upgrade-level">Ур. <span id="server-level">0</span></div>
-                            <div class="upgrade-price" id="server-price">2500 S</div>
-                        </button>
-                        
-                        <button class="upgrade-button" onclick="buyUpgrade('farm')">
-                            <span>🏭</span>
-                            Ферма
-                            <div class="upgrade-level">Ур. <span id="farm-level">0</span></div>
-                            <div class="upgrade-price" id="farm-price">10000 S</div>
-                        </button>
-                    </div>
+                <div class="stat-item">
+                    Скорость майнинга: <br>
+                    <span class="stat-value" id="mineSpeed">0.000000000</span>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div id="loading">
-        ⏳ Загрузка Sparkcoin App...
+        
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showSection('main')">Главная</button>
+            <button class="nav-tab" onclick="showSection('games')">Игры</button>
+            <button class="nav-tab" onclick="showSection('top')">Топ</button>
+        </div>
+        
+        <!-- Главная секция -->
+        <div id="main-section" class="section active">
+            <div class="action-grid">
+                <button class="action-button" onclick="showSection('lottery')">
+                    <span>🎰</span> Лотерея
+                </button>
+                <button class="action-button" onclick="showSection('team_lottery')">
+                    <span>👥</span> Командная
+                </button>
+                <button class="action-button" onclick="showSection('battle')">
+                    <span>⚓</span> Морской бой
+                </button>
+                <button class="action-button" onclick="showSection('shop')">
+                    <span>🏪</span> Магазин
+                </button>
+                <button class="action-button" onclick="showSection('transfer')">
+                    <span>💸</span> Перевести
+                </button>
+                <button class="action-button" onclick="showSection('referrals')">
+                    <span>👥</span> Рефералы
+                </button>
+            </div>
+        </div>
+        
+        <!-- Игры -->
+        <div id="games-section" class="section">
+            <div class="games-grid">
+                <div class="game-card">
+                    <div class="game-title">🎰 Лотерея</div>
+                    <div class="game-description">
+                        Играй в лотерею и выигрывай байткоины! 
+                        Чем больше твоя ставка — тем больше шансов на победу!
+                    </div>
+                    <button class="play-button" onclick="showSection('lottery')">Играть</button>
+                </div>
+                
+                <div class="game-card">
+                    <div class="game-title">👥 Командная лотерея</div>
+                    <div class="game-description">
+                        Две команды орел и решка ставят байткоины за свою команду.
+                        Чем больше ставка команды — тем больше шансов на победу!
+                    </div>
+                    <button class="play-button" onclick="showSection('team_lottery')">Играть</button>
+                </div>
+                
+                <div class="game-card">
+                    <div class="game-title">⚓ Морской бой</div>
+                    <div class="game-description">
+                        Классическая игра в морской бой с ставками до 100,000 коинов.
+                        Расставляй корабли и потопи флот противника!
+                    </div>
+                    <button class="play-button" onclick="showSection('battle')">Играть</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Топ игроков -->
+        <div id="top-section" class="section">
+            <div class="leaderboard" id="leaderboard">
+                <!-- Топ будет загружен динамически -->
+            </div>
+        </div>
+        
+        <!-- Лотерея -->
+        <div id="lottery-section" class="section">
+            <div class="lottery-card">
+                <div class="game-title">🎰 Лотерея</div>
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showLotteryTab('play')">Играть</button>
+                    <button class="nav-tab" onclick="showLotteryTab('winners')">Победители</button>
+                    <button class="nav-tab" onclick="showLotteryTab('top')">Топ</button>
+                </div>
+                
+                <div id="lottery-play" class="lottery-tab">
+                    <input type="number" class="bet-input" id="lotteryBet" placeholder="Сумма коинов" value="10" min="1">
+                    <input type="text" class="bet-input" id="lotteryComment" placeholder="Комментарий">
+                    <button class="play-button" onclick="playLottery()">Сыграть</button>
+                    
+                    <div class="lottery-timer" id="lotteryTimer">Общая ставка: 0 • Осталось 0 сек.</div>
+                    <div class="participant-list" id="lotteryParticipants">
+                        <!-- Участники -->
+                    </div>
+                </div>
+                
+                <div id="lottery-winners" class="lottery-tab hidden">
+                    <!-- Победители -->
+                </div>
+                
+                <div id="lottery-top" class="lottery-tab hidden">
+                    <!-- Топ победителей -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Командная лотерея -->
+        <div id="team-lottery-section" class="section">
+            <div class="lottery-card">
+                <div class="game-title">👥 Командная лотерея</div>
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showTeamTab('play')">Играть</button>
+                    <button class="nav-tab" onclick="showTeamTab('history')">История</button>
+                </div>
+                
+                <div id="team-play" class="lottery-tab">
+                    <div class="action-grid">
+                        <button class="action-button" onclick="joinTeam('eagle')">
+                            <span>🦅</span> Орел
+                        </button>
+                        <button class="action-button" onclick="joinTeam('tails')">
+                            <span>🪙</span> Решка
+                        </button>
+                    </div>
+                    
+                    <input type="number" class="bet-input" id="teamBet" placeholder="Сумма коинов" value="10" min="1">
+                    <button class="play-button" onclick="playTeamLottery()">Сыграть</button>
+                    
+                    <div class="lottery-timer" id="teamTimer">Общая ставка: 0 • Осталось 0 сек.</div>
+                    
+                    <div id="teamEagle">
+                        <h4>Команда орлов:</h4>
+                        <div class="participant-list"></div>
+                    </div>
+                    
+                    <div id="teamTails">
+                        <h4>Команда решек:</h4>
+                        <div class="participant-list"></div>
+                    </div>
+                </div>
+                
+                <div id="team-history" class="lottery-tab hidden">
+                    <!-- История командных лотерей -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Морской бой -->
+        <div id="battle-section" class="section">
+            <div class="game-card">
+                <div class="game-title">⚓ Морской бой</div>
+                
+                <div class="battle-controls">
+                    <button class="play-button" onclick="randomShips()">🎲 Расставить рандомно</button>
+                    <button class="play-button" onclick="findOpponent()">🔍 Найти соперника</button>
+                </div>
+                
+                <input type="number" class="bet-input" id="battleBet" placeholder="Ставка (макс. 100,000)" value="100" min="1" max="100000">
+                
+                <div id="battle-setup">
+                    <h4>Ваше поле:</h4>
+                    <div class="battle-grid" id="playerGrid">
+                        <!-- 10x10 grid -->
+                    </div>
+                    <button class="play-button" onclick="startBattle()">🚀 Начать бой</button>
+                </div>
+                
+                <div id="battle-game" class="hidden">
+                    <h4>Поле противника:</h4>
+                    <div class="battle-grid" id="enemyGrid"></div>
+                    <div id="battle-status">Ожидание хода...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         let userData = {};
-        let lastUpdateTime = Date.now();
-        let accumulatedIncome = 0;
+        let battleShips = [];
+        let selectedTeam = null;
         
-        // База улучшений
-        const upgrades = {
-            // Улучшения кликов
-            click_power: { basePrice: 50, baseValue: 1, level: 1, price: 50, type: 'click' },
-            double_click: { basePrice: 200, baseValue: 2, level: 0, price: 200, type: 'click' },
-            triple_click: { basePrice: 1000, baseValue: 3, level: 0, price: 1000, type: 'click' },
-            critical_click: { basePrice: 5000, baseValue: 10, level: 0, price: 5000, type: 'click' },
-            
-            // Авто-улучшения
-            auto_clicker: { basePrice: 100, baseIncome: 0.1, level: 0, price: 100, type: 'auto' },
-            processor: { basePrice: 500, baseIncome: 0.5, level: 0, price: 500, type: 'auto' },
-            server: { basePrice: 2500, baseIncome: 2, level: 0, price: 2500, type: 'auto' },
-            farm: { basePrice: 10000, baseIncome: 10, level: 0, price: 10000, type: 'auto' }
-        };
-        
-        // Инициализация Web App
+        // Инициализация
         tg.expand();
         tg.enableClosingConfirmation();
         
-        // Расчет дохода за клик
-        function calculateClickValue() {
-            let clickValue = 1;
-            for (const upgrade in upgrades) {
-                if (upgrades[upgrade].type === 'click') {
-                    clickValue += upgrades[upgrade].level * upgrades[upgrade].baseValue;
-                }
-            }
-            return clickValue;
-        }
-        
-        // Расчет авто-дохода в секунду
-        function calculateIncomePerSecond() {
-            let income = 0;
-            for (const upgrade in upgrades) {
-                if (upgrades[upgrade].type === 'auto') {
-                    income += upgrades[upgrade].level * upgrades[upgrade].baseIncome;
-                }
-            }
-            return income;
-        }
-        
-        // Обновление накопленного авто-дохода
-        function updateAccumulatedIncome() {
-            const currentTime = Date.now();
-            const elapsedSeconds = (currentTime - lastUpdateTime) / 1000;
-            const incomePerSecond = calculateIncomePerSecond();
-            accumulatedIncome += incomePerSecond * elapsedSeconds;
-            lastUpdateTime = currentTime;
-            return accumulatedIncome;
-        }
-        
-        // Клик по монетке
-        function clickCoin() {
-            const clickValue = calculateClickValue();
-            let finalValue = clickValue;
-            
-            // Шанс критического удара
-            if (upgrades.critical_click.level > 0 && Math.random() < 0.1) {
-                finalValue = clickValue * upgrades.critical_click.baseValue;
-                createCoinParticle(finalValue, true);
-            } else {
-                createCoinParticle(finalValue, false);
-            }
-            
-            userData.balance += finalValue;
-            userData.totalEarned += finalValue;
-            userData.totalClicks = (userData.totalClicks || 0) + 1;
-            
+        // Данные игрока
+        function initUserData() {
+            userData = {
+                balance: 2.817340382,
+                clickSpeed: 0.000012673,
+                mineSpeed: 0.000738439,
+                totalEarned: 0
+            };
             updateUI();
-            sendToBot('coin_clicked', { value: finalValue, totalClicks: userData.totalClicks });
-        }
-        
-        // Создание анимации монетки при клике
-        function createCoinParticle(value, isCritical) {
-            const coin = document.querySelector('.click-coin');
-            const rect = coin.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            
-            const particle = document.createElement('div');
-            particle.className = 'coin-particle';
-            particle.textContent = `+${value}S`;
-            particle.style.left = x + 'px';
-            particle.style.top = y + 'px';
-            
-            if (isCritical) {
-                particle.style.color = '#FF5722';
-                particle.style.fontSize = '24px';
-                particle.style.fontWeight = 'bold';
-            }
-            
-            // Случайное направление полета
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 50 + Math.random() * 50;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.setProperty('--tx', tx + 'px');
-            particle.style.setProperty('--ty', -ty + 'px');
-            
-            document.body.appendChild(particle);
-            
-            setTimeout(() => {
-                document.body.removeChild(particle);
-            }, 1000);
-        }
-        
-        // Покупка улучшения
-        function buyUpgrade(upgradeType) {
-            const upgrade = upgrades[upgradeType];
-            if (userData.balance >= upgrade.price) {
-                userData.balance -= upgrade.price;
-                upgrade.level++;
-                
-                // Увеличиваем цену для следующего уровня
-                upgrade.price = Math.floor(upgrade.basePrice * Math.pow(1.5, upgrade.level));
-                
-                updateUI();
-                sendToBot('upgrade_purchased', { 
-                    upgrade: upgradeType, 
-                    level: upgrade.level,
-                    price: upgrade.price 
-                });
-                
-                tg.showPopup({
-                    title: '✅ Улучшение куплено!',
-                    message: `${upgradeType.replace('_', ' ')} уровень ${upgrade.level}`,
-                    buttons: [{ type: 'ok' }]
-                });
-            } else {
-                tg.showPopup({
-                    title: '❌ Недостаточно средств',
-                    message: `Нужно ещё ${(upgrade.price - userData.balance).toFixed(2)} S`,
-                    buttons: [{ type: 'ok' }]
-                });
-            }
-        }
-        
-        // Забрать авто-доход
-        function collectAutoIncome() {
-            const income = updateAccumulatedIncome();
-            if (income > 0) {
-                userData.balance += income;
-                userData.totalEarned += income;
-                accumulatedIncome = 0;
-                
-                updateUI();
-                sendToBot('auto_income_collected', { amount: income });
-                
-                tg.showPopup({
-                    title: '💰 Авто-доход зачислен!',
-                    message: `Получено: ${income.toFixed(6)} S`,
-                    buttons: [{ type: 'ok' }]
-                });
-            } else {
-                tg.showPopup({
-                    title: '💤 Нет авто-дохода',
-                    message: 'Купите авто-улучшения!',
-                    buttons: [{ type: 'ok' }]
-                });
-            }
-        }
-        
-        // Переключение секций
-        function showSection(sectionName) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            
-            document.getElementById(sectionName + '-section').classList.add('active');
-            event.target.classList.add('active');
         }
         
         // Обновление интерфейса
         function updateUI() {
-            const clickValue = calculateClickValue();
-            const incomePerSecond = calculateIncomePerSecond();
-            const pendingIncome = updateAccumulatedIncome();
+            document.getElementById('balanceValue').textContent = userData.balance.toFixed(9);
+            document.getElementById('clickSpeed').textContent = userData.clickSpeed.toFixed(9);
+            document.getElementById('mineSpeed').textContent = userData.mineSpeed.toFixed(9);
+        }
+        
+        // Навигация по секциям
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
             
-            document.getElementById('balanceValue').textContent = userData.balance.toFixed(2);
-            document.getElementById('clickValue').textContent = clickValue;
-            document.getElementById('incomePerSecond').textContent = `+${incomePerSecond.toFixed(6)} S/сек`;
-            document.getElementById('totalEarned').textContent = `${userData.totalEarned.toFixed(2)} S`;
+            document.getElementById(sectionName + '-section').classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+        
+        // Лотерея
+        function showLotteryTab(tabName) {
+            document.querySelectorAll('.lottery-tab').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
             
-            // Обновляем сообщение о доходе
-            document.getElementById('incomeMessage').innerHTML = 
-                pendingIncome > 0 ? 
-                `Накоплено авто-дохода: <strong>${pendingIncome.toFixed(6)} S</strong>` :
-                `Кликайте на монетку! За клик: <strong>+${clickValue} S</strong>`;
+            document.getElementById('lottery-' + tabName).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+        
+        function playLottery() {
+            const bet = parseFloat(document.getElementById('lotteryBet').value);
+            if (bet > userData.balance) {
+                alert('Недостаточно средств!');
+                return;
+            }
+            // Логика лотереи
+            alert(`Ставка ${bet} коинов принята!`);
+        }
+        
+        // Командная лотерея
+        function showTeamTab(tabName) {
+            document.querySelectorAll('.lottery-tab').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
             
-            // Обновляем уровни и цены улучшений
-            for (const upgrade in upgrades) {
-                const element = document.getElementById(upgrade + '-level');
-                const priceElement = document.getElementById(upgrade + '-price');
-                if (element) element.textContent = upgrades[upgrade].level;
-                if (priceElement) priceElement.textContent = upgrades[upgrade].price + ' S';
+            document.getElementById('team-' + tabName).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+        
+        function joinTeam(team) {
+            selectedTeam = team;
+            alert(`Выбрана команда: ${team === 'eagle' ? 'Орел' : 'Решка'}`);
+        }
+        
+        function playTeamLottery() {
+            if (!selectedTeam) {
+                alert('Выберите команду!');
+                return;
+            }
+            const bet = parseFloat(document.getElementById('teamBet').value);
+            if (bet > userData.balance) {
+                alert('Недостаточно средств!');
+                return;
+            }
+            alert(`Ставка ${bet} коинов за команду ${selectedTeam === 'eagle' ? 'Орел' : 'Решка'} принята!`);
+        }
+        
+        // Морской бой
+        function initBattleGrid() {
+            const grid = document.getElementById('playerGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'battle-cell';
+                cell.addEventListener('click', () => placeShip(i));
+                grid.appendChild(cell);
             }
         }
         
-        // Отправка данных в бота
-        function sendToBot(actionType, data = {}) {
-            const message = {
-                type: actionType,
-                timestamp: Date.now(),
-                balance: userData.balance,
-                ...data
-            };
-            if (tg.sendData) {
-                tg.sendData(JSON.stringify(message));
+        function placeShip(index) {
+            const cells = document.querySelectorAll('#playerGrid .battle-cell');
+            cells[index].classList.toggle('ship');
+        }
+        
+        function randomShips() {
+            const cells = document.querySelectorAll('#playerGrid .battle-cell');
+            cells.forEach(cell => cell.classList.remove('ship'));
+            
+            // Простая расстановка 5 кораблей
+            for (let i = 0; i < 5; i++) {
+                const randomIndex = Math.floor(Math.random() * 100);
+                cells[randomIndex].classList.add('ship');
             }
         }
         
-        // Инициализация приложения
-        function initializeApp() {
-            userData = {
-                balance: 10,
-                totalEarned: 10,
-                totalClicks: 0
-            };
-            
-            lastUpdateTime = Date.now();
-            updateUI();
-            
-            // Запускаем авто-обновление
-            setInterval(updateUI, 1000);
-            
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            
-            if (tg.ready) {
-                tg.ready();
+        function findOpponent() {
+            const bet = parseFloat(document.getElementById('battleBet').value);
+            if (bet > 100000) {
+                alert('Максимальная ставка 100,000 коинов!');
+                return;
             }
-            
-            console.log('Sparkcoin App initialized successfully');
+            if (bet > userData.balance) {
+                alert('Недостаточно средств!');
+                return;
+            }
+            alert(`Поиск соперника со ставкой ${bet} коинов...`);
         }
         
-        // Запуск при загрузке
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            initializeApp();
+        function startBattle() {
+            document.getElementById('battle-setup').classList.add('hidden');
+            document.getElementById('battle-game').classList.remove('hidden');
         }
+        
+        // Загрузка топа игроков
+        function loadLeaderboard() {
+            const leaders = [
+                {name: "Данниил", balance: 500000, message: "Продажа лс"},
+                {name: "Калибара", balance: 10070, message: "Продаю байты в лс"},
+                {name: "Александр", balance: 1000, message: "Да да да"},
+                {name: "📌️🐣🐣🐣🐣", balance: 777, message: "Дарова всем, как дела?"}
+            ];
+            
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = '';
+            
+            leaders.forEach((leader, index) => {
+                const item = document.createElement('div');
+                item.className = 'leader-item';
+                item.innerHTML = `
+                    <div class="leader-rank">${index + 1}</div>
+                    <div class="leader-info">
+                        <div class="leader-name">${leader.name}</div>
+                        <div class="leader-message">${leader.message}</div>
+                    </div>
+                    <div class="leader-balance">${leader.balance.toLocaleString()}</div>
+                `;
+                leaderboard.appendChild(item);
+            });
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            initUserData();
+            initBattleGrid();
+            loadLeaderboard();
+        });
     </script>
 </body>
 </html>
