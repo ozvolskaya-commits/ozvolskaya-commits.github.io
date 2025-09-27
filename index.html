@@ -172,109 +172,99 @@
             display: block;
         }
         
-        /* Магазин */
-        .shop-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
+        /* Магазин из вашего кода */
+        .shop-category {
+            margin-bottom: 20px;
         }
         
-        .shop-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(33, 150, 243, 0.3);
-        }
-        
-        .shop-title {
+        .category-title {
             font-size: 16px;
             font-weight: bold;
-            margin-bottom: 8px;
             color: #2196F3;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(33, 150, 243, 0.3);
         }
         
-        .shop-description {
+        .category-description {
             font-size: 12px;
             color: #ccc;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             line-height: 1.4;
         }
         
-        .shop-price {
-            color: #4CAF50;
-            font-weight: bold;
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
             margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .upgrade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .upgrade-name {
+            font-weight: bold;
+            color: #2196F3;
+            font-size: 14px;
+        }
+        
+        .upgrade-owned {
+            color: #FF9800;
+            font-size: 12px;
+        }
+        
+        .upgrade-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .upgrade-bonus {
+            color: #4CAF50;
+        }
+        
+        .upgrade-price {
+            color: #F44336;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
         }
         
         .buy-button {
             background: linear-gradient(135deg, #2196F3, #1976D2);
             border: none;
             color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             width: 100%;
             transition: all 0.3s ease;
+        }
+        
+        .buy-button:hover {
+            background: linear-gradient(135deg, #1976D2, #2196F3);
         }
         
         .buy-button:disabled {
-            background: rgba(255, 255, 255, 0.1);
-            color: #666;
+            background: #666;
             cursor: not-allowed;
-        }
-        
-        /* Игры */
-        .games-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-        
-        .game-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid rgba(33, 150, 243, 0.3);
-        }
-        
-        .game-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #2196F3;
-        }
-        
-        .game-description {
-            font-size: 12px;
-            color: #ccc;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-        
-        .play-button {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-            transition: all 0.3s ease;
-            outline: none;
+            opacity: 0.6;
         }
         
         .hidden {
             display: none;
         }
         
-        .upgrade-info {
-            font-size: 11px;
-            color: #888;
-            margin-top: 5px;
+        .tab-content {
+            max-height: 500px;
+            overflow-y: auto;
         }
         
         /* Временные сообщения */
@@ -348,118 +338,378 @@
         
         <!-- Магазин -->
         <div id="shop-section" class="section">
-            <div class="shop-grid">
-                <div class="shop-item">
-                    <div class="shop-title">🛠️ Базовый майнер</div>
-                    <div class="shop-description">Увеличивает скорость майнинга на 0.000000001 S/сек</div>
-                    <div class="shop-price">Цена: 10 S</div>
-                    <button class="buy-button" onclick="buyUpgrade('basic_miner')">Купить</button>
-                    <div class="upgrade-info">Куплено: <span id="basic_miner_count">0</span> шт.</div>
+            <div class="tab-content">
+                <!-- Мышки -->
+                <div class="shop-category">
+                    <div class="category-title">🖱️ Игровые мышки</div>
+                    <div class="category-description">
+                        Мышки увеличивают доход за каждый клик. Чем лучше мышка - тем больше вы зарабатываете за клик!
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Базовая мышка</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000001 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse1-price">1.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse1')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Оптическая мышка</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000005 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse2-price">5.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse2')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Геймерская мышка</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000020 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse3-price">25.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse3')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Беспроводная PRO</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse4-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000100 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse4-price">100.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse4')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">RGB Gaming Mouse</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse5-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000500 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse5-price">500.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse5')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Quantum Clicker</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse6-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000002000 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse6-price">2,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse6')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Neural Interface</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse7-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000010000 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse7-price">10,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse7')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Cosmic Clicker</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse8-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000050000 S/клик</span>
+                            <span class="upgrade-price">Цена: <span id="mouse8-price">50,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse8')">Купить</button>
+                    </div>
                 </div>
                 
-                <div class="shop-item">
-                    <div class="shop-title">💪 Улучшенный кликер</div>
-                    <div class="shop-description">Увеличивает доход за клик в 2 раза</div>
-                    <div class="shop-price">Цена: 50 S</div>
-                    <button class="buy-button" onclick="buyUpgrade('click_booster')">Купить</button>
-                    <div class="upgrade-info">Уровень: <span id="click_booster_level">1</span></div>
+                <!-- Процессоры -->
+                <div class="shop-category">
+                    <div class="category-title">💻 Процессоры</div>
+                    <div class="category-description">
+                        Процессоры увеличивают базовую скорость майнинга. Мощные процессоры = больше пассивного дохода!
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Intel Celeron</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000001 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu1-price">2.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu1')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Intel Core i3</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000005 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu2-price">10.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu2')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Intel Core i5</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000020 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu3-price">50.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu3')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Intel Core i7</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu4-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000100 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu4-price">200.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu4')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Intel Core i9</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu5-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000500 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu5-price">1,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu5')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">AMD Ryzen 7</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu6-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000002000 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu6-price">5,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu6')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">AMD Ryzen 9</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu7-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000010000 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu7-price">25,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu7')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Threadripper PRO</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu8-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000050000 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="cpu8-price">100,000.00</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu8')">Купить</button>
+                    </div>
                 </div>
                 
-                <div class="shop-item">
-                    <div class="shop-title">⚡ Процессор i9</div>
-                    <div class="shop-description">Увеличивает скорость майнинга в 5 раз</div>
-                    <div class="shop-price">Цена: 100 S</div>
-                    <button class="buy-button" onclick="buyUpgrade('cpu')">Купить</button>
-                    <div class="upgrade-info">Уровень: <span id="cpu_level">1</span></div>
-                </div>
-                
-                <div class="shop-item">
-                    <div class="shop-title">🚀 Ферма майнинга</div>
-                    <div class="shop-description">Автоматически генерирует 0.0000001 S/сек</div>
-                    <div class="shop-price">Цена: 500 S</div>
-                    <button class="buy-button" onclick="buyUpgrade('mining_farm')">Купить</button>
-                    <div class="upgrade-info">Куплено: <span id="mining_farm_count">0</span> шт.</div>
+                <!-- Видеокарты -->
+                <div class="shop-category">
+                    <div class="category-title">🎮 Видеокарты</div>
+                    <div class="category-description">
+                        Видеокарты увеличивают скорость автоматического майнинга, пока Вы находитесь в игре.
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Интегрированная видеокарта</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000001 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu1-price">0.000000819</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Видеокарта-затычка</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000008 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu2-price">0.000001606</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">NVIDIA GT 1030</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000064 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu3-price">0.000025702</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu3')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">NVIDIA GTX 1650</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu4-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000032768 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu4-price">1.12</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu4')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">NVIDIA RTX 3060</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu5-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000262144 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu5-price">51.02</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu5')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">NVIDIA RTX 4090</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu6-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.002097152 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu6-price">1.38K</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu6')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">ASIC Miner S19</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu7-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.016777216 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu7-price">10.00K</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu7')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Quantum Miner X1000</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu8-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.134217728 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu8-price">100.00K</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu8')">Купить</button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- Игры -->
+        <!-- Остальные секции -->
         <div id="games-section" class="section">
-            <div class="games-grid">
-                <div class="game-card">
-                    <div class="game-title">🎰 Классическая лотерея</div>
-                    <div class="game-description">
-                        Сделайте ставку и выигрывайте крупные суммы! Чем больше ставка - тем выше шанс на победу.
-                        Общая ставка распределяется между победителями.
-                    </div>
-                    <button class="play-button" onclick="startGame('lottery')">Играть в лотерею</button>
-                </div>
-                
-                <div class="game-card">
-                    <div class="game-title">👥 Командная лотерея</div>
-                    <div class="game-description">
-                        Присоединяйтесь к команде Орлов или Решек. Побеждает команда с большей общей ставкой!
-                        Все участники победившей команды делят банк.
-                    </div>
-                    <button class="play-button" onclick="startGame('team_lottery')">Играть в командную лотерею</button>
-                </div>
-                
-                <div class="game-card">
-                    <div class="game-title">⚓ Морской бой</div>
-                    <div class="game-description">
-                        Классическая игра с ставками до 100,000 S. Расставляйте корабли и топлите флот противника!
-                        Побеждает тот, кто первым потопит все корабли соперника.
-                    </div>
-                    <button class="play-button" onclick="startGame('battle')">Играть в морской бой</button>
-                </div>
-                
-                <div class="game-card">
-                    <div class="game-title">🎯 Рулетка</div>
-                    <div class="game-description">
-                        Ставьте на цвет или число. Выигрыш до x36! Красное/Черное дает x2, конкретное число - x36.
-                        Испытайте удачу в классической рулетке.
-                    </div>
-                    <button class="play-button" onclick="startGame('roulette')">Играть в рулетку</button>
-                </div>
+            <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
+                🎮 Игры в разработке...
             </div>
         </div>
         
-        <!-- Рейтинг -->
         <div id="top-section" class="section">
             <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                🏆 Рейтинг игроков<br><br>
-                <div id="leaderboard">
-                    <!-- Рейтинг будет загружен динамически -->
-                </div>
+                🏆 Рейтинг в разработке...
             </div>
         </div>
         
-        <!-- Рефералы -->
         <div id="referrals-section" class="section">
             <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                👥 Реферальная система<br><br>
-                Приглашайте друзей и получайте бонусы!<br>
-                Ваша реферальная ссылка:<br>
-                <strong id="referralLink">Загрузка...</strong><br><br>
-                Приглашено друзей: <span id="referralCount">0</span><br>
-                Заработано с рефералов: <span id="referralEarnings">0</span> S
+                👥 Рефералы в разработке...
             </div>
         </div>
     </div>
 
     <script>
-        // Простой и надежный код без ошибок
         const tg = window.Telegram.WebApp;
         let userData = {};
         let lastUpdateTime = Date.now();
         let accumulatedIncome = 0;
         
-        // Базовые улучшения
+        // База улучшений магазина (24 улучшения)
         const upgrades = {
-            basic_miner: { price: 10, count: 0, effect: 0.000000001 },
-            click_booster: { price: 50, level: 1, multiplier: 1 },
-            cpu: { price: 100, level: 1, multiplier: 1 },
-            mining_farm: { price: 500, count: 0, effect: 0.0000001 }
+            // Мышки (увеличивают клик)
+            mouse1: { name: "Базовая мышка", basePrice: 1.00, baseBonus: 0.000000001, level: 0, type: 'click' },
+            mouse2: { name: "Оптическая мышка", basePrice: 5.00, baseBonus: 0.000000005, level: 0, type: 'click' },
+            mouse3: { name: "Геймерская мышка", basePrice: 25.00, baseBonus: 0.000000020, level: 0, type: 'click' },
+            mouse4: { name: "Беспроводная PRO", basePrice: 100.00, baseBonus: 0.000000100, level: 0, type: 'click' },
+            mouse5: { name: "RGB Gaming Mouse", basePrice: 500.00, baseBonus: 0.000000500, level: 0, type: 'click' },
+            mouse6: { name: "Quantum Clicker", basePrice: 2000.00, baseBonus: 0.000002000, level: 0, type: 'click' },
+            mouse7: { name: "Neural Interface", basePrice: 10000.00, baseBonus: 0.000010000, level: 0, type: 'click' },
+            mouse8: { name: "Cosmic Clicker", basePrice: 50000.00, baseBonus: 0.000050000, level: 0, type: 'click' },
+            
+            // Процессоры (увеличивают майнинг)
+            cpu1: { name: "Intel Celeron", basePrice: 2.00, baseBonus: 0.000000001, level: 0, type: 'mining' },
+            cpu2: { name: "Intel Core i3", basePrice: 10.00, baseBonus: 0.000000005, level: 0, type: 'mining' },
+            cpu3: { name: "Intel Core i5", basePrice: 50.00, baseBonus: 0.000000020, level: 0, type: 'mining' },
+            cpu4: { name: "Intel Core i7", basePrice: 200.00, baseBonus: 0.000000100, level: 0, type: 'mining' },
+            cpu5: { name: "Intel Core i9", basePrice: 1000.00, baseBonus: 0.000000500, level: 0, type: 'mining' },
+            cpu6: { name: "AMD Ryzen 7", basePrice: 5000.00, baseBonus: 0.000002000, level: 0, type: 'mining' },
+            cpu7: { name: "AMD Ryzen 9", basePrice: 25000.00, baseBonus: 0.000010000, level: 0, type: 'mining' },
+            cpu8: { name: "Threadripper PRO", basePrice: 100000.00, baseBonus: 0.000050000, level: 0, type: 'mining' },
+            
+            // Видеокарты (увеличивают майнинг)
+            gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000819, baseBonus: 0.000000001, level: 0, type: 'mining' },
+            gpu2: { name: "Видеокарта-затычка", basePrice: 0.000001606, baseBonus: 0.000000008, level: 0, type: 'mining' },
+            gpu3: { name: "NVIDIA GT 1030", basePrice: 0.000025702, baseBonus: 0.000000064, level: 0, type: 'mining' },
+            gpu4: { name: "NVIDIA GTX 1650", basePrice: 1.12, baseBonus: 0.000032768, level: 0, type: 'mining' },
+            gpu5: { name: "NVIDIA RTX 3060", basePrice: 51.02, baseBonus: 0.000262144, level: 0, type: 'mining' },
+            gpu6: { name: "NVIDIA RTX 4090", basePrice: 1380.00, baseBonus: 0.002097152, level: 0, type: 'mining' },
+            gpu7: { name: "ASIC Miner S19", basePrice: 10000.00, baseBonus: 0.016777216, level: 0, type: 'mining' },
+            gpu8: { name: "Quantum Miner X1000", basePrice: 100000.00, baseBonus: 0.134217728, level: 0, type: 'mining' }
         };
 
         // Инициализация Web App
@@ -468,74 +718,70 @@
         
         // Загрузка данных пользователя
         function loadUserData() {
-            try {
-                const savedData = localStorage.getItem('sparkcoin_user_data');
-                
-                if (savedData) {
-                    userData = JSON.parse(savedData);
-                    console.log('Данные загружены:', userData);
-                } else {
-                    // Создаем нового пользователя
-                    userData = {
-                        userId: '1',
-                        username: 'Игрок',
-                        balance: 10.00,
-                        totalEarned: 10.00,
-                        totalClicks: 0,
-                        lastUpdate: Date.now(),
-                        upgrades: JSON.parse(JSON.stringify(upgrades))
-                    };
-                    console.log('Создан новый пользователь');
-                }
-                
-                updateShopUI();
-                updateUI();
-            } catch (error) {
-                console.error('Ошибка загрузки данных:', error);
-                // Создаем базовые данные при ошибке
+            const savedData = localStorage.getItem('sparkcoin_user_data');
+            const user = tg.initDataUnsafe?.user;
+            const username = user?.first_name || 'Игрок';
+            const userId = user?.id || Math.random().toString(36).substr(2, 9);
+            
+            if (savedData) {
+                userData = JSON.parse(savedData);
+            } else {
                 userData = {
-                    userId: '1',
-                    username: 'Игрок',
+                    userId: userId,
+                    username: username,
                     balance: 10.00,
                     totalEarned: 10.00,
                     totalClicks: 0,
-                    lastUpdate: Date.now(),
-                    upgrades: JSON.parse(JSON.stringify(upgrades))
+                    lastUpdate: Date.now()
                 };
             }
+            
+            // Загружаем улучшения
+            const savedUpgrades = localStorage.getItem('sparkcoin_upgrades');
+            if (savedUpgrades) {
+                const upgradesData = JSON.parse(savedUpgrades);
+                for (const key in upgradesData) {
+                    if (upgrades[key]) {
+                        upgrades[key].level = upgradesData[key];
+                    }
+                }
+            }
+            
+            updateUI();
+            updateShopUI();
         }
         
         // Сохранение данных
         function saveUserData() {
-            try {
-                userData.lastUpdate = Date.now();
-                localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
-                console.log('Данные сохранены');
-            } catch (error) {
-                console.error('Ошибка сохранения:', error);
+            localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
+            
+            const upgradesData = {};
+            for (const key in upgrades) {
+                upgradesData[key] = upgrades[key].level;
             }
+            localStorage.setItem('sparkcoin_upgrades', JSON.stringify(upgradesData));
         }
         
         // Расчет силы клика
         function calculateClickPower() {
-            let basePower = 0.000000001;
-            if (userData.upgrades.click_booster) {
-                basePower *= userData.upgrades.click_booster.level;
+            let power = 0.000000001;
+            for (const upgrade in upgrades) {
+                if (upgrades[upgrade].type === 'click') {
+                    power += upgrades[upgrade].level * upgrades[upgrade].baseBonus;
+                }
             }
-            return basePower;
+            return power;
         }
         
         // Расчет скорости майнинга
         function calculateMiningSpeed() {
-            let baseSpeed = 0.000000001;
-            baseSpeed += userData.upgrades.basic_miner.count * userData.upgrades.basic_miner.effect;
-            baseSpeed += userData.upgrades.mining_farm.count * userData.upgrades.mining_farm.effect;
-            
-            if (userData.upgrades.cpu) {
-                baseSpeed *= userData.upgrades.cpu.level;
+            let speed = 0.000000001;
+            for (const upgrade in upgrades) {
+                if (upgrades[upgrade].type === 'mining') {
+                    speed += upgrades[upgrade].level * upgrades[upgrade].baseBonus;
+                }
             }
-            
-            return baseSpeed;
+            return speed;
         }
         
         // Клик по монетке
@@ -544,37 +790,27 @@
             userData.balance += clickPower;
             userData.totalEarned += clickPower;
             userData.totalClicks++;
+            userData.lastUpdate = Date.now();
             
             updateUI();
             saveUserData();
-            
-            // Анимация клика
-            const coin = document.querySelector('.click-coin');
-            coin.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                coin.style.transform = 'scale(1)';
-            }, 100);
         }
         
         // Покупка улучшения
         function buyUpgrade(upgradeType) {
-            const upgrade = userData.upgrades[upgradeType];
-            if (userData.balance >= upgrade.price) {
-                userData.balance -= upgrade.price;
-                
-                if (upgradeType === 'basic_miner' || upgradeType === 'mining_farm') {
-                    upgrade.count++;
-                    upgrade.price = Math.floor(upgrade.price * 1.3);
-                } else {
-                    upgrade.level++;
-                    upgrade.price = Math.floor(upgrade.price * 1.5);
-                }
+            const upgrade = upgrades[upgradeType];
+            const currentPrice = upgrade.basePrice * Math.pow(1.15, upgrade.level);
+            
+            if (userData.balance >= currentPrice) {
+                userData.balance -= currentPrice;
+                upgrade.level++;
+                userData.lastUpdate = Date.now();
                 
                 updateUI();
                 updateShopUI();
                 saveUserData();
                 
-                showTempMessage('✅ Улучшение куплено!');
+                showTempMessage(`✅ ${upgrade.name} куплено! Уровень ${upgrade.level}`);
             } else {
                 showTempMessage('❌ Недостаточно средств', true);
             }
@@ -582,12 +818,6 @@
         
         // Временное сообщение
         function showTempMessage(message, isError = false) {
-            // Удаляем предыдущие сообщения
-            const existingMsg = document.querySelector('.temp-message');
-            if (existingMsg) {
-                existingMsg.remove();
-            }
-            
             const tempMsg = document.createElement('div');
             tempMsg.className = isError ? 'temp-message error' : 'temp-message';
             tempMsg.textContent = message;
@@ -602,86 +832,72 @@
         
         // Обновление интерфейса магазина
         function updateShopUI() {
-            document.getElementById('basic_miner_count').textContent = userData.upgrades.basic_miner.count;
-            document.getElementById('click_booster_level').textContent = userData.upgrades.click_booster.level;
-            document.getElementById('cpu_level').textContent = userData.upgrades.cpu.level;
-            document.getElementById('mining_farm_count').textContent = userData.upgrades.mining_farm.count;
+            for (const upgrade in upgrades) {
+                const currentPrice = upgrades[upgrade].basePrice * Math.pow(1.15, upgrades[upgrade].level);
+                const ownedElement = document.getElementById(upgrade + '-owned');
+                const priceElement = document.getElementById(upgrade + '-price');
+                const button = document.querySelector(`button[onclick="buyUpgrade('${upgrade}')"]`);
+                
+                if (ownedElement) ownedElement.textContent = upgrades[upgrade].level;
+                if (priceElement) {
+                    if (currentPrice >= 1000) {
+                        priceElement.textContent = (currentPrice/1000).toFixed(2) + 'K';
+                    } else {
+                        priceElement.textContent = currentPrice.toFixed(currentPrice < 1 ? 9 : 2);
+                    }
+                }
+                if (button) {
+                    button.disabled = userData.balance < currentPrice;
+                }
+            }
         }
         
         // Обновление интерфейса
         function updateUI() {
-            try {
-                const currentTime = Date.now();
-                const elapsedSeconds = (currentTime - lastUpdateTime) / 1000;
-                
-                // Авто-майнинг
-                const miningSpeed = calculateMiningSpeed();
-                accumulatedIncome += miningSpeed * elapsedSeconds;
-                
-                // Добавляем накопленный доход
-                if (accumulatedIncome >= 0.000000001) {
-                    userData.balance += accumulatedIncome;
-                    userData.totalEarned += accumulatedIncome;
-                    accumulatedIncome = 0;
-                }
-                
-                lastUpdateTime = currentTime;
-                
-                // Обновляем отображение
-                const clickPower = calculateClickPower();
-                document.getElementById('balanceValue').textContent = userData.balance.toFixed(9) + ' S';
-                document.getElementById('clickValue').textContent = clickPower.toFixed(9);
-                document.getElementById('clickSpeed').textContent = clickPower.toFixed(9) + ' S/сек';
-                document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
-                
-            } catch (error) {
-                console.error('Ошибка обновления UI:', error);
+            const currentTime = Date.now();
+            const elapsedSeconds = (currentTime - lastUpdateTime) / 1000;
+            
+            // Авто-майнинг
+            const miningSpeed = calculateMiningSpeed();
+            accumulatedIncome += miningSpeed * elapsedSeconds;
+            
+            if (accumulatedIncome >= 0.000000001) {
+                userData.balance += accumulatedIncome;
+                userData.totalEarned += accumulatedIncome;
+                accumulatedIncome = 0;
             }
+            
+            lastUpdateTime = currentTime;
+            
+            const clickPower = calculateClickPower();
+            document.getElementById('balanceValue').textContent = userData.balance.toFixed(9) + ' S';
+            document.getElementById('clickValue').textContent = clickPower.toFixed(9);
+            document.getElementById('clickSpeed').textContent = clickPower.toFixed(9) + ' S/сек';
+            document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
         }
         
         // Навигация
         function showSection(sectionName) {
-            // Скрываем все секции
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
-            
-            // Убираем активный класс со всех кнопок
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
-            // Показываем нужную секцию
-            const section = document.getElementById(sectionName + '-section');
-            if (section) {
-                section.classList.add('active');
-            }
-            
-            // Делаем кнопку активной
+            document.getElementById(sectionName + '-section').classList.add('active');
             event.target.classList.add('active');
         }
         
-        // Игры (заглушки)
-        function startGame(gameType) {
-            showTempMessage(`🎮 Игра "${gameType}" в разработке`);
-        }
-        
-        // Инициализация при загрузке
+        // Инициализация
         function initializeApp() {
-            console.log('Инициализация приложения...');
             loadUserData();
             
-            // Обновление интерфейса
             setInterval(updateUI, 100);
-            
-            // Авто-сохранение
             setInterval(saveUserData, 10000);
-            
-            console.log('Приложение запущено');
         }
 
-        // Запускаем когда страница полностью загружена
-        window.addEventListener('DOMContentLoaded', initializeApp);
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
