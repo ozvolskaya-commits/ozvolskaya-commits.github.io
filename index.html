@@ -138,7 +138,6 @@
             font-family: 'Courier New', monospace;
         }
         
-        /* Новое меню - только кнопки разделов */
         .main-menu {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -172,7 +171,6 @@
             display: block;
         }
         
-        /* Магазин с подразделами */
         .shop-tabs {
             display: flex;
             margin-bottom: 15px;
@@ -293,7 +291,6 @@
             overflow-y: auto;
         }
         
-        /* Кнопка назад */
         .back-button {
             background: rgba(255,255,255,0.1);
             border: none;
@@ -307,7 +304,6 @@
             border: 1px solid rgba(76, 201, 240, 0.3);
         }
         
-        /* Временные сообщения */
         .temp-message {
             position: fixed;
             top: 50%;
@@ -328,6 +324,143 @@
         .cooldown {
             pointer-events: none;
             opacity: 0.7;
+        }
+        
+        /* Рейтинг */
+        .leaderboard {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .leader-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            margin: 6px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .leader-rank {
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .leader-name {
+            font-weight: bold;
+            color: #4CC9F0;
+            margin-bottom: 3px;
+        }
+        
+        .leader-balance {
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        /* Командная лотерея */
+        .lottery-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .lottery-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .team-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .team-button {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .team-button.active {
+            background: #2196F3;
+            transform: scale(1.05);
+        }
+        
+        .team-button.eagle {
+            border-color: #FF5722;
+        }
+        
+        .team-button.eagle.active {
+            background: #FF5722;
+        }
+        
+        .team-button.tails {
+            border-color: #4CAF50;
+        }
+        
+        .team-button.tails.active {
+            background: #4CAF50;
+        }
+        
+        .bet-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #2196F3;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 100%;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        
+        .play-button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .lottery-timer {
+            background: rgba(255, 165, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+            color: #FFA500;
+        }
+        
+        .participants {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        
+        .participant-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -362,7 +495,6 @@
             </div>
         </div>
         
-        <!-- Новое главное меню - только кнопки -->
         <div class="main-menu">
             <button class="menu-button" onclick="showSection('shop')">🛠️ Магазин</button>
             <button class="menu-button" onclick="showSection('games')">🎮 Игры</button>
@@ -395,7 +527,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000001 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="gpu1-price">0.000000819</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="gpu1-price">10</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
                     </div>
@@ -406,8 +538,8 @@
                             <span class="upgrade-owned">Уровень: <span id="gpu2-owned">0</span></span>
                         </div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000008 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="gpu2-price">0.000001606</span> S</span>
+                            <span class="upgrade-bonus">+0.000000005 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu2-price">50</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
                     </div>
@@ -418,8 +550,8 @@
                             <span class="upgrade-owned">Уровень: <span id="gpu3-owned">0</span></span>
                         </div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000064 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="gpu3-price">0.000025702</span> S</span>
+                            <span class="upgrade-bonus">+0.000000020 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu3-price">100</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu3')">Купить</button>
                     </div>
@@ -430,8 +562,8 @@
                             <span class="upgrade-owned">Уровень: <span id="gpu4-owned">0</span></span>
                         </div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000032768 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="gpu4-price">1.12</span> S</span>
+                            <span class="upgrade-bonus">+0.000000100 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu4-price">500</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu4')">Купить</button>
                     </div>
@@ -442,8 +574,8 @@
                             <span class="upgrade-owned">Уровень: <span id="gpu5-owned">0</span></span>
                         </div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000262144 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="gpu5-price">51.02</span> S</span>
+                            <span class="upgrade-bonus">+0.000000500 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu5-price">2,000</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu5')">Купить</button>
                     </div>
@@ -454,8 +586,8 @@
                             <span class="upgrade-owned">Уровень: <span id="gpu6-owned">0</span></span>
                         </div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.002097152 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="gpu6-price">1.38K</span> S</span>
+                            <span class="upgrade-bonus">+0.000002000 S/сек</span>
+                            <span class="upgrade-price">Цена: <span id="gpu6-price">10,000</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu6')">Купить</button>
                     </div>
@@ -475,7 +607,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000001 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="cpu1-price">2.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="cpu1-price">10</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('cpu1')">Купить</button>
                     </div>
@@ -487,7 +619,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000005 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="cpu2-price">10.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="cpu2-price">50</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('cpu2')">Купить</button>
                     </div>
@@ -499,7 +631,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000020 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="cpu3-price">50.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="cpu3-price">100</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('cpu3')">Купить</button>
                     </div>
@@ -511,7 +643,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000100 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="cpu4-price">200.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="cpu4-price">500</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('cpu4')">Купить</button>
                     </div>
@@ -523,7 +655,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000500 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="cpu5-price">1,000.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="cpu5-price">2,000</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('cpu5')">Купить</button>
                     </div>
@@ -535,7 +667,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000002000 S/сек</span>
-                            <span class="upgrade-price">Цена: <span id="cpu6-price">5,000.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="cpu6-price">10,000</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('cpu6')">Купить</button>
                     </div>
@@ -555,7 +687,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000001 S/клик</span>
-                            <span class="upgrade-price">Цена: <span id="mouse1-price">1.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="mouse1-price">1</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('mouse1')">Купить</button>
                     </div>
@@ -567,7 +699,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000005 S/клик</span>
-                            <span class="upgrade-price">Цена: <span id="mouse2-price">5.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="mouse2-price">5</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('mouse2')">Купить</button>
                     </div>
@@ -579,7 +711,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000020 S/клик</span>
-                            <span class="upgrade-price">Цена: <span id="mouse3-price">25.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="mouse3-price">25</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('mouse3')">Купить</button>
                     </div>
@@ -591,7 +723,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000100 S/клик</span>
-                            <span class="upgrade-price">Цена: <span id="mouse4-price">100.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="mouse4-price">100</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('mouse4')">Купить</button>
                     </div>
@@ -603,7 +735,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000500 S/клик</span>
-                            <span class="upgrade-price">Цена: <span id="mouse5-price">500.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="mouse5-price">500</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('mouse5')">Купить</button>
                     </div>
@@ -615,7 +747,7 @@
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000002000 S/клик</span>
-                            <span class="upgrade-price">Цена: <span id="mouse6-price">2,000.00</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="mouse6-price">2,000</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('mouse6')">Купить</button>
                     </div>
@@ -623,21 +755,52 @@
             </div>
         </div>
         
-        <!-- Остальные разделы -->
+        <!-- Игры -->
         <div id="games-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
-            <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                🎮 Игры в разработке...
+            
+            <div class="lottery-section">
+                <div class="lottery-title">👥 Командная лотерея</div>
+                
+                <div class="team-buttons">
+                    <button class="team-button eagle" onclick="selectTeam('eagle')">🦅 Орлы</button>
+                    <button class="team-button tails" onclick="selectTeam('tails')">🪙 Решки</button>
+                </div>
+                
+                <input type="number" class="bet-input" id="teamBet" placeholder="Сумма ставки" value="10" min="1">
+                <button class="play-button" onclick="playTeamLottery()">Участвовать</button>
+                
+                <div class="lottery-timer">
+                    До розыгрыша: <span id="lotteryTimer">60</span> сек
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <h4>🦅 Орлы</h4>
+                        <div class="participants" id="teamEagle">
+                            <!-- Участники орлов -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4>🪙 Решки</h4>
+                        <div class="participants" id="teamTails">
+                            <!-- Участники решек -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
+        <!-- Рейтинг -->
         <div id="top-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
-            <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
-                🏆 Рейтинг в разработке...
+            
+            <div class="leaderboard" id="leaderboard">
+                <!-- Рейтинг загружается динамически -->
             </div>
         </div>
         
+        <!-- Рефералы -->
         <div id="referrals-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             <div style="text-align: center; padding: 20px; color: #ccc; font-size: 14px;">
@@ -652,40 +815,43 @@
         let lastUpdateTime = Date.now();
         let accumulatedIncome = 0;
         let lastClickTime = 0;
-        const CLICK_COOLDOWN = 200; // 0.2 секунды
-        
-        // База улучшений магазина
+        const CLICK_COOLDOWN = 200;
+        let selectedTeam = null;
+        let lotteryTimer = 60;
+        let allPlayers = [];
+
+        // База улучшений с оригинальными ценами
         const upgrades = {
             // Мышки (увеличивают клик)
-            mouse1: { name: "Базовая мышка", basePrice: 1.00, baseBonus: 0.000000001, level: 0, type: 'click' },
-            mouse2: { name: "Оптическая мышка", basePrice: 5.00, baseBonus: 0.000000005, level: 0, type: 'click' },
-            mouse3: { name: "Геймерская мышка", basePrice: 25.00, baseBonus: 0.000000020, level: 0, type: 'click' },
-            mouse4: { name: "Беспроводная PRO", basePrice: 100.00, baseBonus: 0.000000100, level: 0, type: 'click' },
-            mouse5: { name: "RGB Gaming Mouse", basePrice: 500.00, baseBonus: 0.000000500, level: 0, type: 'click' },
-            mouse6: { name: "Quantum Clicker", basePrice: 2000.00, baseBonus: 0.000002000, level: 0, type: 'click' },
+            mouse1: { name: "Базовая мышка", basePrice: 1, baseBonus: 0.000000001, level: 0, type: 'click' },
+            mouse2: { name: "Оптическая мышка", basePrice: 5, baseBonus: 0.000000005, level: 0, type: 'click' },
+            mouse3: { name: "Геймерская мышка", basePrice: 25, baseBonus: 0.000000020, level: 0, type: 'click' },
+            mouse4: { name: "Беспроводная PRO", basePrice: 100, baseBonus: 0.000000100, level: 0, type: 'click' },
+            mouse5: { name: "RGB Gaming Mouse", basePrice: 500, baseBonus: 0.000000500, level: 0, type: 'click' },
+            mouse6: { name: "Quantum Clicker", basePrice: 2000, baseBonus: 0.000002000, level: 0, type: 'click' },
             
             // Процессоры (увеличивают майнинг)
-            cpu1: { name: "Intel Celeron", basePrice: 2.00, baseBonus: 0.000000001, level: 0, type: 'mining' },
-            cpu2: { name: "Intel Core i3", basePrice: 10.00, baseBonus: 0.000000005, level: 0, type: 'mining' },
-            cpu3: { name: "Intel Core i5", basePrice: 50.00, baseBonus: 0.000000020, level: 0, type: 'mining' },
-            cpu4: { name: "Intel Core i7", basePrice: 200.00, baseBonus: 0.000000100, level: 0, type: 'mining' },
-            cpu5: { name: "Intel Core i9", basePrice: 1000.00, baseBonus: 0.000000500, level: 0, type: 'mining' },
-            cpu6: { name: "AMD Ryzen 7", basePrice: 5000.00, baseBonus: 0.000002000, level: 0, type: 'mining' },
+            cpu1: { name: "Intel Celeron", basePrice: 10, baseBonus: 0.000000001, level: 0, type: 'mining' },
+            cpu2: { name: "Intel Core i3", basePrice: 50, baseBonus: 0.000000005, level: 0, type: 'mining' },
+            cpu3: { name: "Intel Core i5", basePrice: 100, baseBonus: 0.000000020, level: 0, type: 'mining' },
+            cpu4: { name: "Intel Core i7", basePrice: 500, baseBonus: 0.000000100, level: 0, type: 'mining' },
+            cpu5: { name: "Intel Core i9", basePrice: 2000, baseBonus: 0.000000500, level: 0, type: 'mining' },
+            cpu6: { name: "AMD Ryzen 7", basePrice: 10000, baseBonus: 0.000002000, level: 0, type: 'mining' },
             
             // Видеокарты (увеличивают майнинг)
-            gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000819, baseBonus: 0.000000001, level: 0, type: 'mining' },
-            gpu2: { name: "Видеокарта-затычка", basePrice: 0.000001606, baseBonus: 0.000000008, level: 0, type: 'mining' },
-            gpu3: { name: "NVIDIA GT 1030", basePrice: 0.000025702, baseBonus: 0.000000064, level: 0, type: 'mining' },
-            gpu4: { name: "NVIDIA GTX 1650", basePrice: 1.12, baseBonus: 0.000032768, level: 0, type: 'mining' },
-            gpu5: { name: "NVIDIA RTX 3060", basePrice: 51.02, baseBonus: 0.000262144, level: 0, type: 'mining' },
-            gpu6: { name: "NVIDIA RTX 4090", basePrice: 1380.00, baseBonus: 0.002097152, level: 0, type: 'mining' }
+            gpu1: { name: "Интегрированная видеокарта", basePrice: 10, baseBonus: 0.000000001, level: 0, type: 'mining' },
+            gpu2: { name: "Видеокарта-затычка", basePrice: 50, baseBonus: 0.000000005, level: 0, type: 'mining' },
+            gpu3: { name: "NVIDIA GT 1030", basePrice: 100, baseBonus: 0.000000020, level: 0, type: 'mining' },
+            gpu4: { name: "NVIDIA GTX 1650", basePrice: 500, baseBonus: 0.000000100, level: 0, type: 'mining' },
+            gpu5: { name: "NVIDIA RTX 3060", basePrice: 2000, baseBonus: 0.000000500, level: 0, type: 'mining' },
+            gpu6: { name: "NVIDIA RTX 4090", basePrice: 10000, baseBonus: 0.000002000, level: 0, type: 'mining' }
         };
 
-        // Инициализация Web App
+        // Инициализация
         tg.expand();
         tg.enableClosingConfirmation();
         
-        // Загрузка данных пользователя
+        // Загрузка данных
         function loadUserData() {
             const savedData = localStorage.getItem('sparkcoin_user_data');
             const user = tg.initDataUnsafe?.user;
@@ -716,8 +882,52 @@
                 }
             }
             
+            // Загружаем игроков из localStorage
+            loadPlayers();
             updateUI();
             updateShopUI();
+            updateLottery();
+        }
+        
+        // Загрузка игроков для рейтинга
+        function loadPlayers() {
+            const savedPlayers = localStorage.getItem('sparkcoin_players');
+            if (savedPlayers) {
+                allPlayers = JSON.parse(savedPlayers);
+            } else {
+                // Создаем тестовых игроков
+                allPlayers = [
+                    { username: "Даннил", balance: 162964971.59, clickSpeed: 0.000000001, mineSpeed: 0.000000000 },
+                    { username: "Марсель", balance: 100329685.86, clickSpeed: 0.000000001, mineSpeed: 0.000000002 },
+                    { username: "Александр Мишуков", balance: 74403132.00, clickSpeed: 0.031357633, mineSpeed: 0.095784341 },
+                    { username: "Vadim", balance: 70000000.99, clickSpeed: 0.000000001, mineSpeed: 0.000000001 },
+                    { username: "Тема", balance: 1291.67, clickSpeed: 0.000000001, mineSpeed: 0.000000001 }
+                ];
+            }
+            
+            // Добавляем текущего игрока
+            const currentPlayer = {
+                username: userData.username,
+                balance: userData.balance,
+                clickSpeed: calculateClickPower(),
+                mineSpeed: calculateMiningSpeed(),
+                isCurrent: true
+            };
+            
+            // Обновляем или добавляем текущего игрока
+            const existingIndex = allPlayers.findIndex(p => p.username === userData.username);
+            if (existingIndex !== -1) {
+                allPlayers[existingIndex] = currentPlayer;
+            } else {
+                allPlayers.push(currentPlayer);
+            }
+            
+            savePlayers();
+        }
+        
+        // Сохранение игроков
+        function savePlayers() {
+            localStorage.setItem('sparkcoin_players', JSON.stringify(allPlayers));
         }
         
         // Сохранение данных
@@ -729,6 +939,12 @@
                 upgradesData[key] = upgrades[key].level;
             }
             localStorage.setItem('sparkcoin_upgrades', JSON.stringify(upgradesData));
+            
+            // Обновляем текущего игрока в рейтинге
+            loadPlayers();
+            if (document.getElementById('top-section').classList.contains('active')) {
+                updateLeaderboard();
+            }
         }
         
         // Расчет силы клика
@@ -756,9 +972,7 @@
         // Клик по монетке с кд
         function clickCoin() {
             const now = Date.now();
-            if (now - lastClickTime < CLICK_COOLDOWN) {
-                return; // Игнорируем клик если кд не прошел
-            }
+            if (now - lastClickTime < CLICK_COOLDOWN) return;
             lastClickTime = now;
             
             const clickPower = calculateClickPower();
@@ -767,12 +981,9 @@
             userData.totalClicks++;
             userData.lastUpdate = Date.now();
             
-            // Анимация клика
             const coin = document.getElementById('clickCoin');
             coin.classList.add('cooldown');
-            setTimeout(() => {
-                coin.classList.remove('cooldown');
-            }, CLICK_COOLDOWN);
+            setTimeout(() => coin.classList.remove('cooldown'), CLICK_COOLDOWN);
             
             updateUI();
             saveUserData();
@@ -798,6 +1009,98 @@
             }
         }
         
+        // Командная лотерея
+        function selectTeam(team) {
+            selectedTeam = team;
+            document.querySelectorAll('.team-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function playTeamLottery() {
+            if (!selectedTeam) {
+                showTempMessage('❌ Выберите команду!', true);
+                return;
+            }
+            
+            const bet = parseFloat(document.getElementById('teamBet').value);
+            if (bet > userData.balance) {
+                showTempMessage('❌ Недостаточно средств', true);
+                return;
+            }
+            if (bet < 1) {
+                showTempMessage('❌ Минимальная ставка 1 S', true);
+                return;
+            }
+            
+            userData.balance -= bet;
+            userData.lastUpdate = Date.now();
+            
+            // Сохраняем участие в лотерее
+            const lotteryData = JSON.parse(localStorage.getItem('sparkcoin_lottery') || '{}');
+            if (!lotteryData[selectedTeam]) lotteryData[selectedTeam] = [];
+            lotteryData[selectedTeam].push({
+                username: userData.username,
+                bet: bet,
+                time: Date.now()
+            });
+            localStorage.setItem('sparkcoin_lottery', JSON.stringify(lotteryData));
+            
+            updateUI();
+            saveUserData();
+            updateLottery();
+            
+            showTempMessage(`✅ Ставка ${bet} S за команду ${selectedTeam === 'eagle' ? 'Орлов' : 'Решек'} принята!`);
+        }
+        
+        function updateLottery() {
+            const lotteryData = JSON.parse(localStorage.getItem('sparkcoin_lottery') || '{}');
+            
+            const eagleList = document.getElementById('teamEagle');
+            const tailsList = document.getElementById('teamTails');
+            
+            eagleList.innerHTML = '';
+            tailsList.innerHTML = '';
+            
+            if (lotteryData.eagle) {
+                lotteryData.eagle.forEach(participant => {
+                    const item = document.createElement('div');
+                    item.className = 'participant-item';
+                    item.textContent = `${participant.username}: ${participant.bet} S`;
+                    eagleList.appendChild(item);
+                });
+            }
+            
+            if (lotteryData.tails) {
+                lotteryData.tails.forEach(participant => {
+                    const item = document.createElement('div');
+                    item.className = 'participant-item';
+                    item.textContent = `${participant.username}: ${participant.bet} S`;
+                    tailsList.appendChild(item);
+                });
+            }
+        }
+        
+        // Рейтинг
+        function updateLeaderboard() {
+            const leaderboard = document.getElementById('leaderboard');
+            leaderboard.innerHTML = '';
+            
+            // Сортируем по балансу
+            const sortedPlayers = [...allPlayers].sort((a, b) => b.balance - a.balance);
+            
+            sortedPlayers.forEach((player, index) => {
+                const item = document.createElement('div');
+                item.className = 'leader-item';
+                item.style.background = player.isCurrent ? 'rgba(33, 150, 243, 0.2)' : '';
+                item.innerHTML = `
+                    <div class="leader-rank">${index + 1} место</div>
+                    <div class="leader-name">${player.username} ${player.isCurrent ? '(Вы)' : ''}</div>
+                    <div class="leader-balance">${player.balance.toFixed(2)} S</div>
+                `;
+                leaderboard.appendChild(item);
+            });
+        }
+        
         // Временное сообщение
         function showTempMessage(message, isError = false) {
             const tempMsg = document.createElement('div');
@@ -806,31 +1109,21 @@
             document.body.appendChild(tempMsg);
             
             setTimeout(() => {
-                if (tempMsg.parentNode) {
-                    tempMsg.remove();
-                }
+                if (tempMsg.parentNode) tempMsg.remove();
             }, 2000);
         }
         
         // Обновление интерфейса магазина
         function updateShopUI() {
             for (const upgrade in upgrades) {
-                const currentPrice = upgrade.basePrice * Math.pow(1.15, upgrades[upgrade].level);
+                const currentPrice = upgrades[upgrade].basePrice * Math.pow(1.15, upgrades[upgrade].level);
                 const ownedElement = document.getElementById(upgrade + '-owned');
                 const priceElement = document.getElementById(upgrade + '-price');
                 const button = document.querySelector(`button[onclick="buyUpgrade('${upgrade}')"]`);
                 
                 if (ownedElement) ownedElement.textContent = upgrades[upgrade].level;
-                if (priceElement) {
-                    if (currentPrice >= 1000) {
-                        priceElement.textContent = (currentPrice/1000).toFixed(2) + 'K';
-                    } else {
-                        priceElement.textContent = currentPrice.toFixed(currentPrice < 1 ? 9 : 2);
-                    }
-                }
-                if (button) {
-                    button.disabled = userData.balance < currentPrice;
-                }
+                if (priceElement) priceElement.textContent = currentPrice.toFixed(0);
+                if (button) button.disabled = userData.balance < currentPrice;
             }
         }
         
@@ -839,7 +1132,6 @@
             const currentTime = Date.now();
             const elapsedSeconds = (currentTime - lastUpdateTime) / 1000;
             
-            // Авто-майнинг
             const miningSpeed = calculateMiningSpeed();
             accumulatedIncome += miningSpeed * elapsedSeconds;
             
@@ -852,31 +1144,31 @@
             lastUpdateTime = currentTime;
             
             const clickPower = calculateClickPower();
-            document.getElementById('balanceValue').textContent = userData.balance.toFixed(9) + ' S';
+            document.getElementById('balanceValue').textContent = userData.balance.toFixed(2) + ' S';
             document.getElementById('clickValue').textContent = clickPower.toFixed(9);
             document.getElementById('clickSpeed').textContent = clickPower.toFixed(9) + ' S/сек';
             document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
         }
         
-        // Навигация по разделам
+        // Навигация
         function showSection(sectionName) {
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
             
             if (sectionName === 'main') {
-                // Показываем главный экран (монетка + меню)
                 document.querySelector('.balance-section').style.display = 'block';
                 document.querySelector('.main-menu').style.display = 'grid';
             } else {
-                // Скрываем главный экран, показываем раздел
                 document.querySelector('.balance-section').style.display = 'none';
                 document.querySelector('.main-menu').style.display = 'none';
                 document.getElementById(sectionName + '-section').classList.add('active');
+                
+                if (sectionName === 'top') updateLeaderboard();
+                if (sectionName === 'games') updateLottery();
             }
         }
         
-        // Навигация по вкладкам магазина
         function showShopTab(tabName) {
             document.querySelectorAll('.shop-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -888,6 +1180,16 @@
             event.target.classList.add('active');
             document.getElementById('shop-' + tabName).classList.remove('hidden');
         }
+        
+        // Таймер лотереи
+        setInterval(() => {
+            lotteryTimer--;
+            if (lotteryTimer <= 0) {
+                lotteryTimer = 60;
+                // Здесь можно добавить логику розыгрыша
+            }
+            document.getElementById('lotteryTimer').textContent = lotteryTimer;
+        }, 1000);
         
         // Инициализация
         function initializeApp() {
