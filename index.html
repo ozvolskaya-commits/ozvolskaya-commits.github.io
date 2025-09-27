@@ -326,7 +326,6 @@
             opacity: 0.7;
         }
         
-        /* Рейтинг */
         .leaderboard {
             max-height: 500px;
             overflow-y: auto;
@@ -360,7 +359,6 @@
             font-size: 14px;
         }
         
-        /* Командная лотерея */
         .lottery-section {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -461,6 +459,15 @@
             margin: 5px 0;
             border-radius: 6px;
             font-size: 12px;
+            border-left: 3px solid #2196F3;
+        }
+        
+        .participant-item.eagle {
+            border-left-color: #FF5722;
+        }
+        
+        .participant-item.tails {
+            border-left-color: #4CAF50;
         }
     </style>
 </head>
@@ -776,13 +783,13 @@
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div>
-                        <h4>🦅 Орлы</h4>
+                        <h4>🦅 Орлы (<span id="eagleTotal">0</span> S)</h4>
                         <div class="participants" id="teamEagle">
                             <!-- Участники орлов -->
                         </div>
                     </div>
                     <div>
-                        <h4>🪙 Решки</h4>
+                        <h4>🪙 Решки (<span id="tailsTotal">0</span> S)</h4>
                         <div class="participants" id="teamTails">
                             <!-- Участники решек -->
                         </div>
@@ -860,6 +867,8 @@
             
             if (savedData) {
                 userData = JSON.parse(savedData);
+                // Восстанавливаем время последнего обновления для корректного AFK майнинга
+                lastUpdateTime = userData.lastUpdate || Date.now();
             } else {
                 userData = {
                     userId: userId,
@@ -882,56 +891,51 @@
                 }
             }
             
-            // Загружаем игроков из localStorage
+            // Загружаем игроков для рейтинга
             loadPlayers();
             updateUI();
             updateShopUI();
             updateLottery();
         }
         
-        // Загрузка игроков для рейтинга
+        // Загрузка реальных игроков
         function loadPlayers() {
-            const savedPlayers = localStorage.getItem('sparkcoin_players');
+            const savedPlayers = localStorage.getItem('sparkcoin_all_players');
             if (savedPlayers) {
                 allPlayers = JSON.parse(savedPlayers);
-            } else {
-                // Создаем тестовых игроков
-                allPlayers = [
-                    { username: "Даннил", balance: 162964971.59, clickSpeed: 0.000000001, mineSpeed: 0.000000000 },
-                    { username: "Марсель", balance: 100329685.86, clickSpeed: 0.000000001, mineSpeed: 0.000000002 },
-                    { username: "Александр Мишуков", balance: 74403132.00, clickSpeed: 0.031357633, mineSpeed: 0.095784341 },
-                    { username: "Vadim", balance: 70000000.99, clickSpeed: 0.000000001, mineSpeed: 0.000000001 },
-                    { username: "Тема", balance: 1291.67, clickSpeed: 0.000000001, mineSpeed: 0.000000001 }
-                ];
             }
             
-            // Добавляем текущего игрока
-            const currentPlayer = {
+            // Добавляем/обновляем текущего игрока
+            const currentPlayerIndex = allPlayers.findIndex(p => p.userId === userData.userId);
+            const currentPlayerData = {
+                userId: userData.userId,
                 username: userData.username,
                 balance: userData.balance,
+                totalEarned: userData.totalEarned,
+                totalClicks: userData.totalClicks,
                 clickSpeed: calculateClickPower(),
                 mineSpeed: calculateMiningSpeed(),
+                lastUpdate: userData.lastUpdate,
                 isCurrent: true
             };
             
-            // Обновляем или добавляем текущего игрока
-            const existingIndex = allPlayers.findIndex(p => p.username === userData.username);
-            if (existingIndex !== -1) {
-                allPlayers[existingIndex] = currentPlayer;
+            if (currentPlayerIndex !== -1) {
+                allPlayers[currentPlayerIndex] = currentPlayerData;
             } else {
-                allPlayers.push(currentPlayer);
+                allPlayers.push(currentPlayerData);
             }
             
-            savePlayers();
+            saveAllPlayers();
         }
         
-        // Сохранение игроков
-        function savePlayers() {
-            localStorage.setItem('sparkcoin_players', JSON.stringify(allPlayers));
+        // Сохранение всех игроков
+        function saveAllPlayers() {
+            localStorage.setItem('sparkcoin_all_players', JSON.stringify(allPlayers));
         }
         
         // Сохранение данных
         function saveUserData() {
+            userData.lastUpdate = Date.now();
             localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
             
             const upgradesData = {};
@@ -940,16 +944,17 @@
             }
             localStorage.setItem('sparkcoin_upgrades', JSON.stringify(upgradesData));
             
-            // Обновляем текущего игрока в рейтинге
+            // Обновляем данные текущего игрока в общем списке
             loadPlayers();
+            
             if (document.getElementById('top-section').classList.contains('active')) {
                 updateLeaderboard();
             }
         }
         
-        // Расчет силы клика
+        // Расчет силы клика с учетом улучшений
         function calculateClickPower() {
-            let power = 0.000000001;
+            let power = 0.000000001; // Базовая сила
             for (const upgrade in upgrades) {
                 if (upgrades[upgrade].type === 'click') {
                     power += upgrades[upgrade].level * upgrades[upgrade].baseBonus;
@@ -958,9 +963,9 @@
             return power;
         }
         
-        // Расчет скорости майнинга
+        // Расчет скорости майнинга с учетом улучшений
         function calculateMiningSpeed() {
-            let speed = 0.000000001;
+            let speed = 0.000000001; // Базовая скорость
             for (const upgrade in upgrades) {
                 if (upgrades[upgrade].type === 'mining') {
                     speed += upgrades[upgrade].level * upgrades[upgrade].baseBonus;
@@ -969,7 +974,7 @@
             return speed;
         }
         
-        // Клик по монетке с кд
+        // Клик по монетке с кд и реальным добавлением денег
         function clickCoin() {
             const now = Date.now();
             if (now - lastClickTime < CLICK_COOLDOWN) return;
@@ -981,12 +986,15 @@
             userData.totalClicks++;
             userData.lastUpdate = Date.now();
             
+            // Анимация клика
             const coin = document.getElementById('clickCoin');
             coin.classList.add('cooldown');
             setTimeout(() => coin.classList.remove('cooldown'), CLICK_COOLDOWN);
             
             updateUI();
             saveUserData();
+            
+            console.log(`Клик: +${clickPower.toFixed(9)} S, Баланс: ${userData.balance.toFixed(2)} S`);
         }
         
         // Покупка улучшения
@@ -1037,12 +1045,20 @@
             
             // Сохраняем участие в лотерее
             const lotteryData = JSON.parse(localStorage.getItem('sparkcoin_lottery') || '{}');
-            if (!lotteryData[selectedTeam]) lotteryData[selectedTeam] = [];
-            lotteryData[selectedTeam].push({
+            if (!lotteryData.participants) lotteryData.participants = [];
+            
+            // Удаляем предыдущее участие этого игрока
+            lotteryData.participants = lotteryData.participants.filter(p => p.userId !== userData.userId);
+            
+            // Добавляем новое участие
+            lotteryData.participants.push({
+                userId: userData.userId,
                 username: userData.username,
+                team: selectedTeam,
                 bet: bet,
                 time: Date.now()
             });
+            
             localStorage.setItem('sparkcoin_lottery', JSON.stringify(lotteryData));
             
             updateUI();
@@ -1054,39 +1070,57 @@
         
         function updateLottery() {
             const lotteryData = JSON.parse(localStorage.getItem('sparkcoin_lottery') || '{}');
+            const participants = lotteryData.participants || [];
             
             const eagleList = document.getElementById('teamEagle');
             const tailsList = document.getElementById('teamTails');
+            const eagleTotal = document.getElementById('eagleTotal');
+            const tailsTotal = document.getElementById('tailsTotal');
             
             eagleList.innerHTML = '';
             tailsList.innerHTML = '';
             
-            if (lotteryData.eagle) {
-                lotteryData.eagle.forEach(participant => {
-                    const item = document.createElement('div');
-                    item.className = 'participant-item';
-                    item.textContent = `${participant.username}: ${participant.bet} S`;
-                    eagleList.appendChild(item);
-                });
-            }
+            let eagleSum = 0;
+            let tailsSum = 0;
             
-            if (lotteryData.tails) {
-                lotteryData.tails.forEach(participant => {
-                    const item = document.createElement('div');
-                    item.className = 'participant-item';
-                    item.textContent = `${participant.username}: ${participant.bet} S`;
+            // Сортируем участников по времени ставки (новые сверху)
+            participants.sort((a, b) => b.time - a.time);
+            
+            participants.forEach(participant => {
+                const item = document.createElement('div');
+                item.className = `participant-item ${participant.team}`;
+                item.textContent = `${participant.username}: ${participant.bet} S`;
+                
+                if (participant.team === 'eagle') {
+                    eagleList.appendChild(item);
+                    eagleSum += participant.bet;
+                } else {
                     tailsList.appendChild(item);
-                });
-            }
+                    tailsSum += participant.bet;
+                }
+            });
+            
+            eagleTotal.textContent = eagleSum.toFixed(2);
+            tailsTotal.textContent = tailsSum.toFixed(2);
         }
         
-        // Рейтинг
+        // Рейтинг реальных игроков
         function updateLeaderboard() {
             const leaderboard = document.getElementById('leaderboard');
             leaderboard.innerHTML = '';
             
+            // Фильтруем только активных игроков (были онлайн за последние 7 дней)
+            const activePlayers = allPlayers.filter(player => {
+                return Date.now() - player.lastUpdate < 7 * 24 * 60 * 60 * 1000; // 7 дней
+            });
+            
             // Сортируем по балансу
-            const sortedPlayers = [...allPlayers].sort((a, b) => b.balance - a.balance);
+            const sortedPlayers = activePlayers.sort((a, b) => b.balance - a.balance);
+            
+            if (sortedPlayers.length === 0) {
+                leaderboard.innerHTML = '<div class="leader-item">Пока нет активных игроков</div>';
+                return;
+            }
             
             sortedPlayers.forEach((player, index) => {
                 const item = document.createElement('div');
@@ -1096,6 +1130,9 @@
                     <div class="leader-rank">${index + 1} место</div>
                     <div class="leader-name">${player.username} ${player.isCurrent ? '(Вы)' : ''}</div>
                     <div class="leader-balance">${player.balance.toFixed(2)} S</div>
+                    <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                        Кликов: ${player.totalClicks} | Заработано: ${player.totalEarned.toFixed(2)} S
+                    </div>
                 `;
                 leaderboard.appendChild(item);
             });
@@ -1127,22 +1164,31 @@
             }
         }
         
-        // Обновление интерфейса
+        // ОБНОВЛЕНИЕ ИНТЕРФЕЙСА С РАБОЧЕЙ ЭКОНОМИКОЙ
         function updateUI() {
             const currentTime = Date.now();
             const elapsedSeconds = (currentTime - lastUpdateTime) / 1000;
             
+            // AFK МАЙНИНГ - реальное добавление денег
             const miningSpeed = calculateMiningSpeed();
             accumulatedIncome += miningSpeed * elapsedSeconds;
             
-            if (accumulatedIncome >= 0.000000001) {
+            // Добавляем накопленный доход каждые 0.0000001 S
+            if (accumulatedIncome >= 0.0000001) {
                 userData.balance += accumulatedIncome;
                 userData.totalEarned += accumulatedIncome;
+                userData.lastUpdate = currentTime;
                 accumulatedIncome = 0;
+                
+                // Сохраняем только при значительном изменении баланса
+                if (Math.random() < 0.1) { // 10% шанс на сохранение при AFK
+                    saveUserData();
+                }
             }
             
             lastUpdateTime = currentTime;
             
+            // Обновляем отображение
             const clickPower = calculateClickPower();
             document.getElementById('balanceValue').textContent = userData.balance.toFixed(2) + ' S';
             document.getElementById('clickValue').textContent = clickPower.toFixed(9);
@@ -1195,7 +1241,10 @@
         function initializeApp() {
             loadUserData();
             
+            // Частое обновление UI для плавности
             setInterval(updateUI, 100);
+            
+            // Авто-сохранение каждые 10 секунд
             setInterval(saveUserData, 10000);
         }
 
