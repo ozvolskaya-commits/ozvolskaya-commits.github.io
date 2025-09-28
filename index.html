@@ -620,11 +620,6 @@
         <div class="balance-section">
             <div class="balance-amount" id="balanceValue">0.00000010 S</div>
             
-            <div class="balance-image-container">
-                <canvas id="balanceCanvas" width="350" height="150" style="display: none;"></canvas>
-                <img id="balanceImage" class="balance-image" alt="Баланс Sparkcoin">
-            </div>
-            
             <div class="coin-section">
                 <div class="click-coin" id="clickCoin">
                     <div class="coin-letter">S</div>
@@ -1033,7 +1028,6 @@
             <div class="rating-tabs">
                 <button class="rating-tab active" onclick="showRatingTab('balance')">💰 Баланс</button>
                 <button class="rating-tab" onclick="showRatingTab('speed')">⚡ Скорость</button>
-                <button class="rating-tab" onclick="showRatingTab('rich')">🏆 Самые богатые</button>
             </div>
             
             <div class="leaderboard" id="leaderboard">
@@ -1056,7 +1050,7 @@
         let lastUpdateTime = Date.now();
         let accumulatedIncome = 0;
         let lastClickTime = 0;
-        const CLICK_COOLDOWN = 150; // 0.15 секунды
+        const CLICK_COOLDOWN = 25; // 25 мс кулдаун
         let selectedTeam = null;
         let lotteryTimer = 60;
         let allPlayers = [];
@@ -1101,34 +1095,42 @@
         function getTelegramUserId() {
             const user = tg.initDataUnsafe?.user;
             if (user && user.id) {
-                return 'tg_' + user.id; // Уникальный ID на основе Telegram ID
+                return 'tg_' + user.id;
             }
-            // Если не в Telegram Web App, используем случайный ID (для тестирования)
             return 'test_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // Получение имени пользователя Telegram
+        function getTelegramUsername() {
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                if (user.username) {
+                    return user.username;
+                } else if (user.first_name) {
+                    return user.first_name;
+                }
+            }
+            return 'Игрок';
         }
         
         // Загрузка данных
         function loadUserData() {
             const savedData = localStorage.getItem('sparkcoin_user_data');
-            const user = tg.initDataUnsafe?.user;
-            const username = user?.first_name || 'Игрок';
-            const userId = getTelegramUserId(); // Уникальный ID на основе Telegram
-            
+            const userId = getTelegramUserId();
+            const username = getTelegramUsername();
+
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
-                // Проверяем, что данные принадлежат тому же пользователю
                 if (parsedData.userId === userId) {
                     userData = parsedData;
                     lastUpdateTime = userData.lastUpdate || Date.now();
                 } else {
-                    // Если другой пользователь, создаем новые данные
                     userData = createNewUserData(userId, username);
                 }
             } else {
                 userData = createNewUserData(userId, username);
             }
             
-            // Загружаем улучшения
             const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
             if (savedUpgrades) {
                 const upgradesData = JSON.parse(savedUpgrades);
@@ -1139,14 +1141,11 @@
                 }
             }
             
-            // Загружаем всех игроков
             loadAllPlayers();
             updateUI();
             updateShopUI();
             updateLottery();
-            updateBalanceImage();
             
-            // Запускаем таймер лотереи
             startLotteryTimer();
         }
         
@@ -1175,7 +1174,6 @@
                 allPlayers = [];
             }
             
-            // Обновляем данные текущего игрока
             const currentPlayerIndex = allPlayers.findIndex(p => p.userId === userData.userId);
             const currentPlayerData = {
                 userId: userData.userId,
@@ -1205,7 +1203,6 @@
         
         // Сохранение всех игроков
         function saveAllPlayers() {
-            // Очищаем устаревших игроков (старше 30 дней)
             const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
             allPlayers = allPlayers.filter(player => {
                 return new Date(player.joinedDate).getTime() > thirtyDaysAgo || 
@@ -1231,44 +1228,6 @@
             if (document.getElementById('top-section').classList.contains('active')) {
                 updateLeaderboard();
             }
-            
-            updateBalanceImage();
-        }
-        
-        // Генерация картинки с балансом (БЕЗ ЛИШНИХ ПЛАШЕК)
-        function updateBalanceImage() {
-            const canvas = document.getElementById('balanceCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Простой фон
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Заголовок
-            ctx.fillStyle = '#4CC9F0';
-            ctx.font = 'bold 20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Sparkcoin Balance', canvas.width / 2, 30);
-            
-            // Баланс
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 28px Courier New';
-            ctx.fillText(userData.balance.toFixed(8) + ' S', canvas.width / 2, 70);
-            
-            // Имя пользователя
-            ctx.fillStyle = '#4CC9F0';
-            ctx.font = '16px Arial';
-            ctx.fillText('Игрок: ' + userData.username, canvas.width / 2, 100);
-            
-            // Победы в лотерее
-            ctx.fillStyle = '#CCCCCC';
-            ctx.font = '14px Arial';
-            ctx.fillText('Победы в лотерее: ' + userData.lotteryWins, canvas.width / 2, 125);
-            
-            const dataUrl = canvas.toDataURL('image/png');
-            document.getElementById('balanceImage').src = dataUrl;
         }
         
         // Расчет силы клика
@@ -1293,7 +1252,7 @@
             return speed;
         }
         
-        // Клик по монетке с интервалом 0.15 секунды
+        // Клик по монетке с интервалом 25 мс
         function clickCoin(event) {
             const now = Date.now();
             if (now - lastClickTime < CLICK_COOLDOWN) return;
@@ -1305,7 +1264,6 @@
             userData.totalClicks++;
             userData.lastUpdate = Date.now();
             
-            // Создаем всплывающий текст
             createClickPopup(event, clickPower);
             
             const coin = document.getElementById('clickCoin');
@@ -1389,7 +1347,6 @@
             if (!lotteryData.participants) lotteryData.participants = [];
             if (!lotteryData.history) lotteryData.history = [];
             
-            // Удаляем предыдущую ставку этого пользователя (по userId)
             lotteryData.participants = lotteryData.participants.filter(p => p.userId !== userData.userId);
             
             lotteryData.participants.push({
@@ -1430,7 +1387,6 @@
             let eagleCount = 0;
             let tailsCount = 0;
             
-            // Группируем по userId (Telegram ID)
             const uniqueParticipants = [];
             const userMap = {};
             
@@ -1628,9 +1584,6 @@
                 case 'speed':
                     sortedPlayers = allPlayers.sort((a, b) => b.totalSpeed - a.totalSpeed);
                     break;
-                case 'rich':
-                    sortedPlayers = allPlayers.sort((a, b) => b.totalEarned - a.totalEarned);
-                    break;
             }
             
             if (sortedPlayers.length === 0) {
@@ -1651,9 +1604,6 @@
                     case 'speed':
                         valueText = `<div class="leader-speed">${player.totalSpeed.toFixed(9)} S/сек</div>`;
                         break;
-                    case 'rich':
-                        valueText = `<div class="leader-balance">${player.totalEarned.toFixed(8)} S всего</div>`;
-                        break;
                 }
                 
                 item.innerHTML = `
@@ -1661,7 +1611,7 @@
                     <div class="leader-name">${player.username} ${player.isCurrent ? '(Вы)' : ''}</div>
                     ${valueText}
                     <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                        ID: ${player.userId.substring(0, 8)}... | Кликов: ${player.totalClicks}
+                        Кликов: ${player.totalClicks} | Побед: ${player.lotteryWins}
                     </div>
                 `;
                 leaderboard.appendChild(item);
@@ -1720,10 +1670,6 @@
             document.getElementById('clickValue').textContent = clickPower.toFixed(9);
             document.getElementById('clickSpeed').textContent = clickPower.toFixed(9) + ' S/сек';
             document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
-            
-            if (Date.now() % 10000 < 100) {
-                updateBalanceImage();
-            }
         }
         
         // Навигация
