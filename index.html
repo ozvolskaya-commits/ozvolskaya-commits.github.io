@@ -223,13 +223,6 @@
             border-bottom: 1px solid rgba(33, 150, 243, 0.3);
         }
         
-        .category-description {
-            font-size: 12px;
-            color: #ccc;
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
-        
         .upgrade-item {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -347,6 +340,32 @@
             overflow-y: auto;
         }
         
+        .rating-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 5px;
+            gap: 5px;
+        }
+        
+        .rating-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+        
+        .rating-tab.active {
+            background: #2196F3;
+            font-weight: bold;
+        }
+        
         .leader-item {
             background: rgba(255, 255, 255, 0.05);
             padding: 12px;
@@ -373,6 +392,12 @@
             font-family: 'Courier New', monospace;
             font-weight: bold;
             font-size: 14px;
+        }
+        
+        .leader-speed {
+            color: #FF9800;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
         }
         
         .lottery-section {
@@ -598,8 +623,6 @@
             <div class="balance-image-container">
                 <canvas id="balanceCanvas" width="350" height="150" style="display: none;"></canvas>
                 <img id="balanceImage" class="balance-image" alt="Баланс Sparkcoin">
-                <br>
-                <button class="balance-image-btn" onclick="updateBalanceImage()">🔄 Обновить картинку</button>
             </div>
             
             <div class="coin-section">
@@ -645,9 +668,6 @@
                 <!-- Видеокарты -->
                 <div id="shop-gpu" class="shop-category">
                     <div class="category-title">🎮 Видеокарты</div>
-                    <div class="category-description">
-                        Видеокарты увеличивают скорость автоматического майнинга.
-                    </div>
                     
                     <div class="upgrade-item">
                         <div class="upgrade-header">
@@ -749,9 +769,6 @@
                 <!-- Процессоры -->
                 <div id="shop-cpu" class="shop-category hidden">
                     <div class="category-title">💻 Процессоры</div>
-                    <div class="category-description">
-                        Процессоры увеличивают базовую скорость майнинга.
-                    </div>
                     
                     <div class="upgrade-item">
                         <div class="upgrade-header">
@@ -853,9 +870,6 @@
                 <!-- Мышки -->
                 <div id="shop-mouse" class="shop-category hidden">
                     <div class="category-title">🖱️ Мышки</div>
-                    <div class="category-description">
-                        Мышки увеличивают доход за каждый клик.
-                    </div>
                     
                     <div class="upgrade-item">
                         <div class="upgrade-header">
@@ -1016,6 +1030,12 @@
         <div id="top-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             
+            <div class="rating-tabs">
+                <button class="rating-tab active" onclick="showRatingTab('balance')">💰 Баланс</button>
+                <button class="rating-tab" onclick="showRatingTab('speed')">⚡ Скорость</button>
+                <button class="rating-tab" onclick="showRatingTab('rich')">🏆 Самые богатые</button>
+            </div>
+            
             <div class="leaderboard" id="leaderboard">
                 <!-- Рейтинг загружается динамически -->
             </div>
@@ -1036,15 +1056,15 @@
         let lastUpdateTime = Date.now();
         let accumulatedIncome = 0;
         let lastClickTime = 0;
-        const CLICK_COOLDOWN = 200;
+        const CLICK_COOLDOWN = 150; // 0.15 секунды
         let selectedTeam = null;
         let lotteryTimer = 60;
         let allPlayers = [];
         let lotteryInterval;
+        let currentRatingTab = 'balance';
 
-        // БАЗА УЛУЧШЕНИЙ С ЦЕНАМИ ИЗ ФОТОГРАФИЙ
+        // БАЗА УЛУЧШЕНИЙ
         const upgrades = {
-            // Видеокарты (майнинг)
             gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000016, baseBonus: 0.000000001, level: 0, type: 'mining' },
             gpu2: { name: "Видеокарта-затычка", basePrice: 0.000000256, baseBonus: 0.000000008, level: 0, type: 'mining' },
             gpu3: { name: "Видеокарта Mining V100", basePrice: 0.000004096, baseBonus: 0.000000064, level: 0, type: 'mining' },
@@ -1054,7 +1074,6 @@
             gpu7: { name: "Видеокарта Blue Earth 54", basePrice: 0.268435456, baseBonus: 0.000262144, level: 0, type: 'mining' },
             gpu8: { name: "Видеокарта Big Bang", basePrice: 4.29, baseBonus: 0.002097152, level: 0, type: 'mining' },
             
-            // Процессоры (майнинг)
             cpu1: { name: "Обычный процессор", basePrice: 0.000000032, baseBonus: 0.000000001, level: 0, type: 'mining' },
             cpu2: { name: "Процессор Miner X100", basePrice: 0.000000512, baseBonus: 0.000000008, level: 0, type: 'mining' },
             cpu3: { name: "Супер процессор Miner X1000", basePrice: 0.000008192, baseBonus: 0.000000064, level: 0, type: 'mining' },
@@ -1064,7 +1083,6 @@
             cpu7: { name: "Микровселенный процессор", basePrice: 0.536870912, baseBonus: 0.000262144, level: 0, type: 'mining' },
             cpu8: { name: "Мультивселенный процессор", basePrice: 8.59, baseBonus: 0.002097152, level: 0, type: 'mining' },
             
-            // Мышки (клик)
             mouse1: { name: "Обычная мышка", basePrice: 0.000000064, baseBonus: 0.000000004, level: 0, type: 'click' },
             mouse2: { name: "Мышка с автокликером", basePrice: 0.000001024, baseBonus: 0.000000008, level: 0, type: 'click' },
             mouse3: { name: "Мышка с макросами", basePrice: 0.000016384, baseBonus: 0.000000064, level: 0, type: 'click' },
@@ -1079,32 +1097,39 @@
         tg.expand();
         tg.enableClosingConfirmation();
         
+        // Получение уникального ID пользователя Telegram
+        function getTelegramUserId() {
+            const user = tg.initDataUnsafe?.user;
+            if (user && user.id) {
+                return 'tg_' + user.id; // Уникальный ID на основе Telegram ID
+            }
+            // Если не в Telegram Web App, используем случайный ID (для тестирования)
+            return 'test_' + Math.random().toString(36).substr(2, 9);
+        }
+        
         // Загрузка данных
         function loadUserData() {
             const savedData = localStorage.getItem('sparkcoin_user_data');
             const user = tg.initDataUnsafe?.user;
             const username = user?.first_name || 'Игрок';
-            const userId = user?.id || Math.random().toString(36).substr(2, 9);
+            const userId = getTelegramUserId(); // Уникальный ID на основе Telegram
             
             if (savedData) {
-                userData = JSON.parse(savedData);
-                lastUpdateTime = userData.lastUpdate || Date.now();
+                const parsedData = JSON.parse(savedData);
+                // Проверяем, что данные принадлежат тому же пользователю
+                if (parsedData.userId === userId) {
+                    userData = parsedData;
+                    lastUpdateTime = userData.lastUpdate || Date.now();
+                } else {
+                    // Если другой пользователь, создаем новые данные
+                    userData = createNewUserData(userId, username);
+                }
             } else {
-                userData = {
-                    userId: userId,
-                    username: username,
-                    balance: 0.00000010,
-                    totalEarned: 0.00000010,
-                    totalClicks: 0,
-                    lastUpdate: Date.now(),
-                    joinedDate: new Date().toISOString(),
-                    lotteryWins: 0,
-                    totalBet: 0
-                };
+                userData = createNewUserData(userId, username);
             }
             
             // Загружаем улучшения
-            const savedUpgrades = localStorage.getItem('sparkcoin_upgrades');
+            const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
             if (savedUpgrades) {
                 const upgradesData = JSON.parse(savedUpgrades);
                 for (const key in upgradesData) {
@@ -1125,6 +1150,22 @@
             startLotteryTimer();
         }
         
+        // Создание данных нового пользователя
+        function createNewUserData(userId, username) {
+            return {
+                userId: userId,
+                username: username,
+                balance: 0.00000010,
+                totalEarned: 0.00000010,
+                totalClicks: 0,
+                lastUpdate: Date.now(),
+                joinedDate: new Date().toISOString(),
+                lotteryWins: 0,
+                totalBet: 0,
+                telegramId: tg.initDataUnsafe?.user?.id || null
+            };
+        }
+        
         // Загрузка всех игроков
         function loadAllPlayers() {
             const savedPlayers = localStorage.getItem('sparkcoin_all_players');
@@ -1134,7 +1175,7 @@
                 allPlayers = [];
             }
             
-            // Добавляем/обновляем текущего игрока
+            // Обновляем данные текущего игрока
             const currentPlayerIndex = allPlayers.findIndex(p => p.userId === userData.userId);
             const currentPlayerData = {
                 userId: userData.userId,
@@ -1144,10 +1185,12 @@
                 totalClicks: userData.totalClicks,
                 clickSpeed: calculateClickPower(),
                 mineSpeed: calculateMiningSpeed(),
+                totalSpeed: calculateClickPower() + calculateMiningSpeed(),
                 lastUpdate: userData.lastUpdate,
                 joinedDate: userData.joinedDate,
                 lotteryWins: userData.lotteryWins,
                 totalBet: userData.totalBet,
+                telegramId: userData.telegramId,
                 isCurrent: true
             };
             
@@ -1162,6 +1205,7 @@
         
         // Сохранение всех игроков
         function saveAllPlayers() {
+            // Очищаем устаревших игроков (старше 30 дней)
             const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
             allPlayers = allPlayers.filter(player => {
                 return new Date(player.joinedDate).getTime() > thirtyDaysAgo || 
@@ -1180,7 +1224,7 @@
             for (const key in upgrades) {
                 upgradesData[key] = upgrades[key].level;
             }
-            localStorage.setItem('sparkcoin_upgrades', JSON.stringify(upgradesData));
+            localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
             
             loadAllPlayers();
             
@@ -1229,7 +1273,7 @@
         
         // Расчет силы клика
         function calculateClickPower() {
-            let power = 0.000000001; // Базовая сила
+            let power = 0.000000001;
             for (const upgrade in upgrades) {
                 if (upgrades[upgrade].type === 'click') {
                     power += upgrades[upgrade].level * upgrades[upgrade].baseBonus;
@@ -1238,9 +1282,9 @@
             return power;
         }
         
-        // Расчет скорости майнинга (НАЧИНАЕТСЯ С НУЛЯ)
+        // Расчет скорости майнинга
         function calculateMiningSpeed() {
-            let speed = 0; // Начинаем с нуля как на фото
+            let speed = 0;
             for (const upgrade in upgrades) {
                 if (upgrades[upgrade].type === 'mining') {
                     speed += upgrades[upgrade].level * upgrades[upgrade].baseBonus;
@@ -1249,7 +1293,7 @@
             return speed;
         }
         
-        // Клик по монетке с анимацией как на фото
+        // Клик по монетке с интервалом 0.15 секунды
         function clickCoin(event) {
             const now = Date.now();
             if (now - lastClickTime < CLICK_COOLDOWN) return;
@@ -1261,7 +1305,7 @@
             userData.totalClicks++;
             userData.lastUpdate = Date.now();
             
-            // Создаем всплывающий текст как на фото
+            // Создаем всплывающий текст
             createClickPopup(event, clickPower);
             
             const coin = document.getElementById('clickCoin');
@@ -1278,7 +1322,6 @@
             popup.className = 'click-popup';
             popup.textContent = '+' + amount.toFixed(9);
             
-            // Позиционируем относительно места клика
             const rect = event.target.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
@@ -1288,7 +1331,6 @@
             
             document.getElementById('clickCoin').appendChild(popup);
             
-            // Удаляем через 1 секунду
             setTimeout(() => {
                 if (popup.parentNode) {
                     popup.parentNode.removeChild(popup);
@@ -1296,10 +1338,9 @@
             }, 1000);
         }
         
-        // Покупка улучшения с увеличением цены в 1.59375 раза
+        // Покупка улучшения
         function buyUpgrade(upgradeType) {
             const upgrade = upgrades[upgradeType];
-            // Цена увеличивается в 1.59375 раза с каждым уровнем
             const currentPrice = upgrade.basePrice * Math.pow(1.59375, upgrade.level);
             
             if (userData.balance >= currentPrice) {
@@ -1348,6 +1389,7 @@
             if (!lotteryData.participants) lotteryData.participants = [];
             if (!lotteryData.history) lotteryData.history = [];
             
+            // Удаляем предыдущую ставку этого пользователя (по userId)
             lotteryData.participants = lotteryData.participants.filter(p => p.userId !== userData.userId);
             
             lotteryData.participants.push({
@@ -1356,7 +1398,7 @@
                 team: selectedTeam,
                 bet: bet,
                 time: Date.now(),
-                deviceId: userData.userId
+                telegramId: userData.telegramId
             });
             
             localStorage.setItem('sparkcoin_lottery', JSON.stringify(lotteryData));
@@ -1388,16 +1430,17 @@
             let eagleCount = 0;
             let tailsCount = 0;
             
+            // Группируем по userId (Telegram ID)
             const uniqueParticipants = [];
-            const deviceMap = {};
+            const userMap = {};
             
             participants.forEach(participant => {
-                if (!deviceMap[participant.deviceId]) {
-                    deviceMap[participant.deviceId] = participant;
+                if (!userMap[participant.userId]) {
+                    userMap[participant.userId] = participant;
                     uniqueParticipants.push(participant);
                 } else {
-                    deviceMap[participant.deviceId].bet = participant.bet;
-                    deviceMap[participant.deviceId].team = participant.team;
+                    userMap[participant.userId].bet = participant.bet;
+                    userMap[participant.userId].team = participant.team;
                 }
             });
             
@@ -1561,12 +1604,34 @@
             showTempMessage(`🎉 Победила команда ${winningTeam === 'eagle' ? 'Орлов' : 'Решек'}! Призовой фонд: ${prizePool.toFixed(8)} S`);
         }
         
-        // Рейтинг всех игроков
+        // Показать вкладку рейтинга
+        function showRatingTab(tab) {
+            currentRatingTab = tab;
+            document.querySelectorAll('.rating-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            updateLeaderboard();
+        }
+        
+        // Рейтинг игроков
         function updateLeaderboard() {
             const leaderboard = document.getElementById('leaderboard');
             leaderboard.innerHTML = '';
             
-            const sortedPlayers = allPlayers.sort((a, b) => b.balance - a.balance);
+            let sortedPlayers = [];
+            
+            switch (currentRatingTab) {
+                case 'balance':
+                    sortedPlayers = allPlayers.sort((a, b) => b.balance - a.balance);
+                    break;
+                case 'speed':
+                    sortedPlayers = allPlayers.sort((a, b) => b.totalSpeed - a.totalSpeed);
+                    break;
+                case 'rich':
+                    sortedPlayers = allPlayers.sort((a, b) => b.totalEarned - a.totalEarned);
+                    break;
+            }
             
             if (sortedPlayers.length === 0) {
                 leaderboard.innerHTML = '<div class="leader-item">Пока нет игроков</div>';
@@ -1577,12 +1642,26 @@
                 const item = document.createElement('div');
                 item.className = 'leader-item';
                 item.style.background = player.isCurrent ? 'rgba(33, 150, 243, 0.2)' : '';
+                
+                let valueText = '';
+                switch (currentRatingTab) {
+                    case 'balance':
+                        valueText = `<div class="leader-balance">${player.balance.toFixed(8)} S</div>`;
+                        break;
+                    case 'speed':
+                        valueText = `<div class="leader-speed">${player.totalSpeed.toFixed(9)} S/сек</div>`;
+                        break;
+                    case 'rich':
+                        valueText = `<div class="leader-balance">${player.totalEarned.toFixed(8)} S всего</div>`;
+                        break;
+                }
+                
                 item.innerHTML = `
                     <div class="leader-rank">${index + 1} место</div>
                     <div class="leader-name">${player.username} ${player.isCurrent ? '(Вы)' : ''}</div>
-                    <div class="leader-balance">${player.balance.toFixed(8)} S</div>
+                    ${valueText}
                     <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                        Побед: ${player.lotteryWins} | Ставок: ${player.totalBet.toFixed(8)} S
+                        ID: ${player.userId.substring(0, 8)}... | Кликов: ${player.totalClicks}
                     </div>
                 `;
                 leaderboard.appendChild(item);
