@@ -2018,3 +2018,243 @@
     </script>
 </body>
 </html>
+// API конфигурация
+const API_BASE_URL = 'http://localhost:5000/api'; // или ваш домен
+
+// Функция для загрузки рейтинга из базы данных
+async function loadLeaderboardFromAPI(type = 'balance') {
+    try {
+        const response = await fetch(`${API_BASE_URL}/leaderboard?type=${type}&limit=20`);
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.leaderboard.map(player => ({
+                ...player,
+                isCurrent: player.userId === userData.userId,
+                totalSpeed: (player.click_speed || 0) + (player.mine_speed || 0)
+            }));
+        } else {
+            console.error('Ошибка загрузки рейтинга:', data.error);
+            return [];
+        }
+    } catch (error) {
+        console.error('Ошибка подключения к API:', error);
+        // Возвращаем локальные данные как запасной вариант
+        return allPlayers;
+    }
+}
+
+// Функция для обновления рейтинга
+async function updateLeaderboard() {
+    const leaderboard = document.getElementById('leaderboard');
+    leaderboard.innerHTML = '<div style="text-align: center; padding: 20px; color: #ccc;">Загрузка рейтинга...</div>';
+    
+    try {
+        const apiPlayers = await loadLeaderboardFromAPI(currentRatingTab);
+        
+        if (apiPlayers.length === 0) {
+            leaderboard.innerHTML = '<div class="leader-item">Пока нет игроков в рейтинге</div>';
+            return;
+        }
+        
+        leaderboard.innerHTML = '';
+        
+        apiPlayers.forEach((player, index) => {
+            const item = document.createElement('div');
+            item.className = 'leader-item';
+            item.style.background = player.isCurrent ? 'rgba(33, 150, 243, 0.2)' : '';
+            
+            let valueText = '';
+            switch (currentRatingTab) {
+                case 'balance':
+                    valueText = `<div class="leader-balance">${player.balance.toFixed(9)} S</div>`;
+                    break;
+                case 'speed':
+                    valueText = `<div class="leader-speed">${player.totalSpeed.toFixed(9)} S/сек</div>`;
+                    break;
+                case 'rich':
+                    valueText = `<div class="leader-balance">${player.totalEarned.toFixed(9)} S всего</div>`;
+                    break;
+            }
+            
+            item.innerHTML = `
+                <div class="leader-rank">${index + 1} место</div>
+                <div class="leader-name">${player.username} ${player.isCurrent ? '(Вы)' : ''}</div>
+                ${valueText}
+                <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                    Кликов: ${player.totalClicks} | Побед: ${player.lotteryWins || 0}
+                </div>
+            `;
+            leaderboard.appendChild(item);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка обновления рейтинга:', error);
+        leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+    }
+}
+
+// Функция для загрузки всех игроков (для переводов)
+async function loadAllPlayersFromAPI() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/all_players`);
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.players.map(player => ({
+                userId: player.userId,
+                username: player.username,
+                balance: player.balance,
+                totalEarned: player.totalEarned || 0,
+                totalClicks: player.totalClicks || 0,
+                clickSpeed: player.click_speed || 0,
+                mineSpeed: player.mine_speed || 0,
+                totalSpeed: (player.click_speed || 0) + (player.mine_speed || 0),
+                isCurrent: player.userId === userData.userId
+            }));
+        } else {
+            console.error('Ошибка загрузки игроков:', data.error);
+            return allPlayers;
+        }
+    } catch (error) {
+        console.error('Ошибка подключения к API:', error);
+        return allPlayers;
+    }
+}
+
+// Обновляем функцию updateUsersList для работы с API
+async function updateUsersList() {
+    const usersList = document.getElementById('usersList');
+    const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+    
+    usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
+    
+    try {
+        const apiPlayers = await loadAllPlayersFromAPI();
+        
+        // Фильтруем пользователей по поисковому запросу и исключаем текущего пользователя
+        const filteredUsers = apiPlayers.filter(player => 
+            player.userId !== userData.userId && 
+            player.username.toLowerCase().includes(searchTerm)
+        );
+        
+        usersList.innerHTML = '';
+        
+        if (filteredUsers.length === 0) {
+            usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Игроки не найдены</div>';
+            return;
+        }
+        
+        filteredUsers.forEach(player => {
+            const userItem = document.createElement('div');
+            userItem.className = 'user-item';
+            userItem.innerHTML = `
+                <div class="user-name">${player.username}</div>
+                <div class="user-balance">${player.balance.toFixed(9)} S</div>
+            `;
+            userItem.onclick = () => selectUserForTransfer(player);
+            usersList.appendChild(userItem);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки списка игроков:', error);
+        usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Ошибка загрузки</div>';
+    }
+}
+
+// Обновляем функцию синхронизации данных
+async function syncPlayerDataWithAPI() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
+        const data = await response.json();
+        
+        if (data.success && data.player) {
+            const apiData = data.player;
+            
+            // Обновляем локальные данные из API
+            userData.balance = apiData.balance;
+            userData.totalEarned = apiData.total_earned;
+            userData.totalClicks = apiData.total_clicks;
+            userData.lotteryWins = apiData.lottery_wins;
+            userData.totalBet = apiData.total_bet;
+            
+            // Обновляем улучшения если они есть в API
+            if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
+                for (const key in apiData.upgrades) {
+                    if (upgrades[key]) {
+                        upgrades[key].level = apiData.upgrades[key].level || 0;
+                    }
+                }
+            }
+            
+            updateUI();
+            updateShopUI();
+        }
+    } catch (error) {
+        console.error('Ошибка синхронизации с API:', error);
+    }
+}
+
+// Добавляем периодическую синхронизацию
+setInterval(syncPlayerDataWithAPI, 30000); // Синхронизация каждые 30 секунд
+
+// Обновляем функцию показа секции рейтинга
+function showRatingTab(tab) {
+    currentRatingTab = tab;
+    document.querySelectorAll('.rating-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    updateLeaderboard(); // Теперь используем API
+}
+
+// Обновляем функцию сохранения данных - отправляем в API через бота
+async function saveUserDataToAPI() {
+    const saveData = {
+        type: 'player_update',
+        ...userData,
+        upgrades: upgrades
+    };
+    
+    // Отправляем данные через Web App (они попадут в handle_web_app_data)
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.sendData(JSON.stringify(saveData));
+    }
+    
+    // Также можно отправлять напрямую в API если нужно
+    try {
+        await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(saveData)
+        });
+    } catch (error) {
+        console.error('Ошибка сохранения в API:', error);
+    }
+}
+
+// Заменяем старую функцию saveUserData
+function saveUserData() {
+    userData.lastUpdate = Date.now();
+    
+    // Сохраняем в localStorage как раньше
+    localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
+    
+    const upgradesData = {};
+    for (const key in upgrades) {
+        upgradesData[key] = upgrades[key].level;
+    }
+    localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
+    
+    // Сохраняем в API
+    saveUserDataToAPI();
+    
+    if (document.getElementById('top-section').classList.contains('active')) {
+        updateLeaderboard();
+    }
+    if (document.getElementById('transfer-section').classList.contains('active')) {
+        updateUsersList();
+    }
+}
