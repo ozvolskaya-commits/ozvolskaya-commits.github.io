@@ -1,4 +1,3 @@
-Артём, [29.09.2025 0:24]
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -147,8 +146,7 @@
             gap: 10px;
             margin-bottom: 15px;
         }
-
-Артём, [29.09.2025 0:24]
+        
 .menu-button {
             background: rgba(255, 255, 255, 0.1);
             border: none;
@@ -311,7 +309,6 @@
             padding: 10px 20px;
             border-radius: 25px;
 
-Артём, [29.09.2025 0:24]
 z-index: 1000;
             font-size: 14px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -469,7 +466,6 @@ z-index: 1000;
         
         .top-1 .player-rank {
 
-Артём, [29.09.2025 0:24]
 background: linear-gradient(135deg, #FFD700, #FFA500);
         }
         
@@ -629,7 +625,6 @@ background: linear-gradient(135deg, #FFD700, #FFA500);
         .lottery-stats {
             display: grid;
 
-Артём, [29.09.2025 0:24]
 grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin: 10px 0;
@@ -789,7 +784,6 @@ grid-template-columns: 1fr 1fr;
             border-radius: 8px;
             font-size: 16px;
 
-Артём, [29.09.2025 0:24]
 width: 100%;
             margin-bottom: 15px;
             outline: none;
@@ -950,7 +944,6 @@ width: 100%;
         
         .winner-name {
 
-Артём, [29.09.2025 0:24]
 font-weight: bold;
             color: #4CC9F0;
             margin-bottom: 3px;
@@ -1062,7 +1055,6 @@ font-weight: bold;
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000001 к скорости</span>
 
-Артём, [29.09.2025 0:24]
 <span class="upgrade-price">Цена: <span id="gpu1-price">0.000000016</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
@@ -1151,7 +1143,6 @@ font-weight: bold;
                 
                 <div class="team-buttons">
 
-Артём, [29.09.2025 0:24]
 <button class="team-button eagle" onclick="selectTeam('eagle')">🦅 Орлы</button>
                     <button class="team-button tails" onclick="selectTeam('tails')">🪙 Решки</button>
                 </div>
@@ -1232,7 +1223,6 @@ font-weight: bold;
                 
                 <div class="users-list" id="usersList">
 
-Артём, [29.09.2025 0:24]
 <!-- Список пользователей загружается динамически -->
                 </div>
                 
@@ -1321,7 +1311,6 @@ font-weight: bold;
             const userId = getTelegramUserId();
             const username = getTelegramUsername();
 
-Артём, [29.09.2025 0:24]
 const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
@@ -1416,7 +1405,6 @@ const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
             allPlayers = allPlayers.filter(player => {
 
-Артём, [29.09.2025 0:24]
 return new Date(player.joinedDate).getTime() > thirtyDaysAgo  
                        player.lastUpdate > thirtyDaysAgo;
             });
@@ -1519,7 +1507,6 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
             
             if (fil
 
-Артём, [29.09.2025 0:24]
 teredPlayers.length === 0) {
                 ratingList.innerHTML = '<div class="no-players">Пока нет игроков в рейтинге</div>';
                 return;
@@ -1598,7 +1585,6 @@ teredPlayers.length === 0) {
             updateRatingDisplay();
         }
 
-Артём, [29.09.2025 0:24]
 // НОВЫЕ ФУНКЦИИ ДЛЯ ТОПА ПОБЕДИТЕЛЕЙ
         function calculateDailyWinners() {
             const today = new Date().toDateString();
@@ -1685,7 +1671,6 @@ teredPlayers.length === 0) {
             });
         }
 
-Артём, [29.09.2025 0:24]
 // Остальные функции (showSection, showGameTab, и т.д.)
         function showSection(section) {
             document.querySelectorAll('.section').forEach(sec => {
@@ -1780,7 +1765,6 @@ teredPlayers.length === 0) {
         function buyUpgrade(upgradeType) {
             const
 
-Артём, [29.09.2025 0:24]
 upgrade = upgrades[upgradeType];
             const currentPrice = upgrade.basePrice * Math.pow(1.59375, upgrade.level);
             
@@ -1884,7 +1868,6 @@ upgrade = upgrades[upgradeType];
             }, 3000);
         }
 
-Артём, [29.09.2025 0:24]
 // Защита от автокликеров
         function checkAutoClick() {
             const now = Date.now();
@@ -1982,8 +1965,7 @@ upgrade = upgrades[upgradeType];
             document.getElementById('transferAmount').value = '';
             document.getElementById('transferButton').disabled = true;
         }
-
-Артём, [29.09.2025 0:24]
+        
 function makeTransfer() {
             if (!selectedTransferUser) {
                 showTempMessage('❌ Выберите пользователя для перевода', true);
