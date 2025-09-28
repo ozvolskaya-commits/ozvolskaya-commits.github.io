@@ -676,6 +676,31 @@
                 opacity: 0;
             }
         }
+
+        /* Защита от автокликеров */
+        .anti-cheat {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            flex-direction: column;
+        }
+
+        .anti-cheat-message {
+            background: #f44336;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 300px;
+            margin: 20px;
+        }
     </style>
 </head>
 <body>
@@ -1109,7 +1134,7 @@
             <div class="transfer-section">
                 <div class="lottery-title">💸 Переводы между игроками</div>
                 
-                <input type="text" class="search-input" id="userSearch" placeholder="🔍 Поиск по имени пользователя..." oninput="searchUsers()">
+                <input type="text" class="search-input" id="userSearch" placeholder="🔍 Поиск по юзернейму..." oninput="searchUsers()">
                 
                 <div class="users-list" id="usersList">
                     <!-- Список пользователей загружается динамически -->
@@ -1128,6 +1153,14 @@
         </div>
     </div>
 
+    <!-- Защита от автокликеров -->
+    <div class="anti-cheat" id="antiCheat">
+        <div class="anti-cheat-message">
+            <h3>⚠️ Обнаружен автокликер!</h3>
+            <p>Игра приостановлена на 30 секунд</p>
+        </div>
+    </div>
+
     <script>
         const tg = window.Telegram.WebApp;
         let userData = {};
@@ -1141,6 +1174,11 @@
         let lotteryInterval;
         let currentRatingTab = 'balance';
         let selectedTransferUser = null;
+
+        // Защита от автокликеров
+        let clickTimes = [];
+        let antiCheatBlocked = false;
+        let antiCheatTimeout = null;
 
         // БАЗА УЛУЧШЕНИЙ
         const upgrades = {
@@ -1176,10 +1214,12 @@
         tg.expand();
         tg.enableClosingConfirmation();
         
-        // Получение уникального ID пользователя Telegram
+        // Получение уникального ID пользователя Telegram (на основе юзернейма)
         function getTelegramUserId() {
             const user = tg.initDataUnsafe?.user;
-            if (user && user.id) {
+            if (user && user.username) {
+                return 'tg_' + user.username.toLowerCase(); // Используем юзернейм как ID
+            } else if (user && user.id) {
                 return 'tg_' + user.id;
             }
             return 'test_' + Math.random().toString(36).substr(2, 9);
@@ -1220,19 +1260,18 @@
             // Устанавливаем текущую сессию
             localStorage.setItem('sparkcoin_current_session', userId);
 
-            const savedData = localStorage.getItem('sparkcoin_user_data');
+            // Загружаем данные пользователя по юзернейму
+            const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
-                if (parsedData.userId === userId) {
-                    userData = parsedData;
-                    lastUpdateTime = userData.lastUpdate || Date.now();
-                } else {
-                    userData = createNewUserData(userId, username);
-                }
+                userData = parsedData;
+                lastUpdateTime = userData.lastUpdate || Date.now();
             } else {
                 userData = createNewUserData(userId, username);
+                saveUserData();
             }
             
+            // Загружаем улучшения
             const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
             if (savedUpgrades) {
                 const upgradesData = JSON.parse(savedUpgrades);
@@ -1280,6 +1319,7 @@
                 allPlayers = [];
             }
             
+            // Обновляем данные текущего игрока
             const currentPlayerIndex = allPlayers.findIndex(p => p.userId === userData.userId);
             const currentPlayerData = {
                 userId: userData.userId,
@@ -1319,10 +1359,10 @@
             localStorage.setItem('sparkcoin_all_players', JSON.stringify(allPlayers));
         }
         
-        // Сохранение данных
+        // Сохранение данных пользователя
         function saveUserData() {
             userData.lastUpdate = Date.now();
-            localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
+            localStorage.setItem('sparkcoin_user_data_' + userData.userId, JSON.stringify(userData));
             
             const upgradesData = {};
             for (const key in upgrades) {
@@ -1362,10 +1402,41 @@
             return speed;
         }
         
-        // Клик по монетке с интервалом 25 мс
+        // Защита от автокликеров
+        function checkAutoClick() {
+            const now = Date.now();
+            clickTimes.push(now);
+            
+            // Оставляем только клики за последние 2 секунды
+            clickTimes = clickTimes.filter(time => now - time < 2000);
+            
+            // Если больше 15 кликов за 2 секунды - блокируем
+            if (clickTimes.length > 15 && !antiCheatBlocked) {
+                antiCheatBlocked = true;
+                document.getElementById('antiCheat').style.display = 'flex';
+                
+                antiCheatTimeout = setTimeout(() => {
+                    antiCheatBlocked = false;
+                    document.getElementById('antiCheat').style.display = 'none';
+                    clickTimes = [];
+                }, 30000); // 30 секунд блокировки
+                
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Клик по монетке с защитой от автокликеров
         function clickCoin(event) {
+            if (antiCheatBlocked) return;
+            
             const now = Date.now();
             if (now - lastClickTime < CLICK_COOLDOWN) return;
+            
+            // Проверяем автокликер
+            if (checkAutoClick()) return;
+            
             lastClickTime = now;
             
             const clickPower = calculateClickPower();
@@ -1455,17 +1526,17 @@
             
             const lotteryData = JSON.parse(localStorage.getItem('sparkcoin_lottery') || '{}');
             if (!lotteryData.participants) lotteryData.participants = [];
-            if (!lotteryData.history) lotteryData.history = [];
             
+            // Удаляем предыдущую ставку этого пользователя
             lotteryData.participants = lotteryData.participants.filter(p => p.userId !== userData.userId);
             
+            // Добавляем новую ставку
             lotteryData.participants.push({
                 userId: userData.userId,
                 username: userData.username,
                 team: selectedTeam,
                 bet: bet,
-                time: Date.now(),
-                telegramId: userData.telegramId
+                time: Date.now()
             });
             
             localStorage.setItem('sparkcoin_lottery', JSON.stringify(lotteryData));
@@ -1497,22 +1568,7 @@
             let eagleCount = 0;
             let tailsCount = 0;
             
-            const uniqueParticipants = [];
-            const userMap = {};
-            
             participants.forEach(participant => {
-                if (!userMap[participant.userId]) {
-                    userMap[participant.userId] = participant;
-                    uniqueParticipants.push(participant);
-                } else {
-                    userMap[participant.userId].bet = participant.bet;
-                    userMap[participant.userId].team = participant.team;
-                }
-            });
-            
-            uniqueParticipants.sort((a, b) => b.time - a.time);
-            
-            uniqueParticipants.forEach(participant => {
                 const item = document.createElement('div');
                 item.className = `participant-item ${participant.team}`;
                 item.innerHTML = `
@@ -1603,35 +1659,37 @@
             const eagleChance = eagleSum / totalBet;
             const random = Math.random();
             
-            let winningTeam, losingTeam, winningBets, losingSum, winningSum;
+            let winningTeam, losingTeam, winningBets, losingSum;
             
             if (random < eagleChance) {
                 winningTeam = 'eagle';
                 losingTeam = 'tails';
                 winningBets = eagleBets;
-                winningSum = eagleSum;
                 losingSum = tailsSum;
             } else {
                 winningTeam = 'tails';
                 losingTeam = 'eagle';
                 winningBets = tailsBets;
-                winningSum = tailsSum;
                 losingSum = eagleSum;
             }
             
-            const prizePool = losingSum * 0.95;
-            const houseFee = losingSum * 0.05;
+            // Распределение выигрыша пропорционально ставкам
+            const totalWinningBets = winningBets.reduce((sum, bet) => sum + bet.bet, 0);
             
             winningBets.forEach(winner => {
-                const winShare = winner.bet / winningSum;
-                const prize = prizePool * winShare;
+                const winShare = winner.bet / totalWinningBets;
+                const prize = losingSum * winShare;
                 
-                const playerIndex = allPlayers.findIndex(p => p.userId === winner.userId);
-                if (playerIndex !== -1) {
-                    allPlayers[playerIndex].balance += prize;
-                    allPlayers[playerIndex].lotteryWins += 1;
-                    allPlayers[playerIndex].lastUpdate = Date.now();
+                // Обновляем баланс выигравшего
+                const winnerData = localStorage.getItem('sparkcoin_user_data_' + winner.userId);
+                if (winnerData) {
+                    const winnerObj = JSON.parse(winnerData);
+                    winnerObj.balance += prize;
+                    winnerObj.lotteryWins += 1;
+                    winnerObj.lastUpdate = Date.now();
+                    localStorage.setItem('sparkcoin_user_data_' + winner.userId, JSON.stringify(winnerObj));
                     
+                    // Если это текущий пользователь, обновляем его данные
                     if (winner.userId === userData.userId) {
                         userData.balance += prize;
                         userData.lotteryWins += 1;
@@ -1639,35 +1697,39 @@
                 }
             });
             
+            // Сохраняем историю
             if (!lotteryData.history) lotteryData.history = [];
             lotteryData.history.unshift({
                 timestamp: new Date().toISOString(),
                 winningTeam: winningTeam,
-                totalPrize: prizePool,
-                participants: participants.length,
-                eagleSum: eagleSum,
-                tailsSum: tailsSum
+                totalPrize: losingSum,
+                participants: participants.length
             });
             
             lotteryData.history = lotteryData.history.slice(0, 10);
             
-            lotteryData.lastWinner = {
-                username: winningBets[0].username,
-                team: winningTeam,
-                prize: winningBets[0].bet / winningSum * prizePool
-            };
+            // Записываем последнего победителя
+            if (winningBets.length > 0) {
+                lotteryData.lastWinner = {
+                    username: winningBets[0].username,
+                    team: winningTeam,
+                    prize: losingSum * (winningBets[0].bet / totalWinningBets)
+                };
+            }
             
+            // Очищаем участников текущего раунда
             lotteryData.participants = [];
             
             localStorage.setItem('sparkcoin_lottery', JSON.stringify(lotteryData));
             
-            saveAllPlayers();
+            // Перезагружаем данные
+            loadAllPlayers();
             saveUserData();
             
             updateLottery();
             updateUI();
             
-            showTempMessage(`🎉 Победила команда ${winningTeam === 'eagle' ? 'Орлов' : 'Решек'}! Призовой фонд: ${prizePool.toFixed(9)} S`);
+            showTempMessage(`🎉 Победила команда ${winningTeam === 'eagle' ? 'Орлов' : 'Решек'}! Призовой фонд: ${losingSum.toFixed(9)} S`);
         }
         
         // Показать вкладку рейтинга
@@ -1809,21 +1871,14 @@
             userData.transfers.sent += amount;
             userData.lastUpdate = Date.now();
             
-            // Находим получателя в allPlayers и обновляем его баланс
-            const receiverIndex = allPlayers.findIndex(p => p.userId === selectedTransferUser.userId);
-            if (receiverIndex !== -1) {
-                allPlayers[receiverIndex].balance += amount;
-                allPlayers[receiverIndex].transfers.received += amount;
-                allPlayers[receiverIndex].lastUpdate = Date.now();
-                
-                // Сохраняем данные получателя
-                const receiverData = JSON.parse(localStorage.getItem('sparkcoin_user_data_' + selectedTransferUser.userId) || '{}');
-                if (receiverData.userId) {
-                    receiverData.balance += amount;
-                    receiverData.transfers.received += amount;
-                    receiverData.lastUpdate = Date.now();
-                    localStorage.setItem('sparkcoin_user_data_' + selectedTransferUser.userId, JSON.stringify(receiverData));
-                }
+            // Обновляем баланс получателя
+            const receiverData = localStorage.getItem('sparkcoin_user_data_' + selectedTransferUser.userId);
+            if (receiverData) {
+                const receiverObj = JSON.parse(receiverData);
+                receiverObj.balance += amount;
+                receiverObj.transfers.received += amount;
+                receiverObj.lastUpdate = Date.now();
+                localStorage.setItem('sparkcoin_user_data_' + selectedTransferUser.userId, JSON.stringify(receiverObj));
             }
             
             // Сохраняем историю переводов
@@ -1840,7 +1895,7 @@
             
             updateUI();
             saveUserData();
-            saveAllPlayers();
+            loadAllPlayers(); // Перезагружаем список игроков
             updateUsersList();
             
             // Сбрасываем форму
@@ -1875,7 +1930,7 @@
         // Обновление интерфейса магазина
         function updateShopUI() {
             for (const upgrade in upgrades) {
-                const currentPrice = upgrade.basePrice * Math.pow(1.59375, upgrade.level);
+                const currentPrice = upgrades[upgrade].basePrice * Math.pow(1.59375, upgrades[upgrade].level);
                 const ownedElement = document.getElementById(upgrade + '-owned');
                 const priceElement = document.getElementById(upgrade + '-price');
                 const button = document.querySelector(`button[onclick="buyUpgrade('${upgrade}')"]`);
