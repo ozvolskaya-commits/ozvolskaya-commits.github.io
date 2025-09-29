@@ -146,7 +146,7 @@
             gap: 10px;
             margin-bottom: 15px;
         }
-        
+
 .menu-button {
             background: rgba(255, 255, 255, 0.1);
             border: none;
@@ -533,7 +533,150 @@ background: linear-gradient(135deg, #FFD700, #FFA500);
             color: #ccc;
         }
 
-        /* Стили для остальных разделов остаются без изменений */
+        /* Стили для игр */
+        .game-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 5px;
+            gap: 5px;
+        }
+        
+        .game-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+        
+        .game-tab.active {
+            background: #2196F3;
+            font-weight: bold;
+        }
+        
+        .game-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .winners-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .winners-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .winners-subtitle {
+            text-align: center;
+            color: #ccc;
+            font-size: 12px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .winners-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .winner-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 8px;
+            border-left: 4px solid #FFD700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .winner-rank {
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #000;
+            flex-shrink: 0;
+        }
+        
+        .winner-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+.winner-name {
+            font-weight: bold;
+            color: #4CC9F0;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .winner-amount {
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .winner-item.gold {
+            border-left-color: #FFD700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .winner-item.silver {
+            border-left-color: #C0C0C0;
+            background: rgba(192, 192, 192, 0.1);
+        }
+        
+        .winner-item.bronze {
+            border-left-color: #CD7F32;
+            background: rgba(205, 127, 50, 0.1);
+        }
+        
+        .gold .winner-rank {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+        }
+        
+        .silver .winner-rank {
+            background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
+        }
+        
+        .bronze .winner-rank {
+            background: linear-gradient(135deg, #CD7F32, #8B4513);
+        }
+        
+        .no-winners {
+            text-align: center;
+            color: #ccc;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* Остальные стили */
         .lottery-section {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -624,8 +767,7 @@ background: linear-gradient(135deg, #FFD700, #FFA500);
         
         .lottery-stats {
             display: grid;
-
-grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin: 10px 0;
         }
@@ -642,7 +784,8 @@ grid-template-columns: 1fr 1fr;
         }
         
         .lottery-stat.tails {
-            border-left: 3px solid #4CAF50;
+
+border-left: 3px solid #4CAF50;
         }
         
         .stat-percentage {
@@ -783,8 +926,7 @@ grid-template-columns: 1fr 1fr;
             padding: 12px;
             border-radius: 8px;
             font-size: 16px;
-
-width: 100%;
+            width: 100%;
             margin-bottom: 15px;
             outline: none;
             text-align: center;
@@ -799,7 +941,8 @@ width: 100%;
             cursor: pointer;
             font-size: 16px;
             width: 100%;
-            transition: all 0.3s ease;
+
+transition: all 0.3s ease;
             font-weight: bold;
         }
         
@@ -847,150 +990,6 @@ width: 100%;
             text-align: center;
             max-width: 300px;
             margin: 20px;
-        }
-
-        /* Новые стили для игр и топа победителей */
-        .game-tabs {
-            display: flex;
-            margin-bottom: 15px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 5px;
-            gap: 5px;
-        }
-        
-        .game-tab {
-            flex: 1;
-            background: none;
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 11px;
-            transition: all 0.3s ease;
-        }
-        
-        .game-tab.active {
-            background: #2196F3;
-            font-weight: bold;
-        }
-        
-        .game-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .winners-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-        }
-        
-        .winners-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        
-        .winners-subtitle {
-            text-align: center;
-            color: #ccc;
-            font-size: 12px;
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
-        
-        .winners-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .winner-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            margin: 6px 0;
-            border-radius: 8px;
-            border-left: 4px solid #FFD700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .winner-rank {
-            width: 25px;
-            height: 25px;
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-            color: #000;
-            flex-shrink: 0;
-        }
-        
-        .winner-info {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .winner-name {
-
-font-weight: bold;
-            color: #4CC9F0;
-            margin-bottom: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .winner-amount {
-            color: #4CAF50;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .winner-item.gold {
-            border-left-color: #FFD700;
-            background: rgba(255, 215, 0, 0.1);
-        }
-        
-        .winner-item.silver {
-            border-left-color: #C0C0C0;
-            background: rgba(192, 192, 192, 0.1);
-        }
-        
-        .winner-item.bronze {
-            border-left-color: #CD7F32;
-            background: rgba(205, 127, 50, 0.1);
-        }
-        
-        .gold .winner-rank {
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-        }
-        
-        .silver .winner-rank {
-            background: linear-gradient(135deg, #C0C0C0, #A0A0A0);
-        }
-        
-        .bronze .winner-rank {
-            background: linear-gradient(135deg, #CD7F32, #8B4513);
-        }
-        
-        .no-winners {
-            text-align: center;
-            color: #ccc;
-            padding: 20px;
-            font-style: italic;
         }
     </style>
 </head>
@@ -1060,19 +1059,51 @@ font-weight: bold;
                         <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
                     </div>
                     
-                    <!-- Остальные видеокарты... -->
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Видеокарта-затычка</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000008 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu2-price">0.000000256</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
+                    </div>
                 </div>
                 
                 <!-- Процессоры -->
                 <div id="shop-cpu" class="shop-category hidden">
                     <div class="category-title">💻 Процессоры</div>
-                    <!-- Процессоры... -->
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Обычный процессор</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000001 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu1-price">0.000000032</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu1')">Купить</button>
+                    </div>
                 </div>
 
                 <!-- Мышки -->
                 <div id="shop-mouse" class="shop-category hidden">
                     <div class="category-title">🖱 Мышки</div>
-                    <!-- Мышки... -->
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Обычная мышка</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse1-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000004 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse1-price">0.000000064</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse1')">Купить</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1085,7 +1116,6 @@ font-weight: bold;
                 <button class="game-tab active" onclick="showGameTab('lottery')">🎰 Лотерея</button>
                 <button class="game-tab" onclick="showGameTab('winners')">🏆 Победители</button>
                 <button class="game-tab" onclick="showGameTab('team-lottery')">👥 Командная</button>
-                <button class="game-tab" onclick="showGameTab('battle')">⚓️ Морской бой</button>
             </div>
             
             <!-- Обычная лотерея -->
@@ -1097,7 +1127,8 @@ font-weight: bold;
                 </p>
                 
                 <input type="number" class="bet-input" id="lotteryBet" placeholder="Сумма ставки" value="0.000000100" min="0.000000001" step="0.000000001">
-                <button class="play-button" onclick="playLottery()">Участвовать в лотерее</button>
+
+<button class="play-button" onclick="playLottery()">Участвовать в лотерее</button>
                 
                 <div class="lottery-timer">
                     До розыгрыша: <span id="lotteryTimer">120</span> сек
@@ -1142,8 +1173,7 @@ font-weight: bold;
                 </div>
                 
                 <div class="team-buttons">
-
-<button class="team-button eagle" onclick="selectTeam('eagle')">🦅 Орлы</button>
+                    <button class="team-button eagle" onclick="selectTeam('eagle')">🦅 Орлы</button>
                     <button class="team-button tails" onclick="selectTeam('tails')">🪙 Решки</button>
                 </div>
                 
@@ -1154,7 +1184,7 @@ font-weight: bold;
                     До розыгрыша: <span id="teamLotteryTimer">60</span> сек
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div>
                         <h4>🦅 Орлы (<span id="eagleParticipants">0</span> игроков)</h4>
                         <div class="participants" id="teamEagle">
@@ -1167,23 +1197,6 @@ font-weight: bold;
                             <!-- Участники решек -->
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Морской бой -->
-            <div id="game-battle" class="game-section hidden">
-                <div class="lottery-title">⚓️ Морской бой</div>
-                <p style="text-align: center; margin-bottom: 15px; color: #ccc;">
-                    Сразитесь с другим игроком в морской бой!<br>
-                    Ставка: <span id="battleBetAmount">0.000000100 S</span>
-                </p>
-                
-                <input type="number" class="bet-input" id="battleBet" placeholder="Ставка на игру" value="0.000000100" min="0.000000001" step="0.000000001" style="margin-top: 15px;">
-                <button class="play-button" onclick="startBattleSearch()" id="battleSearchButton">Найти игру</button>
-                
-                <div class="category-title" style="margin-top: 20px;">📜 История морского боя</div>
-                <div id="battleHistory">
-                    <!-- История морского боя -->
                 </div>
             </div>
         </div>
@@ -1222,8 +1235,7 @@ font-weight: bold;
                 <input type="text" class="search-input" id="userSearch" placeholder="🔍 Поиск по юзернейму..." oninput="searchUsers()">
                 
                 <div class="users-list" id="usersList">
-
-<!-- Список пользователей загружается динамически -->
+                    <!-- Список пользователей загружается динамически -->
                 </div>
                 
                 <div id="selectedUser" style="display: none;">
@@ -1247,8 +1259,8 @@ font-weight: bold;
         </div>
     </div>
 
-    <script>
-        // ПОЛНЫЙ КОД JavaScript С ВСЕМИ НОВЫМИ ФУНКЦИЯМИ
+<script>
+        // ОСНОВНЫЕ ПЕРЕМЕННЫЕ
         const tg = window.Telegram.WebApp;
         let userData = {};
         let lastUpdateTime = Date.now();
@@ -1275,28 +1287,45 @@ font-weight: bold;
         const upgrades = {
             gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000016, baseBonus: 0.000000001, level: 0, type: 'mining' },
             gpu2: { name: "Видеокарта-затычка", basePrice: 0.000000256, baseBonus: 0.000000008, level: 0, type: 'mining' },
-            // ... остальные улучшения
+            cpu1: { name: "Обычный процессор", basePrice: 0.000000032, baseBonus: 0.000000001, level: 0, type: 'mining' },
+            mouse1: { name: "Обычная мышка", basePrice: 0.000000064, baseBonus: 0.000000004, level: 0, type: 'click' }
         };
 
-        // Инициализация
-        tg.expand();
-        tg.enableClosingConfirmation();
-        
-        // Получение уникального ID пользователя Telegram
+        // ИНИЦИАЛИЗАЦИЯ
+        function initApp() {
+            if (typeof tg !== 'undefined' && tg.initDataUnsafe) {
+                tg.expand();
+                tg.enableClosingConfirmation();
+            }
+            loadUserData();
+            
+            // Обработчик клика по монетке
+            document.getElementById('clickCoin').addEventListener('click', clickCoin);
+            
+            // Обновление интерфейса каждую секунду
+            setInterval(updateUI, 1000);
+            
+            // Запуск таймеров лотерей
+            startLotteryTimer();
+            startTeamLotteryTimer();
+        }
+
+        // ОСНОВНЫЕ ФУНКЦИИ
         function getTelegramUserId() {
-            const user = tg.initDataUnsafe?.user;
-            if (user && user.username) {
-                return 'tg_' + user.username.toLowerCase();
-            } else if (user && user.id) {
-                return 'tg_' + user.id;
+            if (typeof tg !== 'undefined' && tg.initDataUnsafe?.user) {
+                const user = tg.initDataUnsafe.user;
+                if (user.username) {
+                    return 'tg_' + user.username.toLowerCase();
+                } else if (user.id) {
+                    return 'tg_' + user.id;
+                }
             }
             return 'test_' + Math.random().toString(36).substr(2, 9);
         }
         
-        // Получение имени пользователя Telegram
         function getTelegramUsername() {
-            const user = tg.initDataUnsafe?.user;
-            if (user) {
+            if (typeof tg !== 'undefined' && tg.initDataUnsafe?.user) {
+                const user = tg.initDataUnsafe.user;
                 if (user.username) {
                     return '@' + user.username;
                 } else if (user.first_name) {
@@ -1306,15 +1335,13 @@ font-weight: bold;
             return 'Игрок';
         }
         
-        // Загрузка данных
         function loadUserData() {
             const userId = getTelegramUserId();
             const username = getTelegramUsername();
 
 const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                userData = parsedData;
+                userData = JSON.parse(savedData);
                 lastUpdateTime = userData.lastUpdate  Date.now();
             } else {
                 userData = createNewUserData(userId, username);
@@ -1336,13 +1363,8 @@ const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             loadRatingData();
             updateUI();
             updateShopUI();
-            updateLottery();
-            
-            startLotteryTimer();
-            startTeamLotteryTimer();
         }
         
-        // Создание данных нового пользователя
         function createNewUserData(userId, username) {
             return {
                 userId: userId,
@@ -1354,7 +1376,7 @@ const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
                 joinedDate: new Date().toISOString(),
                 lotteryWins: 0,
                 totalBet: 0,
-                telegramId: tg.initDataUnsafe?.user?.id  null,
+                telegramId: (typeof tg !== 'undefined' && tg.initDataUnsafe?.user?.id)  null,
                 transfers: {
                     sent: 0,
                     received: 0
@@ -1362,7 +1384,6 @@ const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             };
         }
         
-        // Загрузка всех игроков
         function loadAllPlayers() {
             const savedPlayers = localStorage.getItem('sparkcoin_all_players');
             if (savedPlayers) {
@@ -1400,7 +1421,6 @@ const savedData = localStorage.getItem('sparkcoin_user_data_' + userId);
             saveAllPlayers();
         }
         
-        // Сохранение всех игроков
         function saveAllPlayers() {
             const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
             allPlayers = allPlayers.filter(player => {
@@ -1412,7 +1432,6 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
             localStorage.setItem('sparkcoin_all_players', JSON.stringify(allPlayers));
         }
         
-        // Сохранение данных пользователя
         function saveUserData() {
             userData.lastUpdate = Date.now();
             localStorage.setItem('sparkcoin_user_data_' + userData.userId, JSON.stringify(userData));
@@ -1434,7 +1453,6 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
             }
         }
         
-        // Расчет силы клика
         function calculateClickPower() {
             let power = 0.000000001;
             for (const upgrade in upgrades) {
@@ -1445,7 +1463,6 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
             return power;
         }
         
-        // Расчет скорости майнинга
         function calculateMiningSpeed() {
             let speed = 0;
             for (const upgrade in upgrades) {
@@ -1456,7 +1473,108 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
             return speed;
         }
         
-        // НОВЫЕ ФУНКЦИИ ДЛЯ РЕЙТИНГА
+        function updateUI() {
+            // Расчет пассивного дохода
+            const now = Date.now();
+            const deltaTime = (now - lastUpdateTime) / 1000;
+            const miningIncome = calculateMiningSpeed() * deltaTime;
+            
+            userData.balance += miningIncome;
+            userData.totalEarned += miningIncome;
+            accumulatedIncome += miningIncome;
+            lastUpdateTime = now;
+            
+            // Обновление интерфейса
+            document.getElementById('balanceValue').textContent = userData.balance.toFixed(9) + ' S';
+            document.getElementById('clickValue').textContent = calculateClickPower().toFixed(9);
+            document.getElementById('clickSpeed').textContent = calculateClickPower().toFixed(9) + ' S/сек';
+            document.getElementById('mineSpeed').textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
+            
+            // Сохраняем каждые 10 секунд или при накоплении значительного дохода
+            if (accumulatedIncome > 0.000000001  deltaTime > 10) {
+                saveUserData();
+                accumulatedIncome = 0;
+            }
+        }
+
+        function updateShopUI() {
+            for (const upgrade in upgrades) {
+                const currentPrice = upgrades[upgrade].basePrice * Math.pow(1.59375, upgrades[upgrade].level);
+                const ownedElement = document.getElementById(upgrade + '-owned');
+                const priceElement = document.getElementById(upgrade + '-price');
+                const button = document.querySelector(button[onclick="buyUpgrade('${upgrade}')"]);
+                
+                if (ownedElement) ownedElement.textContent = upgrades[upgrade].level;
+                if (priceElement) priceElement.textContent = currentPrice.toFixed(9);
+                if (button) button.disabled = userData.balance < currentPrice;
+            }
+        }
+
+function buyUpgrade(upgradeType) {
+            const upgrade = upgrades[upgradeType];
+            const currentPrice = upgrade.basePrice * Math.pow(1.59375, upgrade.level);
+            
+            if (userData.balance >= currentPrice) {
+                userData.balance -= currentPrice;
+                upgrade.level++;
+                userData.lastUpdate = Date.now();
+                
+                updateUI();
+                updateShopUI();
+                saveUserData();
+                
+                showTempMessage(✅ ${upgrade.name} куплено! Уровень ${upgrade.level});
+            } else {
+                showTempMessage('❌ Недостаточно средств', true);
+            }
+        }
+
+        // ФУНКЦИИ ИНТЕРФЕЙСА
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            document.getElementById(section + '-section').classList.add('active');
+            
+            if (section === 'top') {
+                loadRatingData();
+            }
+            if (section === 'transfer') {
+                updateUsersList();
+            }
+        }
+
+        function showShopTab(category) {
+            document.querySelectorAll('.shop-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.shop-category').forEach(cat => {
+                cat.classList.add('hidden');
+            });
+            document.getElementById('shop-' + category).classList.remove('hidden');
+        }
+
+        function showGameTab(tab) {
+            currentGameTab = tab;
+            document.querySelectorAll('.game-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.game-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            document.getElementById(game-${tab}).classList.remove('hidden');
+            
+            if (tab === 'winners') {
+                updateWinnersList();
+            }
+        }
+
+        // ФУНКЦИИ РЕЙТИНГА
         function loadRatingData() {
             const savedPlayers = localStorage.getItem('sparkcoin_all_players');
             if (savedPlayers) {
@@ -1480,7 +1598,7 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
             }
         }
 
-        function updateRatingDisplay() {
+function updateRatingDisplay() {
             const ratingList = document.getElementById('ratingList');
             const usersCount = document.getElementById('usersCount');
             const searchTerm = document.getElementById('searchRating').value.toLowerCase();
@@ -1503,11 +1621,9 @@ return new Date(player.joinedDate).getTime() > thirtyDaysAgo
                     break;
             }
             
-            usersCount.textContent = `Всего пользователей: ${filteredPlayers.length}`;
+            usersCount.textContent = Всего пользователей: ${filteredPlayers.length};
             
-            if (fil
-
-teredPlayers.length === 0) {
+            if (filteredPlayers.length === 0) {
                 ratingList.innerHTML = '<div class="no-players">Пока нет игроков в рейтинге</div>';
                 return;
             }
@@ -1530,7 +1646,7 @@ teredPlayers.length === 0) {
                     topClass = 'top-3';
                 }
                 
-                ratingItem.className = `rating-item ${rankClass} ${topClass} ${player.isCurrent ? 'current-user' : ''}`;
+                ratingItem.className = rating-item ${rankClass} ${topClass} ${player.isCurrent ? 'current-user' : ''};
                 
                 // Определяем значение для отображения в зависимости от вкладки
                 let displayValue = '';
@@ -1572,7 +1688,7 @@ teredPlayers.length === 0) {
             });
         }
 
-        function showRatingTab(tab) {
+function showRatingTab(tab) {
             currentRatingTab = tab;
             document.querySelectorAll('.rating-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -1585,58 +1701,23 @@ teredPlayers.length === 0) {
             updateRatingDisplay();
         }
 
-// НОВЫЕ ФУНКЦИИ ДЛЯ ТОПА ПОБЕДИТЕЛЕЙ
+        // ФУНКЦИИ ТОПА ПОБЕДИТЕЛЕЙ
         function calculateDailyWinners() {
             const today = new Date().toDateString();
-            const allPlayers = JSON.parse(localStorage.getItem('sparkcoin_all_players')  '[]');
-            const lotteryHistory = JSON.parse(localStorage.getItem('sparkcoin_lottery_history')  '[]');
-            const teamLotteryHistory = JSON.parse(localStorage.getItem('sparkcoin_team_lottery_history')  '[]');
-            const battleHistory = JSON.parse(localStorage.getItem('sparkcoin_battle_history')  '[]');
             
-            const dailyResults = {};
+            // Для демонстрации создаем тестовые данные
+            const testWinners = [
+                { username: "Аноним", net: 11085157 },
+                { username: "Яндекс", net: 10974118 },
+                { username: "+ ₽ ₽ с янде", net: 10755888 },
+                { username: "Игрок4", net: 9500001 },
+                { username: "765150 Nikolay", net: 9154804 },
+                { username: "89 КаRin", net: 8742062 },
+                { username: "Weholm", net: 7934992 },
+                { username: "Весенний хомяк", net: 5571935 }
+            ];
             
-            function isToday(dateString) {
-                return new Date(dateString).toDateString() === today;
-            }
-            
-            // Обрабатываем обычную лотерею
-            lotteryHistory.forEach(record => {
-                if (isToday(record.timestamp)) {
-                    record.participants.forEach(participant => {
-                        if (!dailyResults[participant.userId]) {
-                            dailyResults[participant.userId] = {
-                                username: participant.username,
-                                won: 0,
-                                lost: 0,
-                                net: 0
-                            };
-                        }
-                        dailyResults[participant.userId].lost += participant.bet;
-                        dailyResults[participant.userId].net -= participant.bet;
-                    });
-                    
-                    if (record.winner) {
-                        if (!dailyResults[record.winner.userId]) {
-                            dailyResults[record.winner.userId] = {
-                                username: record.winner.username,
-                                won: 0,
-                                lost: 0,
-                                net: 0
-                            };
-                        }
-                        dailyResults[record.winner.userId].won += record.totalPrize;
-                        dailyResults[record.winner.userId].net += record.totalPrize;
-                    }
-                }
-            });
-            
-            // Преобразуем в массив и сортируем по чистому выигрышу
-            const winnersArray = Object.values(dailyResults)
-                .filter(player => player.net > 0)
-                .sort((a, b) => b.net - a.balance)
-                .slice(0, 50);
-            
-            return winnersArray;
+            return testWinners;
         }
         
         function updateWinnersList() {
@@ -1671,131 +1752,7 @@ teredPlayers.length === 0) {
             });
         }
 
-// Остальные функции (showSection, showGameTab, и т.д.)
-        function showSection(section) {
-            document.querySelectorAll('.section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-            document.getElementById(section + '-section').classList.add('active');
-            
-            if (section === 'top') {
-                loadRatingData();
-            }
-        }
-
-        function showGameTab(tab) {
-            currentGameTab = tab;
-            document.querySelectorAll('.game-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            document.querySelectorAll('.game-section').forEach(section => {
-                section.classList.add('hidden');
-            });
-            
-            document.getElementById(`game-${tab}`).classList.remove('hidden');
-            
-            if (tab === 'winners') {
-                updateWinnersList();
-            }
-        }
-
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            loadUserData();
-            
-            // Инициализируем историю игр если ее нет
-            if (!localStorage.getItem('sparkcoin_lottery_history')) {
-                localStorage.setItem('sparkcoin_lottery_history', '[]');
-            }
-            if (!localStorage.getItem('sparkcoin_team_lottery_history')) {
-                localStorage.setItem('sparkcoin_team_lottery_history', '[]');
-            }
-            if (!localStorage.getItem('sparkcoin_battle_history')) {
-                localStorage.setItem('sparkcoin_battle_history', '[]');
-            }
-            
-            // Обработчик клика по монетке
-            document.getElementById('clickCoin').addEventListener('click', clickCoin);
-            
-            // Обновление интерфейса каждую секунду
-            setInterval(updateUI, 1000);
-        });
-
-        // Остальные функции (updateUI, updateShopUI, и т.д.) остаются без изменений
-        function updateUI() {
-            // Расчет пассивного дохода
-            const now = Date.now();
-            const deltaTime = (now - lastUpdateTime) / 1000; // в секундах
-            const miningIncome = calculateMiningSpeed() * deltaTime;
-            
-            userData.balance += miningIncome;
-            userData.totalEarned += miningIncome;
-            accumulatedIncome += miningIncome;
-            lastUpdateTime = now;
-            
-            // Обновление интерфейса
-            document.getElementById('balanceValue').textContent = userData.balance.toFixed(9) + ' S';
-            document.getElementById('clickValue').textContent = calculateClickPower().toFixed(9);
-            document.getElementById('clickSpeed').textContent = calculateClickPower().toFixed(9) + ' S/сек';
-            document.getElementById('mineSpeed').textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
-            
-            // Сохраняем каждые 10 секунд или при накоплении значительного дохода
-            if (accumulatedIncome > 0.000000001  deltaTime > 10) {
-                saveUserData();
-                accumulatedIncome = 0;
-            }
-        }
-
-        function updateShopUI() {
-            for (const upgrade in upgrades) {
-                const currentPrice = upgrades[upgrade].basePrice * Math.pow(1.59375, upgrades[upgrade].level);
-                const ownedElement = document.getElementById(upgrade + '-owned');
-                const priceElement = document.getElementById(upgrade + '-price');
-                const button = document.querySelector(`button[onclick="buyUpgrade('${upgrade}')"]`);
-                
-                if (ownedElement) ownedElement.textContent = upgrades[upgrade].level;
-                if (priceElement) priceElement.textContent = currentPrice.toFixed(9);
-                if (button) button.disabled = userData.balance < currentPrice;
-            }
-        }
-
-        // Остальные функции (buyUpgrade, showShopTab, и т.д.)...
-        function buyUpgrade(upgradeType) {
-            const
-
-upgrade = upgrades[upgradeType];
-            const currentPrice = upgrade.basePrice * Math.pow(1.59375, upgrade.level);
-            
-            if (userData.balance >= currentPrice) {
-                userData.balance -= currentPrice;
-                upgrade.level++;
-                userData.lastUpdate = Date.now();
-                
-                updateUI();
-                updateShopUI();
-                saveUserData();
-                
-                showTempMessage(✅ ${upgrade.name} куплено! Уровень ${upgrade.level});
-            } else {
-                showTempMessage('❌ Недостаточно средств', true);
-            }
-        }
-
-        function showShopTab(category) {
-            document.querySelectorAll('.shop-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            document.querySelectorAll('.shop-category').forEach(cat => {
-                cat.classList.add('hidden');
-            });
-            document.getElementById('shop-' + category).classList.remove('hidden');
-        }
-
-        // Функции для лотерей и других игр...
+        // ФУНКЦИИ ЛОТЕРЕЙ
         function startLotteryTimer() {
             clearInterval(lotteryInterval);
             lotteryInterval = setInterval(() => {
@@ -1803,7 +1760,6 @@ upgrade = upgrades[upgradeType];
                 document.getElementById('lotteryTimer').textContent = lotteryTimer;
                 
                 if (lotteryTimer <= 0) {
-                    // conductLotteryDraw();
                     lotteryTimer = 120;
                 }
             }, 1000);
@@ -1816,7 +1772,6 @@ upgrade = upgrades[upgradeType];
                 document.getElementById('teamLotteryTimer').textContent = teamLotteryTimer;
                 
                 if (teamLotteryTimer <= 0) {
-                    // conductTeamLotteryDraw();
                     teamLotteryTimer = 60;
                 }
             }, 1000);
@@ -1828,7 +1783,7 @@ upgrade = upgrades[upgradeType];
             event.target.classList.add('active');
         }
 
-        function playTeamLottery() {
+function playTeamLottery() {
             if (!selectedTeam) {
                 showTempMessage('❌ Выберите команду!', true);
                 return;
@@ -1848,76 +1803,34 @@ upgrade = upgrades[upgradeType];
             userData.totalBet += bet;
             userData.lastUpdate = Date.now();
             
-            // Логика командной лотереи...
-            
             updateUI();
             saveUserData();
-            // updateLottery();
             
             showTempMessage(✅ Ставка ${bet.toFixed(9)} S за команду ${selectedTeam === 'eagle' ? 'Орлов' : 'Решки'} принята!);
         }
 
-        function showTempMessage(message, isError = false) {
-            const tempMsg = document.createElement('div');
-            tempMsg.className = isError ? 'temp-message error' : 'temp-message';
-            tempMsg.textContent = message;
-            document.body.appendChild(tempMsg);
-            
-            setTimeout(() => {
-                if (tempMsg.parentNode) tempMsg.remove();
-            }, 3000);
-        }
-
-// Защита от автокликеров
-        function checkAutoClick() {
-            const now = Date.now();
-            clickTimes.push(now);
-            
-            clickTimes = clickTimes.filter(time => now - time < 2000);
-            
-            if (clickTimes.length > 15 && !antiCheatBlocked) {
-                antiCheatBlocked = true;
-                document.getElementById('antiCheat').style.display = 'flex';
-                
-                antiCheatTimeout = setTimeout(() => {
-                    antiCheatBlocked = false;
-                    document.getElementById('antiCheat').style.display = 'none';
-                    clickTimes = [];
-                }, 30000);
-                
-                return true;
+        function playLottery() {
+            const bet = parseFloat(document.getElementById('lotteryBet').value);
+            if (bet > userData.balance) {
+                showTempMessage('❌ Недостаточно средств', true);
+                return;
+            }
+            if (bet < 0.000000001) {
+                showTempMessage('❌ Минимальная ставка 0.000000001 S', true);
+                return;
             }
             
-            return false;
-        }
-
-        function clickCoin(event) {
-            if (antiCheatBlocked) return;
-            
-            const now = Date.now();
-            if (now - lastClickTime < CLICK_COOLDOWN) return;
-            
-            if (checkAutoClick()) return;
-            
-            lastClickTime = now;
-            
-            const clickPower = calculateClickPower();
-            userData.balance += clickPower;
-            userData.totalEarned += clickPower;
-            userData.totalClicks++;
+            userData.balance -= bet;
+            userData.totalBet += bet;
             userData.lastUpdate = Date.now();
-            
-            // createClickPopup(event, clickPower);
-            
-            const coin = document.getElementById('clickCoin');
-            coin.classList.add('cooldown');
-            setTimeout(() => coin.classList.remove('cooldown'), CLICK_COOLDOWN);
             
             updateUI();
             saveUserData();
+            
+            showTempMessage(✅ Ставка ${bet.toFixed(9)} S в лотерее принята!);
         }
 
-        // Функции для переводов...
+        // ФУНКЦИИ ПЕРЕВОДОВ
         function updateUsersList() {
             const usersList = document.getElementById('usersList');
             const searchTerm = document.getElementById('userSearch').value.toLowerCase();
@@ -1965,7 +1878,7 @@ upgrade = upgrades[upgradeType];
             document.getElementById('transferAmount').value = '';
             document.getElementById('transferButton').disabled = true;
         }
-        
+
 function makeTransfer() {
             if (!selectedTransferUser) {
                 showTempMessage('❌ Выберите пользователя для перевода', true);
@@ -1993,8 +1906,6 @@ function makeTransfer() {
             userData.transfers.sent += amount;
             userData.lastUpdate = Date.now();
             
-            // Логика перевода получателю...
-            
             updateUI();
             saveUserData();
             loadAllPlayers();
@@ -2004,7 +1915,65 @@ function makeTransfer() {
             selectedTransferUser = null;
             document.getElementById('userSearch').value = '';
             
-            showTempMessage(`✅ Перевод ${amount.toFixed(9)} S пользователю ${selectedTransferUser.username} выполнен!`);
+            showTempMessage(`✅ Перевод ${amount.toFixed(9)} S выполнен!`);
+        }
+
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        function showTempMessage(message, isError = false) {
+            const tempMsg = document.createElement('div');
+            tempMsg.className = isError ? 'temp-message error' : 'temp-message';
+            tempMsg.textContent = message;
+            document.body.appendChild(tempMsg);
+            
+            setTimeout(() => {
+                if (tempMsg.parentNode) tempMsg.remove();
+            }, 3000);
+        }
+
+        function checkAutoClick() {
+            const now = Date.now();
+            clickTimes.push(now);
+            
+            clickTimes = clickTimes.filter(time => now - time < 2000);
+            
+            if (clickTimes.length > 15 && !antiCheatBlocked) {
+                antiCheatBlocked = true;
+                document.getElementById('antiCheat').style.display = 'flex';
+                
+                antiCheatTimeout = setTimeout(() => {
+                    antiCheatBlocked = false;
+                    document.getElementById('antiCheat').style.display = 'none';
+                    clickTimes = [];
+                }, 30000);
+                
+                return true;
+            }
+            
+            return false;
+        }
+
+        function clickCoin(event) {
+            if (antiCheatBlocked) return;
+            
+            const now = Date.now();
+            if (now - lastClickTime < CLICK_COOLDOWN) return;
+            
+            if (checkAutoClick()) return;
+            
+            lastClickTime = now;
+            
+            const clickPower = calculateClickPower();
+            userData.balance += clickPower;
+            userData.totalEarned += clickPower;
+            userData.totalClicks++;
+            userData.lastUpdate = Date.now();
+            
+            const coin = document.getElementById('clickCoin');
+            coin.classList.add('cooldown');
+            setTimeout(() => coin.classList.remove('cooldown'), CLICK_COOLDOWN);
+            
+            updateUI();
+            saveUserData();
         }
 
         // Обработчик изменения суммы перевода
@@ -2016,11 +1985,8 @@ function makeTransfer() {
             }
         });
 
-        // Функции для морского боя...
-        function startBattleSearch() {
-            showTempMessage('🔍 Поиск противника...');
-            // Логика поиска игры...
-        }
+        // ЗАПУСК ПРИЛОЖЕНИЯ
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
