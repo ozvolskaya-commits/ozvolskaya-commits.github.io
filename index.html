@@ -325,7 +325,7 @@ z-index: 1000;
             opacity: 0.7;
         }
         
-        /* Новые стили для рейтинга */
+        /* Стили для рейтинга */
         .rating-section {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -676,6 +676,134 @@ background: linear-gradient(135deg, #FFD700, #FFA500);
             font-style: italic;
         }
 
+        /* Стили для морского боя */
+        .battle-grids {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        
+        .grid-container {
+            text-align: center;
+        }
+        
+        .grid-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #4CC9F0;
+            margin-bottom: 8px;
+        }
+        
+        .battle-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .grid-cell {
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .grid-cell:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .grid-cell.ship {
+            background: rgba(33, 150, 243, 0.3);
+            border-color: #2196F3;
+        }
+        
+        .grid-cell.hit {
+            background: rgba(244, 67, 54, 0.5);
+            border-color: #f44336;
+        }
+        
+        .grid-cell.miss {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #ccc;
+        }
+        
+        .grid-cell.hit::after {
+            content: "💥";
+            font-size: 10px;
+        }
+        
+        .grid-cell.miss::after {
+            content: "⚪️";
+            font-size: 8px;
+        }
+        
+        .battle-info {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .battle-status {
+            font-weight: bold;
+            color: #4CC9F0;
+            margin-bottom: 5px;
+        }
+        
+        .battle-timer {
+            color: #FF9800;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .waiting-opponent {
+            text-align: center;
+            padding: 30px 20px;
+            color: #FF9800;
+            font-style: italic;
+        }
+        
+        .battle-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .battle-history {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+.battle-history-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 3px solid #2196F3;
+        }
+        
+        .battle-history-item.win {
+            border-left-color: #4CAF50;
+        }
+        
+        .battle-history-item.lose {
+            border-left-color: #f44336;
+        }
+
         /* Остальные стили */
         .lottery-section {
             background: rgba(255, 255, 255, 0.05);
@@ -784,8 +912,7 @@ background: linear-gradient(135deg, #FFD700, #FFA500);
         }
         
         .lottery-stat.tails {
-
-border-left: 3px solid #4CAF50;
+            border-left: 3px solid #4CAF50;
         }
         
         .stat-percentage {
@@ -820,8 +947,8 @@ border-left: 3px solid #4CAF50;
         .participant-item.eagle {
             border-left-color: #FF5722;
         }
-        
-        .participant-item.tails {
+
+.participant-item.tails {
             border-left-color: #4CAF50;
         }
         
@@ -941,8 +1068,7 @@ border-left: 3px solid #4CAF50;
             cursor: pointer;
             font-size: 16px;
             width: 100%;
-
-transition: all 0.3s ease;
+            transition: all 0.3s ease;
             font-weight: bold;
         }
         
@@ -967,7 +1093,7 @@ transition: all 0.3s ease;
             }
         }
 
-        /* Защита от автокликеров */
+/* Защита от автокликеров */
         .anti-cheat {
             position: fixed;
             top: 0;
@@ -1053,8 +1179,7 @@ transition: all 0.3s ease;
                         </div>
                         <div class="upgrade-stats">
                             <span class="upgrade-bonus">+0.000000001 к скорости</span>
-
-<span class="upgrade-price">Цена: <span id="gpu1-price">0.000000016</span> S</span>
+                            <span class="upgrade-price">Цена: <span id="gpu1-price">0.000000016</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu1')">Купить</button>
                     </div>
@@ -1065,7 +1190,8 @@ transition: all 0.3s ease;
                             <span class="upgrade-owned">Куплено: <span id="gpu2-owned">0</span></span>
                         </div>
                         <div class="upgrade-stats">
-                            <span class="upgrade-bonus">+0.000000008 к скорости</span>
+
+<span class="upgrade-bonus">+0.000000008 к скорости</span>
                             <span class="upgrade-price">Цена: <span id="gpu2-price">0.000000256</span> S</span>
                         </div>
                         <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
@@ -1116,6 +1242,7 @@ transition: all 0.3s ease;
                 <button class="game-tab active" onclick="showGameTab('lottery')">🎰 Лотерея</button>
                 <button class="game-tab" onclick="showGameTab('winners')">🏆 Победители</button>
                 <button class="game-tab" onclick="showGameTab('team-lottery')">👥 Командная</button>
+                <button class="game-tab" onclick="showGameTab('battle')">⚓️ Морской бой</button>
             </div>
             
             <!-- Обычная лотерея -->
@@ -1127,8 +1254,7 @@ transition: all 0.3s ease;
                 </p>
                 
                 <input type="number" class="bet-input" id="lotteryBet" placeholder="Сумма ставки" value="0.000000100" min="0.000000001" step="0.000000001">
-
-<button class="play-button" onclick="playLottery()">Участвовать в лотерее</button>
+                <button class="play-button" onclick="playLottery()">Участвовать в лотерее</button>
                 
                 <div class="lottery-timer">
                     До розыгрыша: <span id="lotteryTimer">120</span> сек
@@ -1142,7 +1268,8 @@ transition: all 0.3s ease;
             <!-- Топ победителей -->
             <div id="game-winners" class="game-section hidden">
                 <div class="winners-section">
-                    <div class="winners-title">🏆 Победители</div>
+
+<div class="winners-title">🏆 Победители</div>
                     <div class="winners-subtitle">
                         Самые удачливые<br>
                         Выигранные коины минус проигранные коины (Топ за день)
@@ -1184,7 +1311,7 @@ transition: all 0.3s ease;
                     До розыгрыша: <span id="teamLotteryTimer">60</span> сек
                 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div>
                         <h4>🦅 Орлы (<span id="eagleParticipants">0</span> игроков)</h4>
                         <div class="participants" id="teamEagle">
@@ -1197,6 +1324,54 @@ transition: all 0.3s ease;
                             <!-- Участники решек -->
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- Морской бой -->
+            <div id="game-battle" class="game-section hidden">
+                <div class="lottery-title">⚓️ Морской бой</div>
+                <p style="text-align: center; margin-bottom: 15px; color: #ccc;">
+                    Сразитесь с другим игроком в морской бой!<br>
+                    Ставка: <span id="battleBetAmount">0.000000100 S</span>
+                </p>
+                
+                <div class="battle-info">
+                    <div class="battle-status" id="battleStatus">Ожидание игроков...</div>
+                    <div class="battle-timer" id="battleTimer">Поиск противника: <span id="battleWaitTime">30</span> сек</div>
+                </div>
+                
+                <div id="battleGrids" class="battle-grids" style="display: none;">
+                    <div class="grid-container">
+                        <div class="grid-title">Ваше поле</div>
+                        <div class="battle-grid" id="playerGrid">
+                            <!-- Игровое поле игрока -->
+                        </div>
+                    </div>
+                    <div class="grid-container">
+                        <div class="grid-title">Поле противника</div>
+                        <div class="battle-grid" id="enemyGrid">
+
+<!-- Игровое поле противника -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="waitingOpponent" class="waiting-opponent">
+                    ⏳ Ожидаем подключения противника...
+                    <br>
+                    <small>Игра начнется автоматически при найденном сопернике</small>
+                </div>
+                
+                <input type="number" class="bet-input" id="battleBet" placeholder="Ставка на игру" value="0.000000100" min="0.000000001" step="0.000000001" style="margin-top: 15px;">
+                
+                <div class="battle-controls">
+                    <button class="play-button" onclick="startBattleSearch()" id="battleSearchButton">Найти игру</button>
+                    <button class="play-button" onclick="cancelBattleSearch()" id="battleCancelButton" style="display: none; background: #f44336;">Отменить поиск</button>
+                </div>
+                
+                <div class="category-title" style="margin-top: 20px;">📜 История морского боя</div>
+                <div class="battle-history" id="battleHistory">
+                    <!-- История морского боя -->
                 </div>
             </div>
         </div>
@@ -1251,7 +1426,7 @@ transition: all 0.3s ease;
         </div>
     </div>
 
-    <!-- Защита от автокликеров -->
+<!-- Защита от автокликеров -->
     <div class="anti-cheat" id="antiCheat">
         <div class="anti-cheat-message">
             <h3>⚠️ Обнаружен автокликер!</h3>
@@ -1259,7 +1434,7 @@ transition: all 0.3s ease;
         </div>
     </div>
 
-<script>
+    <script>
         // ОСНОВНЫЕ ПЕРЕМЕННЫЕ
         const tg = window.Telegram.WebApp;
         let userData = {};
@@ -1270,13 +1445,24 @@ transition: all 0.3s ease;
         let selectedTeam = null;
         let lotteryTimer = 120;
         let teamLotteryTimer = 60;
+        let battleWaitTimer = 30;
         let allPlayers = [];
         let lotteryInterval;
         let teamLotteryInterval;
+        let battleSearchInterval;
         let currentRatingTab = 'balance';
         let selectedTransferUser = null;
         let currentGameTab = 'lottery';
         let allPlayersForRating = [];
+
+        // Переменные для морского боя
+        let currentBattle = null;
+        let battleInterval = null;
+        let playerShips = [];
+        let enemyShips = [];
+        let playerHits = [];
+        let enemyHits = [];
+        let isPlayerTurn = true;
 
         // Защита от автокликеров
         let clickTimes = [];
@@ -1308,6 +1494,9 @@ transition: all 0.3s ease;
             // Запуск таймеров лотерей
             startLotteryTimer();
             startTeamLotteryTimer();
+            
+            // Загружаем историю морского боя
+            updateBattleHistory();
         }
 
         // ОСНОВНЫЕ ФУНКЦИИ
@@ -1572,6 +1761,9 @@ function buyUpgrade(upgradeType) {
             if (tab === 'winners') {
                 updateWinnersList();
             }
+            if (tab === 'battle') {
+                updateBattleHistory();
+            }
         }
 
         // ФУНКЦИИ РЕЙТИНГА
@@ -1782,7 +1974,6 @@ function showRatingTab(tab) {
             document.querySelectorAll('.team-button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
         }
-
 function playTeamLottery() {
             if (!selectedTeam) {
                 showTempMessage('❌ Выберите команду!', true);
@@ -1830,6 +2021,292 @@ function playTeamLottery() {
             showTempMessage(✅ Ставка ${bet.toFixed(9)} S в лотерее принята!);
         }
 
+        // ФУНКЦИИ МОРСКОГО БОЯ
+        function startBattleSearch() {
+            const bet = parseFloat(document.getElementById('battleBet').value);
+            
+            if (bet > userData.balance) {
+                showTempMessage('❌ Недостаточно средств', true);
+                return;
+            }
+            
+            if (bet < 0.000000001) {
+                showTempMessage('❌ Минимальная ставка 0.000000001 S', true);
+                return;
+            }
+            
+            userData.balance -= bet;
+            userData.lastUpdate = Date.now();
+            updateUI();
+            saveUserData();
+            
+            document.getElementById('battleSearchButton').style.display = 'none';
+            document.getElementById('battleCancelButton').style.display = 'block';
+            document.getElementById('battleStatus').textContent = '🔍 Поиск противника...';
+            
+            battleWaitTimer = 30;
+            battleSearchInterval = setInterval(() => {
+                battleWaitTimer--;
+                document.getElementById('battleWaitTime').textContent = battleWaitTimer;
+                
+                if (battleWaitTimer <= 0) {
+                    // Имитируем найденного противника
+                    startBattle(bet);
+                }
+            }, 1000);
+            
+            showTempMessage('🔍 Поиск игры начат!');
+        }
+
+        function cancelBattleSearch() {
+            clearInterval(battleSearchInterval);
+            document.getElementById('battleSearchButton').style.display = 'block';
+            document.getElementById('battleCancelButton').style.display = 'none';
+            document.getElementById('battleStatus').textContent = 'Ожидание игроков...';
+            
+            // Возвращаем ставку
+            const bet = parseFloat(document.getElementById('battleBet').value);
+            userData.balance += bet;
+            updateUI();
+            saveUserData();
+            
+            showTempMessage('❌ Поиск игры отменен');
+        }
+
+function startBattle(bet) {
+            clearInterval(battleSearchInterval);
+            
+            document.getElementById('waitingOpponent').style.display = 'none';
+            document.getElementById('battleGrids').style.display = 'grid';
+            document.getElementById('battleSearchButton').style.display = 'none';
+            document.getElementById('battleCancelButton').style.display = 'none';
+            
+            // Создаем игру
+            currentBattle = {
+                bet: bet,
+                opponent: 'Игрок_' + Math.floor(Math.random() * 1000),
+                startTime: Date.now(),
+                playerTurn: true
+            };
+            
+            // Инициализируем поля
+            initializeBattleFields();
+            
+            document.getElementById('battleStatus').textContent = '🎮 Ваш ход!';
+            
+            showTempMessage('🎮 Игра началась! Ваш ход.');
+        }
+
+        function initializeBattleFields() {
+            // Очищаем поля
+            const playerGrid = document.getElementById('playerGrid');
+            const enemyGrid = document.getElementById('enemyGrid');
+            playerGrid.innerHTML = '';
+            enemyGrid.innerHTML = '';
+            
+            // Сбрасываем данные
+            playerShips = [];
+            enemyShips = [];
+            playerHits = [];
+            enemyHits = [];
+            isPlayerTurn = true;
+            
+            // Создаем клетки для игрока
+            for (let y = 0; y < 10; y++) {
+                for (let x = 0; x < 10; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    // Случайно размещаем корабли (для демо)
+                    if (Math.random() < 0.15) {
+                        cell.classList.add('ship');
+                        playerShips.push({x: x, y: y});
+                    }
+                    
+                    playerGrid.appendChild(cell);
+                }
+            }
+            
+            // Создаем клетки для противника
+            for (let y = 0; y < 10; y++) {
+                for (let x = 0; x < 10; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    // Случайно размещаем корабли противника
+                    if (Math.random() < 0.15) {
+                        enemyShips.push({x: x, y: y});
+                    }
+                    
+                    cell.addEventListener('click', () => makeMove(x, y));
+                    enemyGrid.appendChild(cell);
+                }
+            }
+        }
+
+function makeMove(x, y) {
+            if (!isPlayerTurn  !currentBattle) return;
+            
+            const cell = document.querySelector(`#enemyGrid .grid-cell[data-x="${x}"][data-y="${y}"]`);
+            if (cell.classList.contains('hit')  cell.classList.contains('miss')) {
+                return; // Уже стреляли сюда
+            }
+            
+            // Проверяем попадание
+            const isHit = enemyShips.some(ship => ship.x === x && ship.y === y);
+            
+            if (isHit) {
+                cell.classList.add('hit');
+                playerHits.push({x: x, y: y});
+                showTempMessage('💥 Попадание!');
+            } else {
+                cell.classList.add('miss');
+                showTempMessage('⚪️ Промах!');
+            }
+            
+            // Проверяем конец игры
+            if (playerHits.length >= 5) { // Для демо - 5 попаданий для победы
+                finishBattle(true);
+                return;
+            }
+            
+            // Передаем ход противнику
+            isPlayerTurn = false;
+            document.getElementById('battleStatus').textContent = '⏳ Ход противника...';
+            
+            // Имитируем ход противника
+            setTimeout(enemyMove, 1500);
+        }
+
+        function enemyMove() {
+            if (!currentBattle) return;
+            
+            // Случайный ход противника
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * 10);
+                y = Math.floor(Math.random() * 10);
+            } while (playerHits.some(hit => hit.x === x && hit.y === y)  
+                    enemyHits.some(hit => hit.x === x && hit.y === y));
+            
+            const isHit = playerShips.some(ship => ship.x === x && ship.y === y);
+            
+            if (isHit) {
+                enemyHits.push({x: x, y: y});
+                // Отмечаем попадание на поле игрока
+                const cell = document.querySelector(`#playerGrid .grid-cell[data-x="${x}"][data-y="${y}"]`);
+                cell.classList.add('hit');
+            }
+            
+            // Проверяем конец игры
+            if (enemyHits.length >= 5) { // Для демо - 5 попаданий для победы
+                finishBattle(false);
+                return;
+            }
+            
+            // Возвращаем ход игроку
+            isPlayerTurn = true;
+            document.getElementById('battleStatus').textContent = '🎮 Ваш ход!';
+        }
+
+        function finishBattle(isWin) {
+            clearInterval(battleInterval);
+            
+            const bet = currentBattle.bet;
+            let prize = 0;
+            
+            if (isWin) {
+                prize = bet * 1.8; // Выигрыш 80%
+                userData.balance += prize;
+                showTempMessage(`🎉 Победа! Вы выиграли ${prize.toFixed(9)} S`);
+                document.getElementById('battleStatus').textContent = '🎉 Победа!';
+                document.getElementById('battleStatus').style.color = '#4CAF50';
+            } else {
+                showTempMessage(`💸 Поражение! Вы проиграли ${bet.toFixed(9)} S`, true);
+                document.getElementById('battleStatus').textContent = '💸 Поражение!';
+                document.getElementById('battleStatus').style.color = '#f44336';
+            }
+            
+            // Сохраняем историю
+            saveBattleHistory(isWin, bet, prize);
+            
+            // Обновляем UI
+            updateUI();
+            saveUserData();
+            
+            // Сбрасываем игру через 5 секунд
+            setTimeout(resetBattle, 5000);
+        }
+
+        function resetBattle() {
+            currentBattle = null;
+            document.getElementById('battleGrids').style.display = 'none';
+            document.getElementById('waitingOpponent').style.display = 'block';
+            document.getElementById('battleSearchButton').style.display = 'block';
+            document.getElementById('battleStatus').textContent = 'Ожидание игроков...';
+            document.getElementById('battleStatus').style.color = '#4CC9F0';
+        }
+
+        function saveBattleHistory(isWin,
+
+bet, prize) {
+            const history = JSON.parse(localStorage.getItem('sparkcoin_battle_history')  '[]');
+            
+            history.unshift({
+                timestamp: new Date().toISOString(),
+                result: isWin ? 'win' : 'lose',
+                bet: bet,
+                prize: prize,
+                opponent: currentBattle.opponent,
+                duration: Math.floor((Date.now() - currentBattle.startTime) / 1000)
+            });
+            
+            // Сохраняем только последние 20 записей
+            localStorage.setItem('sparkcoin_battle_history', JSON.stringify(history.slice(0, 20)));
+            
+            updateBattleHistory();
+        }
+
+        function updateBattleHistory() {
+            const historyContainer = document.getElementById('battleHistory');
+            const history = JSON.parse(localStorage.getItem('sparkcoin_battle_history')  '[]');
+            
+            if (history.length === 0) {
+                historyContainer.innerHTML = '<div class="no-winners">История игр пуста</div>';
+                return;
+            }
+            
+            historyContainer.innerHTML = '';
+            
+            history.forEach(record => {
+                const item = document.createElement('div');
+                item.className = `battle-history-item ${record.result}`;
+                
+                const resultText = record.result === 'win' ? 'Победа' : 'Поражение';
+                const amountText = record.result === 'win' ? 
+                    `+${record.prize.toFixed(9)} S` : 
+                    `-${record.bet.toFixed(9)} S`;
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>${resultText} vs ${record.opponent}</span>
+                        <span style="color: ${record.result === 'win' ? '#4CAF50' : '#f44336'}; font-weight: bold;">
+                            ${amountText}
+                        </span>
+                    </div>
+                    <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                        ${new Date(record.timestamp).toLocaleString()} • ${record.duration} сек
+                    </div>
+                `;
+                
+                historyContainer.appendChild(item);
+            });
+        }
+
         // ФУНКЦИИ ПЕРЕВОДОВ
         function updateUsersList() {
             const usersList = document.getElementById('usersList');
@@ -1863,7 +2340,7 @@ function playTeamLottery() {
             updateUsersList();
         }
 
-        function selectUserForTransfer(user) {
+function selectUserForTransfer(user) {
             selectedTransferUser = user;
             
             document.querySelectorAll('.user-item').forEach(item => {
@@ -1879,7 +2356,7 @@ function playTeamLottery() {
             document.getElementById('transferButton').disabled = true;
         }
 
-function makeTransfer() {
+        function makeTransfer() {
             if (!selectedTransferUser) {
                 showTempMessage('❌ Выберите пользователя для перевода', true);
                 return;
@@ -1915,7 +2392,7 @@ function makeTransfer() {
             selectedTransferUser = null;
             document.getElementById('userSearch').value = '';
             
-            showTempMessage(`✅ Перевод ${amount.toFixed(9)} S выполнен!`);
+            showTempMessage(✅ Перевод ${amount.toFixed(9)} S выполнен!);
         }
 
         // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -1973,7 +2450,7 @@ function makeTransfer() {
             setTimeout(() => coin.classList.remove('cooldown'), CLICK_COOLDOWN);
             
             updateUI();
-            saveUserData();
+saveUserData();
         }
 
         // Обработчик изменения суммы перевода
@@ -1981,7 +2458,7 @@ function makeTransfer() {
             if (e.target.id === 'transferAmount') {
                 const amount = parseFloat(e.target.value);
                 const button = document.getElementById('transferButton');
-                button.disabled = !amount  amount <= 0 || amount > userData.balance;
+                button.disabled = !amount  amount <= 0  amount > userData.balance;
             }
         });
 
