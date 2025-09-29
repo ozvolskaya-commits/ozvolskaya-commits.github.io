@@ -412,8 +412,7 @@ async def start(update, context):
     username = f"@{user.username}" if user.username else user.first_name or "Игрок"
 
     # Web App URL - теперь с параметром API
-    web_app_url = f"https://sparkcoin.ru/index.html?user_id={user.id}&username={username}&api_url=https://sparkcoin.ru/api"
-
+    web_app_url = f"https://sparkcoin.ru/?user_id={user.id}&username={username}&api_url=https://sparkcoin.ru/api"
     keyboard = [
         [InlineKeyboardButton("🎮 Открыть Sparkcoin", web_app=WebAppInfo(url=web_app_url))],
         [InlineKeyboardButton("💰 Мой баланс", callback_data="balance"),
