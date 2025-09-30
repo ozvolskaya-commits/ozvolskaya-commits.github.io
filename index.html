@@ -1298,8 +1298,41 @@
             }
         }
 
-// Функция для синхронизации данных с API
-async function syncPlayerDataWithAPI() {
+        // Функция для синхронизации данных с API
+        async function syncPlayerDataWithAPI() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
+                const data = await response.json();
+                
+                if (data.success && data.player) {
+                    const apiData = data.player;
+                    
+                    // Обновляем локальные данные из API
+                    userData.balance = apiData.balance;
+                    userData.totalEarned = apiData.total_earned;
+                    userData.totalClicks = apiData.total_clicks;
+                    userData.lotteryWins = apiData.lottery_wins;
+                    userData.totalBet = apiData.total_bet;
+                    
+                    // Обновляем улучшения если они есть в API
+                    if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
+                        for (const key in apiData.upgrades) {
+                            if (upgrades[key]) {
+                                upgrades[key].level = apiData.upgrades[key].level || 0;
+                            }
+                        }
+                    }
+                    
+                    updateUI();
+                    updateShopUI();
+                }
+            } catch (error) {
+                console.error('Ошибка синхронизации с API:', error);
+            }
+        }
+
+        // Функция для сохранения данных в API
+       async function syncPlayerDataWithAPI() {
     try {
         const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
         const data = await response.json();
@@ -1309,11 +1342,11 @@ async function syncPlayerDataWithAPI() {
                 // Игрок существует, обновляем данные
                 const apiData = data.player;
                 
-                userData.balance = apiData.balance || 0.000000100;
-                userData.totalEarned = apiData.totalEarned || 0.000000100;
-                userData.totalClicks = apiData.totalClicks || 0;
-                userData.lotteryWins = apiData.lotteryWins || 0;
-                userData.totalBet = apiData.totalBet || 0;
+                userData.balance = apiData.balance;
+                userData.totalEarned = apiData.totalEarned;
+                userData.totalClicks = apiData.totalClicks;
+                userData.lotteryWins = apiData.lotteryWins;
+                userData.totalBet = apiData.totalBet;
                 
                 // Обновляем улучшения если они есть в API
                 if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
@@ -1326,15 +1359,42 @@ async function syncPlayerDataWithAPI() {
                 
                 updateUI();
                 updateShopUI();
-                
-                // Если это новый игрок, сразу сохраняем его данные
-                if (data.message && data.message.includes('not found')) {
-                    await saveUserDataToAPI();
-                }
+            } else {
+                // Игрок не существует, создаем его - ДОБАВЛЕНО
+                logger.info("Игрок не найден, создаем нового...");
+                await saveUserDataToAPI();
             }
         }
     } catch (error) {
         console.error('Ошибка синхронизации с API:', error);
+    }
+}
+
+// Функция для сохранения данных в API
+async function saveUserDataToAPI() {
+    try {
+        const saveData = {
+            type: 'player_update',
+            ...userData,
+            upgrades: upgrades
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(saveData)
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+            console.error('Ошибка сохранения в API:', result.error);
+        } else {
+            console.log('Данные успешно сохранены в API');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения в API:', error);
     }
 }
 
@@ -2146,20 +2206,21 @@ async function syncPlayerDataWithAPI() {
         
         // Обновляем функцию сохранения данных
         function saveUserData() {
-            userData.lastUpdate = Date.now();
-            
-            // Сохраняем в localStorage как раньше
-            localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
-            
-            const upgradesData = {};
-            for (const key in upgrades) {
-                upgradesData[key] = upgrades[key].level;
-            }
-            localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
-            
-            // Сохраняем в API (фоново, без задержки для пользователя)
-            saveUserDataToAPI();
-        }
+    userData.lastUpdate = Date.now();
+    
+    // Сохраняем в localStorage как раньше
+    localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
+    
+    const upgradesData = {};
+    for (const key in upgrades) {
+        upgradesData[key] = upgrades[key].level;
+    }
+    localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
+    
+    // Сохраняем в API
+    saveUserDataToAPI();
+}
+        
         
         // Очистка сессии при закрытии
         window.addEventListener('beforeunload', function() {
