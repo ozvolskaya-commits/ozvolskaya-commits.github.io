@@ -1223,15 +1223,6 @@
         // Статус API
         let apiConnected = false;
 
-        // МИНИМАЛЬНЫЙ ИНТЕРВАЛ ДЛЯ ФОНОВЫХ ОБНОВЛЕНИЙ (500ms - незаметно для пользователя)
-        let lastBackgroundUpdate = 0;
-        const BACKGROUND_UPDATE_INTERVAL = 500;
-
-        // ФОНОВАЯ ЗАГРУЗКА РЕЙТИНГА
-        let cachedLeaderboard = [];
-        let lastLeaderboardUpdate = 0;
-        const LEADERBOARD_CACHE_TIME = 3000; // 3 секунды кэш
-
         // БАЗА УЛУЧШЕНИЙ
         const upgrades = {
             gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000016, baseBonus: 0.000000001, level: 0, type: 'mining' },
@@ -1262,161 +1253,7 @@
             mouse8: { name: "Мышка Админа", basePrice: 17.179869184, baseBonus: 0.002097152, level: 0, type: 'click' }
         };
 
-        // ==================== ФОНОВАЯ ЗАГРУЗКА РЕЙТИНГА ====================
-
-        // Фоновая загрузка рейтинга
-        async function loadLeaderboardBackground() {
-            try {
-                const now = Date.now();
-                // Используем кэш если данные свежие
-                if (cachedLeaderboard.length > 0 && now - lastLeaderboardUpdate < LEADERBOARD_CACHE_TIME) {
-                    return cachedLeaderboard;
-                }
-
-                const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Помечаем текущего игрока и добавляем защиту от ошибок
-                    const leaderboardWithCurrent = data.leaderboard.map(player => ({
-                        ...player,
-                        isCurrent: player.userId === userData.userId,
-                        balance: player.balance || 0,
-                        totalEarned: player.totalEarned || 0,
-                        totalSpeed: player.totalSpeed || 0,
-                        totalClicks: player.totalClicks || 0,
-                        lotteryWins: player.lotteryWins || 0,
-                        username: player.username || 'Игрок'
-                    }));
-                    
-                    cachedLeaderboard = leaderboardWithCurrent;
-                    lastLeaderboardUpdate = now;
-                    return leaderboardWithCurrent;
-                }
-                return [];
-            } catch (error) {
-                console.error('Фоновая ошибка загрузки рейтинга:', error);
-                return cachedLeaderboard; // Возвращаем кэш при ошибке
-            }
-        }
-
-        // Обновление отображения рейтинга (полностью фоновое)
-        async function updateLeaderboard() {
-            try {
-                const apiPlayers = await loadLeaderboardBackground();
-                
-                // Если нет данных, не обновляем
-                if (!apiPlayers || apiPlayers.length === 0) {
-                    return;
-                }
-                
-                const leaderboard = document.getElementById('leaderboard');
-                let newHTML = '';
-                
-                apiPlayers.forEach((player, index) => {
-                    if (!player) return; // Защита от undefined
-                    
-                    const isCurrent = player.isCurrent || false;
-                    const currentPlayerClass = isCurrent ? 'current-player' : '';
-                    
-                    let valueText = '';
-                    switch (currentRatingTab) {
-                        case 'balance':
-                            valueText = `<div class="leader-balance">${(player.balance || 0).toFixed(9)} S</div>`;
-                            break;
-                        case 'speed':
-                            valueText = `<div class="leader-speed">${(player.totalSpeed || 0).toFixed(9)} S/сек</div>`;
-                            break;
-                        case 'rich':
-                            valueText = `<div class="leader-balance">${(player.totalEarned || 0).toFixed(9)} S всего</div>`;
-                            break;
-                    }
-                    
-                    newHTML += `
-                        <div class="leader-item ${currentPlayerClass}">
-                            <div class="leader-rank">${index + 1} место</div>
-                            <div class="leader-name ${currentPlayerClass}">
-                                ${player.username} ${isCurrent ? '👑' : ''}
-                            </div>
-                            ${valueText}
-                            <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                                Кликов: ${player.totalClicks || 0} | Побед: ${player.lotteryWins || 0}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                // Плавное обновление без мигания
-                if (newHTML !== leaderboard.innerHTML) {
-                    leaderboard.innerHTML = newHTML;
-                }
-                
-            } catch (error) {
-                console.error('Фоновая ошибка обновления рейтинга:', error);
-                // Не показываем ошибку пользователю
-            }
-        }
-
-        // Автоматическое фоновое обновление рейтинга
-        function startBackgroundLeaderboardUpdates() {
-            // Обновляем сразу при открытии раздела
-            updateLeaderboard();
-            
-            // Фоновое обновление каждые 5 секунд
-            setInterval(() => {
-                if (document.getElementById('top-section').classList.contains('active')) {
-                    updateLeaderboard();
-                }
-            }, 5000);
-        }
-
-        // Показ кэшированного рейтинга
-        function displayCachedLeaderboard() {
-            const leaderboard = document.getElementById('leaderboard');
-            
-            if (cachedLeaderboard.length === 0) {
-                leaderboard.innerHTML = '<div class="leader-item">Загрузка рейтинга...</div>';
-                return;
-            }
-            
-            let html = '';
-            cachedLeaderboard.forEach((player, index) => {
-                if (!player) return;
-                
-                const isCurrent = player.isCurrent || false;
-                const currentPlayerClass = isCurrent ? 'current-player' : '';
-                
-                let valueText = '';
-                switch (currentRatingTab) {
-                    case 'balance':
-                        valueText = `<div class="leader-balance">${(player.balance || 0).toFixed(9)} S</div>`;
-                        break;
-                    case 'speed':
-                        valueText = `<div class="leader-speed">${(player.totalSpeed || 0).toFixed(9)} S/сек</div>`;
-                        break;
-                    case 'rich':
-                        valueText = `<div class="leader-balance">${(player.totalEarned || 0).toFixed(9)} S всего</div>`;
-                        break;
-                }
-                
-                html += `
-                    <div class="leader-item ${currentPlayerClass}">
-                        <div class="leader-rank">${index + 1} место</div>
-                        <div class="leader-name ${currentPlayerClass}">
-                            ${player.username} ${isCurrent ? '👑' : ''}
-                        </div>
-                        ${valueText}
-                        <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                            Кликов: ${player.totalClicks || 0} | Побед: ${player.lotteryWins || 0}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            leaderboard.innerHTML = html;
-        }
-
-        // ==================== ОСТАЛЬНЫЕ ФУНКЦИИ ====================
+        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ ====================
 
         // Функция для обновления статуса API
         function updateApiStatus(status, message) {
@@ -1464,13 +1301,6 @@
         // Функция для синхронизации данных с API
         async function syncPlayerDataWithAPI() {
             try {
-                const now = Date.now();
-                // ФОНОВАЯ СИНХРОНИЗАЦИЯ - проверяем интервал
-                if (now - lastBackgroundUpdate < BACKGROUND_UPDATE_INTERVAL) {
-                    return;
-                }
-                lastBackgroundUpdate = now;
-
                 const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
                 const data = await response.json();
                 
@@ -1504,13 +1334,6 @@
         // Функция для сохранения данных в API
         async function saveUserDataToAPI() {
             try {
-                const now = Date.now();
-                // ФОНОВОЕ СОХРАНЕНИЕ - проверяем интервал
-                if (now - lastBackgroundUpdate < BACKGROUND_UPDATE_INTERVAL) {
-                    return;
-                }
-                lastBackgroundUpdate = now;
-
                 const saveData = {
                     type: 'player_update',
                     ...userData,
@@ -1576,7 +1399,161 @@
             }
         }
 
-        // ==================== СТАРЫЕ ФУНКЦИИ ====================
+        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ РЕЙТИНГА ====================
+
+        // Обновление отображения рейтинга - ТОЛЬКО ПРИ ЗАХОДЕ В РАЗДЕЛ
+        async function updateLeaderboard() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20&current_user=${userData.userId}`);
+                const data = await response.json();
+                
+                const leaderboard = document.getElementById('leaderboard');
+                
+                if (!data.success || !data.leaderboard || data.leaderboard.length === 0) {
+                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+                    return;
+                }
+                
+                let newHTML = '';
+                
+                data.leaderboard.forEach((player, index) => {
+                    if (!player) return;
+                    
+                    // ЗАЩИТА ОТ ОШИБОК - проверяем все значения
+                    const balance = Number(player.balance) || 0;
+                    const totalEarned = Number(player.totalEarned) || 0;
+                    const totalSpeed = Number(player.totalSpeed) || 0;
+                    const totalClicks = Number(player.totalClicks) || 0;
+                    const lotteryWins = Number(player.lotteryWins) || 0;
+                    const username = player.username || 'Игрок';
+                    
+                    const isCurrent = player.userId === userData.userId;
+                    const currentPlayerClass = isCurrent ? 'current-player' : '';
+                    
+                    let valueText = '';
+                    switch (currentRatingTab) {
+                        case 'balance':
+                            valueText = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
+                            break;
+                        case 'speed':
+                            valueText = `<div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>`;
+                            break;
+                        case 'rich':
+                            valueText = `<div class="leader-balance">${totalEarned.toFixed(9)} S всего</div>`;
+                            break;
+                    }
+                    
+                    newHTML += `
+                        <div class="leader-item ${currentPlayerClass}">
+                            <div class="leader-rank">${index + 1} место</div>
+                            <div class="leader-name ${currentPlayerClass}">
+                                ${username} ${isCurrent ? '👑' : ''}
+                            </div>
+                            ${valueText}
+                            <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                                Кликов: ${totalClicks} | Побед: ${lotteryWins}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                leaderboard.innerHTML = newHTML;
+                
+            } catch (error) {
+                console.error('Ошибка обновления рейтинга:', error);
+                document.getElementById('leaderboard').innerHTML = 
+                    '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+            }
+        }
+
+        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ ПЕРЕВОДОВ ====================
+
+        function makeTransfer() {
+            if (!selectedTransferUser) {
+                showTempMessage('❌ Выберите пользователя для перевода', true);
+                return;
+            }
+            
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            
+            if (!amount || amount <= 0) {
+                showTempMessage('❌ Введите корректную сумму', true);
+                return;
+            }
+            
+            if (amount > userData.balance) {
+                showTempMessage('❌ Недостаточно средств', true);
+                return;
+            }
+            
+            if (amount < 0.000000001) {
+                showTempMessage('❌ Минимальная сумма перевода: 0.000000001 S', true);
+                return;
+            }
+            
+            // Отправляем запрос на API для перевода
+            fetch(`${API_BASE_URL}/transfer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fromUserId: userData.userId,
+                    toUserId: selectedTransferUser.userId,
+                    amount: amount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем локальные данные
+                    userData.balance -= amount;
+                    userData.transfers.sent += amount;
+                    userData.lastUpdate = Date.now();
+                    
+                    updateUI();
+                    saveUserData();
+                    
+                    document.getElementById('selectedUser').style.display = 'none';
+                    selectedTransferUser = null;
+                    document.getElementById('userSearch').value = '';
+                    
+                    showTempMessage(`✅ Перевод ${amount.toFixed(9)} S пользователю ${selectedTransferUser?.username || 'получателю'} выполнен!`);
+                } else {
+                    showTempMessage(`❌ Ошибка перевода: ${data.error}`, true);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка перевода:', error);
+                showTempMessage('❌ Ошибка сети при переводе', true);
+            });
+        }
+
+        // ==================== ИСПРАВЛЕННАЯ НАВИГАЦИЯ ====================
+
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            if (sectionName === 'main') {
+                document.querySelector('.balance-section').style.display = 'block';
+                document.querySelector('.main-menu').style.display = 'grid';
+            } else {
+                document.querySelector('.balance-section').style.display = 'none';
+                document.querySelector('.main-menu').style.display = 'none';
+                document.getElementById(sectionName + '-section').classList.add('active');
+                
+                if (sectionName === 'top') {
+                    // ОБНОВЛЯЕМ РЕЙТИНГ ТОЛЬКО ПРИ ЗАХОДЕ В РАЗДЕЛ
+                    updateLeaderboard();
+                }
+                if (sectionName === 'games') updateLottery();
+                if (sectionName === 'transfer') updateUsersList();
+            }
+        }
+
+        // ==================== СТАРЫЕ ФУНКЦИИ (без изменений) ====================
 
         // Инициализация
         tg.expand();
@@ -1661,7 +1638,6 @@
             setTimeout(syncPlayerDataWithAPI, 1000);
             
             startLotteryTimer();
-            startBackgroundLeaderboardUpdates();
         }
         
         // Создание данных нового пользователя
@@ -2101,65 +2077,6 @@
             document.getElementById('transferButton').disabled = true;
         }
         
-        function makeTransfer() {
-            if (!selectedTransferUser) {
-                showTempMessage('❌ Выберите пользователя для перевода', true);
-                return;
-            }
-            
-            const amount = parseFloat(document.getElementById('transferAmount').value);
-            
-            if (!amount || amount <= 0) {
-                showTempMessage('❌ Введите корректную сумму', true);
-                return;
-            }
-            
-            if (amount > userData.balance) {
-                showTempMessage('❌ Недостаточно средств', true);
-                return;
-            }
-            
-            if (amount < 0.000000001) {
-                showTempMessage('❌ Минимальная сумма перевода: 0.000000001 S', true);
-                return;
-            }
-            
-            userData.balance -= amount;
-            userData.transfers.sent += amount;
-            userData.lastUpdate = Date.now();
-            
-            const receiverData = localStorage.getItem('sparkcoin_user_data_' + selectedTransferUser.userId);
-            if (receiverData) {
-                const receiverObj = JSON.parse(receiverData);
-                receiverObj.balance += amount;
-                receiverObj.transfers.received += amount;
-                receiverObj.lastUpdate = Date.now();
-                localStorage.setItem('sparkcoin_user_data_' + selectedTransferUser.userId, JSON.stringify(receiverObj));
-            }
-            
-            const transfersHistory = JSON.parse(localStorage.getItem('sparkcoin_transfers_history') || '[]');
-            transfersHistory.unshift({
-                from: userData.userId,
-                fromName: userData.username,
-                to: selectedTransferUser.userId,
-                toName: selectedTransferUser.username,
-                amount: amount,
-                timestamp: new Date().toISOString()
-            });
-            localStorage.setItem('sparkcoin_transfers_history', JSON.stringify(transfersHistory));
-            
-            updateUI();
-            saveUserData();
-            loadAllPlayers();
-            updateUsersList();
-            
-            document.getElementById('selectedUser').style.display = 'none';
-            selectedTransferUser = null;
-            document.getElementById('userSearch').value = '';
-            
-            showTempMessage(`✅ Перевод ${amount.toFixed(9)} S пользователю ${selectedTransferUser.username} выполнен!`);
-        }
-        
         // Включение/выключение кнопки перевода при изменении суммы
         document.addEventListener('input', function(e) {
             if (e.target.id === 'transferAmount') {
@@ -2222,31 +2139,6 @@
             document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
         }
         
-        // Навигация
-        function showSection(sectionName) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            if (sectionName === 'main') {
-                document.querySelector('.balance-section').style.display = 'block';
-                document.querySelector('.main-menu').style.display = 'grid';
-            } else {
-                document.querySelector('.balance-section').style.display = 'none';
-                document.querySelector('.main-menu').style.display = 'none';
-                document.getElementById(sectionName + '-section').classList.add('active');
-                
-                if (sectionName === 'top') {
-                    // Сразу показываем кэшированные данные
-                    displayCachedLeaderboard();
-                    // Запускаем фоновое обновление
-                    setTimeout(updateLeaderboard, 100);
-                }
-                if (sectionName === 'games') updateLottery();
-                if (sectionName === 'transfer') updateUsersList();
-            }
-        }
-        
         function showShopTab(tabName) {
             document.querySelectorAll('.shop-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -2267,13 +2159,8 @@
             });
             event.target.classList.add('active');
             
-            // Сбрасываем кэш при смене типа рейтинга
-            cachedLeaderboard = [];
-            lastLeaderboardUpdate = 0;
-            
-            // Показываем кэш и обновляем в фоне
-            displayCachedLeaderboard();
-            setTimeout(updateLeaderboard, 100);
+            // Обновляем рейтинг при смене вкладки
+            updateLeaderboard();
         }
         
         // Обновляем функцию сохранения данных
@@ -2298,7 +2185,7 @@
             localStorage.removeItem('sparkcoin_current_session');
         });
         
-        // Добавляем периодическую синхронизацию с API (каждые 2 секунды, но с минимальным интервалом 500ms)
+        // Добавляем периодическую синхронизацию с API (каждые 2 секунды)
         setInterval(syncPlayerDataWithAPI, 2000);
         
         // Инициализация
@@ -2307,11 +2194,6 @@
             loadUserData();
             setInterval(updateUI, 100);
             setInterval(saveUserData, 5000); // Сохраняем каждые 5 секунд
-            
-            // Предзагрузка рейтинга при старте
-            setTimeout(() => {
-                loadLeaderboardBackground();
-            }, 2000);
         }
 
         document.addEventListener('DOMContentLoaded', initializeApp);
