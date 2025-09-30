@@ -1332,30 +1332,71 @@
         }
 
         // Функция для сохранения данных в API
-        async function saveUserDataToAPI() {
-            try {
-                const saveData = {
-                    type: 'player_update',
-                    ...userData,
-                    upgrades: upgrades
-                };
+       async function syncPlayerDataWithAPI() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.player) {
+                // Игрок существует, обновляем данные
+                const apiData = data.player;
                 
-                const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(saveData)
-                });
+                userData.balance = apiData.balance;
+                userData.totalEarned = apiData.totalEarned;
+                userData.totalClicks = apiData.totalClicks;
+                userData.lotteryWins = apiData.lotteryWins;
+                userData.totalBet = apiData.totalBet;
                 
-                const result = await response.json();
-                if (!result.success) {
-                    console.error('Ошибка сохранения в API:', result.error);
+                // Обновляем улучшения если они есть в API
+                if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
+                    for (const key in apiData.upgrades) {
+                        if (upgrades[key]) {
+                            upgrades[key].level = apiData.upgrades[key].level || 0;
+                        }
+                    }
                 }
-            } catch (error) {
-                console.error('Ошибка сохранения в API:', error);
+                
+                updateUI();
+                updateShopUI();
+            } else {
+                // Игрок не существует, создаем его - ДОБАВЛЕНО
+                logger.info("Игрок не найден, создаем нового...");
+                await saveUserDataToAPI();
             }
         }
+    } catch (error) {
+        console.error('Ошибка синхронизации с API:', error);
+    }
+}
+
+// Функция для сохранения данных в API
+async function saveUserDataToAPI() {
+    try {
+        const saveData = {
+            type: 'player_update',
+            ...userData,
+            upgrades: upgrades
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(saveData)
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+            console.error('Ошибка сохранения в API:', result.error);
+        } else {
+            console.log('Данные успешно сохранены в API');
+        }
+    } catch (error) {
+        console.error('Ошибка сохранения в API:', error);
+    }
+}
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
 
