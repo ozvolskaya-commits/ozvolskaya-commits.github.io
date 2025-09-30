@@ -745,20 +745,6 @@
             background: #FF9800;
             color: white;
         }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #4CC9F0;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -840,7 +826,77 @@
                         <button class="buy-button" onclick="buyUpgrade('gpu2')">Купить</button>
                     </div>
                     
-                    <!-- Остальные видеокарты... -->
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Видеокарта Mining V100</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000064 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu3-price">0.000004096</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu3')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Супер мощная видеокарта Mining V1000</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu4-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000512 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu4-price">0.000065536</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu4')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Квантовая видеокарта Mining Q100</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu5-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000004096 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu5-price">0.001048576</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu5')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Видеокарта Думатель 42</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu6-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000032768 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu6-price">0.016777216</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu6')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Видеокарта Blue Earth 54</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu7-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000262144 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu7-price">0.268435456</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu7')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Видеокарта Big Bang</span>
+                            <span class="upgrade-owned">Куплено: <span id="gpu8-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.002097152 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="gpu8-price">4.294967296</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('gpu8')">Купить</button>
+                    </div>
                 </div>
                 
                 <!-- Процессоры -->
@@ -859,7 +915,89 @@
                         <button class="buy-button" onclick="buyUpgrade('cpu1')">Купить</button>
                     </div>
                     
-                    <!-- Остальные процессоры... -->
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Процессор Miner X100</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000008 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu2-price">0.000000512</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu2')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Супер процессор Miner X1000</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000064 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu3-price">0.000008192</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu3')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Квантовый процессор Miner X10000</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu4-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000512 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu4-price">0.000131072</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu4')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Кроховселенный процессор</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu5-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000004096 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu5-price">0.002097152</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu5')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Минивселенный процессор</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu6-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000032768 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu6-price">0.033554432</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu6')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Микровселенный процессор</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu7-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000262144 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu7-price">0.536870912</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu7')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мультивселенный процессор</span>
+                            <span class="upgrade-owned">Куплено: <span id="cpu8-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.002097152 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="cpu8-price">8.589934592</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('cpu8')">Купить</button>
+                    </div>
                 </div>
                 
                 <!-- Мышки -->
@@ -878,7 +1016,89 @@
                         <button class="buy-button" onclick="buyUpgrade('mouse1')">Купить</button>
                     </div>
                     
-                    <!-- Остальные мышки... -->
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка с автокликером</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse2-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000008 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse2-price">0.000001024</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse2')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка с макросами</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse3-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000064 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse3-price">0.000016384</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse3')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка программиста</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse4-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000000512 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse4-price">0.000262144</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse4')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка Сатоси Накамото</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse5-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000004096 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse5-price">0.004194304</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse5')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка хакера</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse6-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000032768 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse6-price">0.067108864</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse6')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка Сноулена</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse7-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.000262144 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse7-price">1.073741824</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse7')">Купить</button>
+                    </div>
+                    
+                    <div class="upgrade-item">
+                        <div class="upgrade-header">
+                            <span class="upgrade-name">Мышка Админа</span>
+                            <span class="upgrade-owned">Куплено: <span id="mouse8-owned">0</span></span>
+                        </div>
+                        <div class="upgrade-stats">
+                            <span class="upgrade-bonus">+0.002097152 к скорости</span>
+                            <span class="upgrade-price">Цена: <span id="mouse8-price">17.179869184</span> S</span>
+                        </div>
+                        <button class="buy-button" onclick="buyUpgrade('mouse8')">Купить</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1007,6 +1227,11 @@
         let lastBackgroundUpdate = 0;
         const BACKGROUND_UPDATE_INTERVAL = 500;
 
+        // ФОНОВАЯ ЗАГРУЗКА РЕЙТИНГА
+        let cachedLeaderboard = [];
+        let lastLeaderboardUpdate = 0;
+        const LEADERBOARD_CACHE_TIME = 3000; // 3 секунды кэш
+
         // БАЗА УЛУЧШЕНИЙ
         const upgrades = {
             gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000016, baseBonus: 0.000000001, level: 0, type: 'mining' },
@@ -1037,7 +1262,161 @@
             mouse8: { name: "Мышка Админа", basePrice: 17.179869184, baseBonus: 0.002097152, level: 0, type: 'click' }
         };
 
-        // ==================== ФУНКЦИИ API ====================
+        // ==================== ФОНОВАЯ ЗАГРУЗКА РЕЙТИНГА ====================
+
+        // Фоновая загрузка рейтинга
+        async function loadLeaderboardBackground() {
+            try {
+                const now = Date.now();
+                // Используем кэш если данные свежие
+                if (cachedLeaderboard.length > 0 && now - lastLeaderboardUpdate < LEADERBOARD_CACHE_TIME) {
+                    return cachedLeaderboard;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Помечаем текущего игрока и добавляем защиту от ошибок
+                    const leaderboardWithCurrent = data.leaderboard.map(player => ({
+                        ...player,
+                        isCurrent: player.userId === userData.userId,
+                        balance: player.balance || 0,
+                        totalEarned: player.totalEarned || 0,
+                        totalSpeed: player.totalSpeed || 0,
+                        totalClicks: player.totalClicks || 0,
+                        lotteryWins: player.lotteryWins || 0,
+                        username: player.username || 'Игрок'
+                    }));
+                    
+                    cachedLeaderboard = leaderboardWithCurrent;
+                    lastLeaderboardUpdate = now;
+                    return leaderboardWithCurrent;
+                }
+                return [];
+            } catch (error) {
+                console.error('Фоновая ошибка загрузки рейтинга:', error);
+                return cachedLeaderboard; // Возвращаем кэш при ошибке
+            }
+        }
+
+        // Обновление отображения рейтинга (полностью фоновое)
+        async function updateLeaderboard() {
+            try {
+                const apiPlayers = await loadLeaderboardBackground();
+                
+                // Если нет данных, не обновляем
+                if (!apiPlayers || apiPlayers.length === 0) {
+                    return;
+                }
+                
+                const leaderboard = document.getElementById('leaderboard');
+                let newHTML = '';
+                
+                apiPlayers.forEach((player, index) => {
+                    if (!player) return; // Защита от undefined
+                    
+                    const isCurrent = player.isCurrent || false;
+                    const currentPlayerClass = isCurrent ? 'current-player' : '';
+                    
+                    let valueText = '';
+                    switch (currentRatingTab) {
+                        case 'balance':
+                            valueText = `<div class="leader-balance">${(player.balance || 0).toFixed(9)} S</div>`;
+                            break;
+                        case 'speed':
+                            valueText = `<div class="leader-speed">${(player.totalSpeed || 0).toFixed(9)} S/сек</div>`;
+                            break;
+                        case 'rich':
+                            valueText = `<div class="leader-balance">${(player.totalEarned || 0).toFixed(9)} S всего</div>`;
+                            break;
+                    }
+                    
+                    newHTML += `
+                        <div class="leader-item ${currentPlayerClass}">
+                            <div class="leader-rank">${index + 1} место</div>
+                            <div class="leader-name ${currentPlayerClass}">
+                                ${player.username} ${isCurrent ? '👑' : ''}
+                            </div>
+                            ${valueText}
+                            <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                                Кликов: ${player.totalClicks || 0} | Побед: ${player.lotteryWins || 0}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // Плавное обновление без мигания
+                if (newHTML !== leaderboard.innerHTML) {
+                    leaderboard.innerHTML = newHTML;
+                }
+                
+            } catch (error) {
+                console.error('Фоновая ошибка обновления рейтинга:', error);
+                // Не показываем ошибку пользователю
+            }
+        }
+
+        // Автоматическое фоновое обновление рейтинга
+        function startBackgroundLeaderboardUpdates() {
+            // Обновляем сразу при открытии раздела
+            updateLeaderboard();
+            
+            // Фоновое обновление каждые 5 секунд
+            setInterval(() => {
+                if (document.getElementById('top-section').classList.contains('active')) {
+                    updateLeaderboard();
+                }
+            }, 5000);
+        }
+
+        // Показ кэшированного рейтинга
+        function displayCachedLeaderboard() {
+            const leaderboard = document.getElementById('leaderboard');
+            
+            if (cachedLeaderboard.length === 0) {
+                leaderboard.innerHTML = '<div class="leader-item">Загрузка рейтинга...</div>';
+                return;
+            }
+            
+            let html = '';
+            cachedLeaderboard.forEach((player, index) => {
+                if (!player) return;
+                
+                const isCurrent = player.isCurrent || false;
+                const currentPlayerClass = isCurrent ? 'current-player' : '';
+                
+                let valueText = '';
+                switch (currentRatingTab) {
+                    case 'balance':
+                        valueText = `<div class="leader-balance">${(player.balance || 0).toFixed(9)} S</div>`;
+                        break;
+                    case 'speed':
+                        valueText = `<div class="leader-speed">${(player.totalSpeed || 0).toFixed(9)} S/сек</div>`;
+                        break;
+                    case 'rich':
+                        valueText = `<div class="leader-balance">${(player.totalEarned || 0).toFixed(9)} S всего</div>`;
+                        break;
+                }
+                
+                html += `
+                    <div class="leader-item ${currentPlayerClass}">
+                        <div class="leader-rank">${index + 1} место</div>
+                        <div class="leader-name ${currentPlayerClass}">
+                            ${player.username} ${isCurrent ? '👑' : ''}
+                        </div>
+                        ${valueText}
+                        <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                            Кликов: ${player.totalClicks || 0} | Побед: ${player.lotteryWins || 0}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            leaderboard.innerHTML = html;
+        }
+
+        // ==================== ОСТАЛЬНЫЕ ФУНКЦИИ ====================
 
         // Функция для обновления статуса API
         function updateApiStatus(status, message) {
@@ -1062,32 +1441,6 @@
                 updateApiStatus('disconnected', 'Отключен');
                 console.warn('API недоступен, используем локальные данные:', error);
                 return false;
-            }
-        }
-
-        // Функция для загрузки рейтинга из базы данных
-        async function loadLeaderboardFromAPI(type = 'balance') {
-            try {
-                const response = await fetch(`${API_BASE_URL}/leaderboard?type=${type}&limit=20`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Помечаем текущего игрока
-                    const leaderboardWithCurrent = data.leaderboard.map(player => ({
-                        ...player,
-                        isCurrent: player.userId === userData.userId
-                    }));
-                    return leaderboardWithCurrent;
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки рейтинга:', error);
-                // Возвращаем локальные данные как запасной вариант
-                return allPlayers.slice(0, 10).map(player => ({
-                    ...player,
-                    isCurrent: player.userId === userData.userId
-                }));
             }
         }
 
@@ -1183,68 +1536,12 @@
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
 
-        // Обновляем функцию рейтинга для работы с API
-        async function updateLeaderboard() {
-            const leaderboard = document.getElementById('leaderboard');
-            leaderboard.innerHTML = '<div style="text-align: center; padding: 20px; color: #ccc;"><div class="loading-spinner"></div> Загрузка рейтинга...</div>';
-            
-            try {
-                const apiPlayers = await loadLeaderboardFromAPI(currentRatingTab);
-                
-                if (apiPlayers.length === 0) {
-                    leaderboard.innerHTML = '<div class="leader-item">Пока нет игроков в рейтинге</div>';
-                    return;
-                }
-                
-                leaderboard.innerHTML = '';
-                
-                apiPlayers.forEach((player, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'leader-item';
-                    
-                    // ПОДСВЕТКА ТЕКУЩЕГО ИГРОКА
-                    if (player.isCurrent) {
-                        item.classList.add('current-player');
-                    }
-                    
-                    let valueText = '';
-                    switch (currentRatingTab) {
-                        case 'balance':
-                            valueText = `<div class="leader-balance">${player.balance.toFixed(9)} S</div>`;
-                            break;
-                        case 'speed':
-                            valueText = `<div class="leader-speed">${player.totalSpeed.toFixed(9)} S/сек</div>`;
-                            break;
-                        case 'rich':
-                            valueText = `<div class="leader-balance">${player.totalEarned.toFixed(9)} S всего</div>`;
-                            break;
-                    }
-                    
-                    item.innerHTML = `
-                        <div class="leader-rank">${index + 1} место</div>
-                        <div class="leader-name ${player.isCurrent ? 'current-player' : ''}">
-                            ${player.username} ${player.isCurrent ? '👑' : ''}
-                        </div>
-                        ${valueText}
-                        <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                            Кликов: ${player.totalClicks} | Побед: ${player.lotteryWins || 0}
-                        </div>
-                    `;
-                    leaderboard.appendChild(item);
-                });
-                
-            } catch (error) {
-                console.error('Ошибка обновления рейтинга:', error);
-                leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
-            }
-        }
-
         // Обновляем функцию списка пользователей для работы с API
         async function updateUsersList() {
             const usersList = document.getElementById('usersList');
             const searchTerm = document.getElementById('userSearch').value.toLowerCase();
             
-            usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;"><div class="loading-spinner"></div> Загрузка игроков...</div>';
+            usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
             
             try {
                 const apiPlayers = await loadAllPlayersFromAPI();
@@ -1364,6 +1661,7 @@
             setTimeout(syncPlayerDataWithAPI, 1000);
             
             startLotteryTimer();
+            startBackgroundLeaderboardUpdates();
         }
         
         // Создание данных нового пользователя
@@ -1938,7 +2236,12 @@
                 document.querySelector('.main-menu').style.display = 'none';
                 document.getElementById(sectionName + '-section').classList.add('active');
                 
-                if (sectionName === 'top') updateLeaderboard();
+                if (sectionName === 'top') {
+                    // Сразу показываем кэшированные данные
+                    displayCachedLeaderboard();
+                    // Запускаем фоновое обновление
+                    setTimeout(updateLeaderboard, 100);
+                }
                 if (sectionName === 'games') updateLottery();
                 if (sectionName === 'transfer') updateUsersList();
             }
@@ -1963,7 +2266,14 @@
                 tab.classList.remove('active');
             });
             event.target.classList.add('active');
-            updateLeaderboard();
+            
+            // Сбрасываем кэш при смене типа рейтинга
+            cachedLeaderboard = [];
+            lastLeaderboardUpdate = 0;
+            
+            // Показываем кэш и обновляем в фоне
+            displayCachedLeaderboard();
+            setTimeout(updateLeaderboard, 100);
         }
         
         // Обновляем функцию сохранения данных
@@ -1981,13 +2291,6 @@
             
             // Сохраняем в API (фоново, без задержки для пользователя)
             saveUserDataToAPI();
-            
-            if (document.getElementById('top-section').classList.contains('active')) {
-                updateLeaderboard();
-            }
-            if (document.getElementById('transfer-section').classList.contains('active')) {
-                updateUsersList();
-            }
         }
         
         // Очистка сессии при закрытии
@@ -2004,6 +2307,11 @@
             loadUserData();
             setInterval(updateUI, 100);
             setInterval(saveUserData, 5000); // Сохраняем каждые 5 секунд
+            
+            // Предзагрузка рейтинга при старте
+            setTimeout(() => {
+                loadLeaderboardBackground();
+            }, 2000);
         }
 
         document.addEventListener('DOMContentLoaded', initializeApp);
