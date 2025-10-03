@@ -16,10 +16,8 @@ load_dotenv()
 TOKEN = os.getenv('BOT_TOKEN')
 API_PORT = int(os.getenv('API_PORT', 5000))
 
-# Flask app для API
 flask_app = Flask(__name__)
 
-# CORS FIX
 @flask_app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -38,13 +36,11 @@ def before_request():
 
 @flask_app.route('/api/player/<user_id>', methods=['GET', 'POST', 'OPTIONS'])
 def player_api(user_id):
-    """API endpoint для получения и обновления данных игрока"""
     try:
         logger.info(f"=== PLAYER API CALL ===")
         logger.info(f"Method: {request.method}")
         logger.info(f"User ID: {user_id}")
 
-        # ПРОВЕРКА НА UNDEFINED
         if user_id == 'undefined' or not user_id:
             logger.warning("⚠️ Invalid user_id received")
             return jsonify({
@@ -54,8 +50,6 @@ def player_api(user_id):
 
         if request.method == 'GET':
             logger.info(f"Processing GET request for user: {user_id}")
-
-            # Сначала пытаемся получить существующего игрока
             player_data = GameManager.get_player_data(user_id)
 
             if player_data:
@@ -66,8 +60,6 @@ def player_api(user_id):
                 })
             else:
                 logger.info(f"Player not found, creating new one: {user_id}")
-
-                # Создаем нового игрока с базовыми данными
                 new_player_data = {
                     'userId': user_id,
                     'username': f'Player_{user_id[-8:]}',
@@ -80,7 +72,6 @@ def player_api(user_id):
                     'upgrades': {}
                 }
 
-                # Создаем базовые улучшения
                 initial_upgrades = {}
                 for i in range(1, 9):
                     initial_upgrades[f"gpu{i}"] = {"level": 0}
@@ -88,11 +79,7 @@ def player_api(user_id):
                     initial_upgrades[f"mouse{i}"] = {"level": 0}
 
                 new_player_data['upgrades'] = initial_upgrades
-
-                # Сохраняем игрока
                 GameManager.update_player(new_player_data)
-
-                # Получаем данные созданного игрока
                 created_player = GameManager.get_player_data(user_id)
 
                 if created_player:
@@ -117,10 +104,7 @@ def player_api(user_id):
                 logger.warning("No data provided in POST request")
                 return jsonify({'success': False, 'error': 'No data provided'}), 400
 
-            # ЛОГИРУЕМ ВХОДЯЩИЕ ДАННЫЕ ДЛЯ ОТЛАДКИ
             logger.info(f"📥 Received data keys: {list(data.keys())}")
-            
-            # Убедимся, что user_id совпадает
             data['userId'] = user_id
             logger.info(f"Updating player data: {data.get('username', 'Unknown')}")
 
@@ -139,7 +123,6 @@ def player_api(user_id):
 
 @flask_app.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard_api():
-    """API endpoint для получения рейтинга с улучшенной обработкой ошибок"""
     try:
         limit = request.args.get('limit', 10, type=int)
         leaderboard_type = request.args.get('type', 'balance')
@@ -152,7 +135,6 @@ def get_leaderboard_api():
         formatted_leaderboard = []
         for i, player in enumerate(leaderboard_data, 1):
             try:
-                # Безопасное извлечение данных с значениями по умолчанию
                 user_id = player[0] if len(player) > 0 else f"unknown_{i}"
                 username = player[1] if len(player) > 1 and player[1] else f"Player_{i}"
                 balance = float(player[2]) if len(player) > 2 and player[2] is not None else 0.0
@@ -196,7 +178,6 @@ def get_leaderboard_api():
 
 @flask_app.route('/api/all_players', methods=['GET'])
 def get_all_players_api():
-    """API endpoint для получения всех игроков (для переводов)"""
     try:
         players = GameManager.get_all_players()
         players_data = []
@@ -219,7 +200,6 @@ def get_all_players_api():
 
 @flask_app.route('/api/transfer', methods=['POST'])
 def transfer_api():
-    """API endpoint для перевода монет"""
     try:
         data = request.get_json()
         from_user_id = data.get('fromUserId')
@@ -239,7 +219,6 @@ def transfer_api():
 
 @flask_app.route('/api/health', methods=['GET'])
 def health_check():
-    """Проверка здоровья API"""
     return jsonify({
         'status': 'healthy', 
         'timestamp': datetime.now().isoformat(),
@@ -248,7 +227,6 @@ def health_check():
 
 @flask_app.route('/api/debug', methods=['GET'])
 def debug_info():
-    """Отладочная информация"""
     return jsonify({
         'status': 'running',
         'timestamp': datetime.now().isoformat(),
@@ -264,10 +242,8 @@ def debug_info():
 
 @flask_app.route('/api/test_player', methods=['GET'])
 def test_player():
-    """Тестовый endpoint для проверки создания игрока"""
     test_user_id = 'test_user_123'
 
-    # Пытаемся создать тестового игрока
     test_data = {
         'userId': test_user_id,
         'username': 'TestPlayer',
@@ -280,7 +256,6 @@ def test_player():
         'transfers': {'sent': 0, 'received': 0}
     }
 
-    # Создаем базовые улучшения
     initial_upgrades = {}
     for i in range(1, 9):
         initial_upgrades[f"gpu{i}"] = {"level": 0}
@@ -289,8 +264,6 @@ def test_player():
 
     test_data['upgrades'] = initial_upgrades
     GameManager.update_player(test_data)
-
-    # Проверяем, создался ли игрок
     player_data = GameManager.get_player_data(test_user_id)
 
     return jsonify({
@@ -302,7 +275,6 @@ def test_player():
 
 @flask_app.route('/')
 def index():
-    """Главная страница"""
     return jsonify({
         'message': 'Sparkcoin API Server', 
         'status': 'running',
@@ -318,7 +290,6 @@ def index():
     })
 
 def init_db():
-    """Инициализация базы данных"""
     try:
         conn = sqlite3.connect('sparkcoin.db')
         cursor = conn.cursor()
@@ -352,20 +323,17 @@ class GameManager:
 
     @staticmethod
     def is_valid_telegram_username(username):
-        """Проверяет валидность Telegram юзернейма"""
         if not username:
             return False
         return True
 
     @staticmethod
     def calculate_click_speed(upgrades):
-        """Рассчитывает скорость клика на основе улучшений"""
         try:
             base_speed = 0.000000001
             if not upgrades:
                 return base_speed
             
-            # Расчет скорости клика на основе мышек
             for i in range(1, 9):
                 mouse_key = f"mouse{i}"
                 if mouse_key in upgrades:
@@ -394,13 +362,11 @@ class GameManager:
 
     @staticmethod
     def calculate_mine_speed(upgrades):
-        """Рассчитывает скорость майнинга на основе улучшений"""
         try:
             base_speed = 0.000000000
             if not upgrades:
                 return base_speed
             
-            # Расчет скорости майнинга на основе видеокарт и процессоров
             for i in range(1, 9):
                 gpu_key = f"gpu{i}"
                 cpu_key = f"cpu{i}"
@@ -450,9 +416,7 @@ class GameManager:
 
     @staticmethod
     def update_player(data):
-        """Обновление данных игрока с авто-созданием"""
         try:
-            # ИСПРАВЛЕННЫЕ КЛЮЧИ - используем camelCase как во фронтенде
             username = data.get('username', 'Player')
             user_id = data.get('userId')
 
@@ -463,7 +427,6 @@ class GameManager:
             conn = sqlite3.connect('sparkcoin.db')
             cursor = conn.cursor()
 
-            # Рассчитываем скорости на основе улучшений
             click_speed = GameManager.calculate_click_speed(data.get('upgrades', {}))
             mine_speed = GameManager.calculate_mine_speed(data.get('upgrades', {}))
 
@@ -472,20 +435,17 @@ class GameManager:
 
             upgrades_json = json.dumps(data.get('upgrades', {}))
 
-            # ИСПРАВЛЕННЫЕ КЛЮЧИ - используем camelCase
             balance = data.get('balance', 0.000000100)
-            total_earned = data.get('totalEarned', 0.000000100)  # camelCase
-            total_clicks = data.get('totalClicks', 0)  # camelCase
-            lottery_wins = data.get('lotteryWins', 0)  # camelCase
-            total_bet = data.get('totalBet', 0)  # camelCase
+            total_earned = data.get('totalEarned', 0.000000100)
+            total_clicks = data.get('totalClicks', 0)
+            lottery_wins = data.get('lotteryWins', 0)
+            total_bet = data.get('totalBet', 0)
             
-            # Обработка transfers
             transfers_data = data.get('transfers', {})
             transfers_sent = transfers_data.get('sent', 0)
             transfers_received = transfers_data.get('received', 0)
 
             if existing_player:
-                # Обновляем существующего игрока
                 cursor.execute('''
                     UPDATE players SET 
                     username = ?, balance = ?, total_earned = ?, total_clicks = ?, 
@@ -507,7 +467,6 @@ class GameManager:
                 ))
                 logger.info(f"✅ Игрок обновлен: {username} (кликов: {total_clicks}, баланс: {balance})")
             else:
-                # Создаем нового игрока
                 cursor.execute('''
                     INSERT INTO players 
                     (user_id, username, balance, total_earned, total_clicks, upgrades, 
@@ -541,7 +500,6 @@ class GameManager:
 
     @staticmethod
     def get_player_data(user_id):
-        """Получение данных игрока"""
         try:
             conn = sqlite3.connect('sparkcoin.db')
             cursor = conn.cursor()
@@ -582,14 +540,12 @@ class GameManager:
 
     @staticmethod
     def get_leaderboard(limit=10, leaderboard_type='balance', current_user_id=None):
-        """Получение рейтинга с улучшенной обработкой ошибок"""
         try:
             conn = sqlite3.connect('sparkcoin.db')
             cursor = conn.cursor()
 
             logger.info(f"Getting leaderboard: type={leaderboard_type}, limit={limit}")
 
-            # Проверяем существование таблицы
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='players'")
             table_exists = cursor.fetchone()
 
@@ -598,12 +554,10 @@ class GameManager:
                 conn.close()
                 return []
 
-            # Проверяем существование колонок
             cursor.execute("PRAGMA table_info(players)")
             columns = [column[1] for column in cursor.fetchall()]
             logger.info(f"Available columns: {columns}")
 
-            # Убедимся, что все необходимые колонки существуют
             required_columns = ['user_id', 'username', 'balance', 'total_earned', 'total_clicks', 'click_speed', 'mine_speed']
             for col in required_columns:
                 if col not in columns:
@@ -611,7 +565,6 @@ class GameManager:
                     conn.close()
                     return []
 
-            # Базовый запрос с безопасным формированием
             base_query = '''
                 SELECT user_id, username, balance, total_earned, total_clicks, 
                        COALESCE(click_speed, 0.000000001) as click_speed, 
@@ -622,12 +575,11 @@ class GameManager:
                 AND balance IS NOT NULL
             '''
 
-            # Добавляем сортировку в зависимости от типа рейтинга
             if leaderboard_type == 'balance':
                 query = base_query + ' ORDER BY balance DESC LIMIT ?'
             elif leaderboard_type == 'speed':
                 query = base_query + ' ORDER BY (COALESCE(click_speed, 0) + COALESCE(mine_speed, 0)) DESC LIMIT ?'
-            else:  # rich (total_earned)
+            else:
                 query = base_query + ' ORDER BY total_earned DESC LIMIT ?'
 
             logger.info(f"Executing query: {query}")
@@ -647,7 +599,6 @@ class GameManager:
 
     @staticmethod
     def get_all_players():
-        """Получение всех игроков для переводов"""
         try:
             conn = sqlite3.connect('sparkcoin.db')
             cursor = conn.cursor()
@@ -663,7 +614,6 @@ class GameManager:
 
     @staticmethod
     def transfer_coins(from_user_id, to_user_id, amount):
-        """Перевод монет между игроками"""
         try:
             if amount <= 0:
                 return False, "Неверная сумма перевода"
@@ -671,7 +621,6 @@ class GameManager:
             conn = sqlite3.connect('sparkcoin.db')
             cursor = conn.cursor()
             
-            # Проверяем баланс отправителя
             cursor.execute('SELECT balance FROM players WHERE user_id = ?', (from_user_id,))
             sender_balance = cursor.fetchone()
             
@@ -679,7 +628,6 @@ class GameManager:
                 conn.close()
                 return False, "Недостаточно средств"
             
-            # Проверяем существование получателя
             cursor.execute('SELECT user_id FROM players WHERE user_id = ?', (to_user_id,))
             receiver = cursor.fetchone()
             
@@ -687,11 +635,9 @@ class GameManager:
                 conn.close()
                 return False, "Получатель не найден"
             
-            # Выполняем перевод
             cursor.execute('UPDATE players SET balance = balance - ? WHERE user_id = ?', (amount, from_user_id))
             cursor.execute('UPDATE players SET balance = balance + ? WHERE user_id = ?', (amount, to_user_id))
             
-            # Обновляем статистику переводов
             cursor.execute('UPDATE players SET transfers_sent = transfers_sent + ? WHERE user_id = ?', (amount, from_user_id))
             cursor.execute('UPDATE players SET transfers_received = transfers_received + ? WHERE user_id = ?', (amount, to_user_id))
             
@@ -708,7 +654,6 @@ class GameManager:
                 conn.close()
             return False, f"Ошибка перевода: {str(e)}"
 
-# Базовые функции бота
 async def start(update, context):
     await update.message.reply_text(
         "🎮 Добро пожаловать в Sparkcoin!\n\n"
@@ -744,7 +689,6 @@ async def error_handler(update, context):
     logger.error(f"❌ Ошибка бота: {context.error}", exc_info=context.error)
 
 def run_flask_app():
-    """Запускает Flask API"""
     try:
         logger.info(f"🚀 Запуск Flask API на порту {API_PORT}")
         flask_app.run(host='0.0.0.0', port=API_PORT, debug=False, use_reloader=False)
@@ -756,18 +700,14 @@ def main():
         logger.error("❌ Укажите BOT_TOKEN в .env файле")
         return
 
-    # Инициализируем базу данных
     init_db()
 
-    # Запускаем Flask API в отдельном потоке
     flask_thread = threading.Thread(target=run_flask_app, daemon=True)
     flask_thread.start()
     logger.info(f"✅ Flask API запущен на порту {API_PORT}")
 
-    # Создаем приложение бота
     application = Application.builder().token(TOKEN).build()
 
-    # Обработчики команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stats", stats_command))
     application.add_handler(CommandHandler("leaderboard", leaderboard_command))
@@ -778,13 +718,8 @@ def main():
     application.add_handler(CommandHandler("help", start))
     application.add_handler(CommandHandler("game", start))
 
-    # Обработчики сообщений
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
-
-    # Обработчики кнопок
     application.add_handler(CallbackQueryHandler(button_handler))
-
-    # Обработчик ошибок
     application.add_error_handler(error_handler)
 
     logger.info("✅ Бот Sparkcoin запущен с API!")
