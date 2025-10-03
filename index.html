@@ -1253,7 +1253,7 @@
             mouse8: { name: "Мышка Админа", basePrice: 17.179869184, baseBonus: 0.002097152, level: 0, type: 'click' }
         };
 
-        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ ====================
+        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ API ====================
 
         // Функция для обновления статуса API
         function updateApiStatus(status, message) {
@@ -1281,336 +1281,272 @@
             }
         }
 
-        // Функция для загрузки всех игроков (для переводов)
-        async function loadAllPlayersFromAPI() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/all_players`);
-        const data = await response.json();
-        
-        if (data.success) {
-            return data.players;
-        } else {
-            throw new Error(data.error);
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки игроков:', error);
-        return [];
-    }
-}
-
-
         // Функция для синхронизации данных с API
-       async function syncPlayerDataWithAPI() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            if (data.player) {
-                // Игрок существует, обновляем данные
-                const apiData = data.player;
+        async function syncPlayerDataWithAPI() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
+                const data = await response.json();
                 
-                userData.balance = apiData.balance;
-                userData.totalEarned = apiData.totalEarned;
-                userData.totalClicks = apiData.totalClicks;
-                userData.lotteryWins = apiData.lotteryWins;
-                userData.totalBet = apiData.totalBet;
-                userData.transfers = apiData.transfers || { sent: 0, received: 0 };
-                
-                // Обновляем улучшения если они есть в API
-                if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
-                    for (const key in apiData.upgrades) {
-                        if (upgrades[key]) {
-                            upgrades[key].level = apiData.upgrades[key].level || 0;
+                if (data.success) {
+                    if (data.player) {
+                        // Игрок существует, обновляем данные
+                        const apiData = data.player;
+                        
+                        // Безопасное обновление данных
+                        userData.balance = apiData.balance || 0.000000100;
+                        userData.totalEarned = apiData.totalEarned || 0.000000100;
+                        userData.totalClicks = apiData.totalClicks || 0;
+                        userData.lotteryWins = apiData.lotteryWins || 0;
+                        userData.totalBet = apiData.totalBet || 0;
+                        userData.transfers = apiData.transfers || { sent: 0, received: 0 };
+                        
+                        // Обновляем улучшения если они есть в API
+                        if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
+                            for (const key in apiData.upgrades) {
+                                if (upgrades[key] && apiData.upgrades[key]) {
+                                    upgrades[key].level = apiData.upgrades[key].level || 0;
+                                }
+                            }
                         }
+                        
+                        updateUI();
+                        updateShopUI();
+                    } else {
+                        // Игрок не существует, создаем его
+                        console.log("Игрок не найден, создаем нового...");
+                        await saveUserDataToAPI();
                     }
                 }
-                
-                updateUI();
-                updateShopUI();
-            } else {
-                // Игрок не существует, создаем его
-                console.log("Игрок не найден, создаем нового...");
-                await saveUserDataToAPI();
+            } catch (error) {
+                console.error('Ошибка синхронизации с API:', error);
             }
         }
-    } catch (error) {
-        console.error('Ошибка синхронизации с API:', error);
-    }
-}
 
         // Функция для сохранения данных в API
-       async function syncPlayerDataWithAPI() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            if (data.player) {
-                // Игрок существует, обновляем данные
-                const apiData = data.player;
+        async function saveUserDataToAPI() {
+            try {
+                // Подготавливаем данные для отправки
+                const saveData = {
+                    username: userData.username || 'Player',
+                    balance: userData.balance || 0.000000100,
+                    totalEarned: userData.totalEarned || 0.000000100,
+                    totalClicks: userData.totalClicks || 0,
+                    lotteryWins: userData.lotteryWins || 0,
+                    totalBet: userData.totalBet || 0,
+                    transfers: userData.transfers || { sent: 0, received: 0 },
+                    upgrades: {}
+                };
                 
-                userData.balance = apiData.balance;
-                userData.totalEarned = apiData.totalEarned;
-                userData.totalClicks = apiData.totalClicks;
-                userData.lotteryWins = apiData.lotteryWins;
-                userData.totalBet = apiData.totalBet;
-                
-                // Обновляем улучшения если они есть в API
-                if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
-                    for (const key in apiData.upgrades) {
-                        if (upgrades[key]) {
-                            upgrades[key].level = apiData.upgrades[key].level || 0;
-                        }
+                // Добавляем улучшения
+                for (const key in upgrades) {
+                    if (upgrades[key]) {
+                        saveData.upgrades[key] = { 
+                            level: upgrades[key].level || 0 
+                        };
                     }
                 }
                 
-                updateUI();
-                updateShopUI();
-            } else {
-                // Игрок не существует, создаем его - ДОБАВЛЕНО
-                logger.info("Игрок не найден, создаем нового...");
-                await saveUserDataToAPI();
+                console.log('Saving to API:', saveData);
+                
+                const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(saveData)
+                });
+                
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Ошибка сохранения в API:', result.error);
+                } else {
+                    console.log('Данные успешно сохранены в API');
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения в API:', error);
             }
         }
-    } catch (error) {
-        console.error('Ошибка синхронизации с API:', error);
-    }
-}
 
-// Функция для сохранения данных в API
-async function saveUserDataToAPI() {
-    try {
-        // Подготавливаем данные для отправки
-        const saveData = {
-            username: userData.username,
-            balance: userData.balance,
-            totalEarned: userData.totalEarned,
-            totalClicks: userData.totalClicks,
-            lotteryWins: userData.lotteryWins,
-            totalBet: userData.totalBet,
-            transfers: userData.transfers,
-            upgrades: {}
-        };
-        
-        // Добавляем улучшения
-        for (const key in upgrades) {
-            saveData.upgrades[key] = { level: upgrades[key].level };
+        // Функция для загрузки всех игроков (для переводов)
+        async function loadAllPlayersFromAPI() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/all_players`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    return data.players;
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки игроков:', error);
+                return [];
+            }
         }
-        
-        const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(saveData)
-        });
-        
-        const result = await response.json();
-        if (!result.success) {
-            console.error('Ошибка сохранения в API:', result.error);
-        } else {
-            console.log('Данные успешно сохранены в API');
+
+        // Обновление отображения рейтинга
+        async function updateLeaderboard() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20&current_user=${userData.userId}`);
+                const data = await response.json();
+                
+                const leaderboard = document.getElementById('leaderboard');
+                
+                if (!data.success || !data.leaderboard || data.leaderboard.length === 0) {
+                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+                    return;
+                }
+                
+                let newHTML = '';
+                
+                data.leaderboard.forEach((player, index) => {
+                    if (!player) return;
+                    
+                    // Защита от ошибок - проверяем все значения
+                    const balance = Number(player.balance) || 0;
+                    const totalEarned = Number(player.totalEarned) || 0;
+                    const totalSpeed = Number(player.totalSpeed) || 0;
+                    const totalClicks = Number(player.totalClicks) || 0;
+                    const lotteryWins = Number(player.lotteryWins) || 0;
+                    const username = player.username || 'Игрок';
+                    
+                    const isCurrent = player.userId === userData.userId;
+                    const currentPlayerClass = isCurrent ? 'current-player' : '';
+                    
+                    let valueText = '';
+                    switch (currentRatingTab) {
+                        case 'balance':
+                            valueText = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
+                            break;
+                        case 'speed':
+                            valueText = `<div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>`;
+                            break;
+                        case 'rich':
+                            valueText = `<div class="leader-balance">${totalEarned.toFixed(9)} S всего</div>`;
+                            break;
+                    }
+                    
+                    newHTML += `
+                        <div class="leader-item ${currentPlayerClass}">
+                            <div class="leader-rank">${index + 1} место</div>
+                            <div class="leader-name ${currentPlayerClass}">
+                                ${username} ${isCurrent ? '👑' : ''}
+                            </div>
+                            ${valueText}
+                            <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
+                                Кликов: ${totalClicks} | Побед: ${lotteryWins}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                leaderboard.innerHTML = newHTML;
+                
+            } catch (error) {
+                console.error('Ошибка обновления рейтинга:', error);
+                document.getElementById('leaderboard').innerHTML = 
+                    '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+            }
         }
-    } catch (error) {
-        console.error('Ошибка сохранения в API:', error);
-    }
-}
-
-
-        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
 
         // Обновляем функцию списка пользователей для работы с API
         async function updateUsersList() {
-    const usersList = document.getElementById('usersList');
-    const searchTerm = document.getElementById('userSearch').value.toLowerCase();
-    
-    usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
-    
-    try {
-        const apiPlayers = await loadAllPlayersFromAPI();
-        
-        // Фильтруем пользователей по поисковому запросу и исключаем текущего пользователя
-        const filteredUsers = apiPlayers.filter(player => 
-            player.userId !== userData.userId && 
-            player.username.toLowerCase().includes(searchTerm)
-        );
-        
-        usersList.innerHTML = '';
-        
-        if (filteredUsers.length === 0) {
-            usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Игроки не найдены</div>';
-            return;
+            const usersList = document.getElementById('usersList');
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            
+            usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
+            
+            try {
+                const apiPlayers = await loadAllPlayersFromAPI();
+                
+                // Фильтруем пользователей по поисковому запросу и исключаем текущего пользователя
+                const filteredUsers = apiPlayers.filter(player => 
+                    player.userId !== userData.userId && 
+                    player.username.toLowerCase().includes(searchTerm)
+                );
+                
+                usersList.innerHTML = '';
+                
+                if (filteredUsers.length === 0) {
+                    usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Игроки не найдены</div>';
+                    return;
+                }
+                
+                filteredUsers.forEach(player => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML = `
+                        <div class="user-name">${player.username}</div>
+                        <div class="user-balance">${player.balance.toFixed(9)} S</div>
+                    `;
+                    userItem.onclick = () => selectUserForTransfer(player);
+                    usersList.appendChild(userItem);
+                });
+                
+            } catch (error) {
+                console.error('Ошибка загрузки списка игроков:', error);
+                usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Ошибка загрузки</div>';
+            }
         }
-        
-        filteredUsers.forEach(player => {
-            const userItem = document.createElement('div');
-            userItem.className = 'user-item';
-            userItem.innerHTML = `
-                <div class="user-name">${player.username}</div>
-                <div class="user-balance">${player.balance.toFixed(9)} S</div>
-            `;
-            userItem.onclick = () => selectUserForTransfer(player);
-            usersList.appendChild(userItem);
-        });
-        
-    } catch (error) {
-        console.error('Ошибка загрузки списка игроков:', error);
-        usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Ошибка загрузки</div>';
-    }
-}
 
-        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ РЕЙТИНГА ====================
-
-        // Обновление отображения рейтинга - ТОЛЬКО ПРИ ЗАХОДЕ В РАЗДЕЛ
-        async function updateLeaderboard() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20&current_user=${userData.userId}`);
-        const data = await response.json();
-        
-        const leaderboard = document.getElementById('leaderboard');
-        
-        if (!data.success || !data.leaderboard || data.leaderboard.length === 0) {
-            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
-            return;
-        }
-        
-        let newHTML = '';
-        
-        data.leaderboard.forEach((player, index) => {
-            if (!player) return;
-            
-            // Защита от ошибок - проверяем все значения
-            const balance = Number(player.balance) || 0;
-            const totalEarned = Number(player.totalEarned) || 0;
-            const totalSpeed = Number(player.totalSpeed) || 0;
-            const totalClicks = Number(player.totalClicks) || 0;
-            const lotteryWins = Number(player.lotteryWins) || 0;
-            const username = player.username || 'Игрок';
-            
-            const isCurrent = player.userId === userData.userId;
-            const currentPlayerClass = isCurrent ? 'current-player' : '';
-            
-            let valueText = '';
-            switch (currentRatingTab) {
-                case 'balance':
-                    valueText = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
-                    break;
-                case 'speed':
-                    valueText = `<div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>`;
-                    break;
-                case 'rich':
-                    valueText = `<div class="leader-balance">${totalEarned.toFixed(9)} S всего</div>`;
-                    break;
+        // Функция для перевода с API
+        async function makeTransfer() {
+            if (!selectedTransferUser) {
+                showTempMessage('❌ Выберите пользователя для перевода', true);
+                return;
             }
             
-            newHTML += `
-                <div class="leader-item ${currentPlayerClass}">
-                    <div class="leader-rank">${index + 1} место</div>
-                    <div class="leader-name ${currentPlayerClass}">
-                        ${username} ${isCurrent ? '👑' : ''}
-                    </div>
-                    ${valueText}
-                    <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                        Кликов: ${totalClicks} | Побед: ${lotteryWins}
-                    </div>
-                </div>
-            `;
-        });
-        
-        leaderboard.innerHTML = newHTML;
-        
-    } catch (error) {
-        console.error('Ошибка обновления рейтинга:', error);
-        document.getElementById('leaderboard').innerHTML = 
-            '<div class="leader-item">Ошибка загрузки рейтинга</div>';
-    }
-}
-
-
-        // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ ПЕРЕВОДОВ ====================
-
-        async function makeTransfer() {
-    if (!selectedTransferUser) {
-        showTempMessage('❌ Выберите пользователя для перевода', true);
-        return;
-    }
-    
-    const amount = parseFloat(document.getElementById('transferAmount').value);
-    
-    if (!amount || amount <= 0) {
-        showTempMessage('❌ Введите корректную сумму', true);
-        return;
-    }
-    
-    if (amount > userData.balance) {
-        showTempMessage('❌ Недостаточно средств', true);
-        return;
-    }
-    
-    if (amount < 0.000000001) {
-        showTempMessage('❌ Минимальная сумма перевода: 0.000000001 S', true);
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/transfer`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                fromUserId: userData.userId,
-                toUserId: selectedTransferUser.userId,
-                amount: amount
-            })
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-            // Обновляем локальные данные
-            userData.balance -= amount;
-            userData.transfers.sent += amount;
-            userData.lastUpdate = Date.now();
+            const amount = parseFloat(document.getElementById('transferAmount').value);
             
-            updateUI();
-            saveUserData();
+            if (!amount || amount <= 0) {
+                showTempMessage('❌ Введите корректную сумму', true);
+                return;
+            }
             
-            document.getElementById('selectedUser').style.display = 'none';
-            selectedTransferUser = null;
-            document.getElementById('userSearch').value = '';
+            if (amount > userData.balance) {
+                showTempMessage('❌ Недостаточно средств', true);
+                return;
+            }
             
-            showTempMessage(`✅ Перевод ${amount.toFixed(9)} S пользователю ${selectedTransferUser?.username || 'получателю'} выполнен!`);
-        } else {
-            showTempMessage(`❌ Ошибка перевода: ${data.error}`, true);
-        }
-    } catch (error) {
-        console.error('Ошибка перевода:', error);
-        showTempMessage('❌ Ошибка сети при переводе', true);
-    }
-}
-
-        // ==================== ИСПРАВЛЕННАЯ НАВИГАЦИЯ ====================
-
-        function showSection(sectionName) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
+            if (amount < 0.000000001) {
+                showTempMessage('❌ Минимальная сумма перевода: 0.000000001 S', true);
+                return;
+            }
             
-            if (sectionName === 'main') {
-                document.querySelector('.balance-section').style.display = 'block';
-                document.querySelector('.main-menu').style.display = 'grid';
-            } else {
-                document.querySelector('.balance-section').style.display = 'none';
-                document.querySelector('.main-menu').style.display = 'none';
-                document.getElementById(sectionName + '-section').classList.add('active');
+            try {
+                const response = await fetch(`${API_BASE_URL}/transfer`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fromUserId: userData.userId,
+                        toUserId: selectedTransferUser.userId,
+                        amount: amount
+                    })
+                });
                 
-                if (sectionName === 'top') {
-                    // ОБНОВЛЯЕМ РЕЙТИНГ ТОЛЬКО ПРИ ЗАХОДЕ В РАЗДЕЛ
-                    updateLeaderboard();
+                const data = await response.json();
+                if (data.success) {
+                    // Обновляем локальные данные
+                    userData.balance -= amount;
+                    userData.transfers.sent += amount;
+                    userData.lastUpdate = Date.now();
+                    
+                    updateUI();
+                    saveUserData();
+                    
+                    document.getElementById('selectedUser').style.display = 'none';
+                    selectedTransferUser = null;
+                    document.getElementById('userSearch').value = '';
+                    
+                    showTempMessage(`✅ Перевод ${amount.toFixed(9)} S пользователю ${selectedTransferUser?.username || 'получателю'} выполнен!`);
+                } else {
+                    showTempMessage(`❌ Ошибка перевода: ${data.error}`, true);
                 }
-                if (sectionName === 'games') updateLottery();
-                if (sectionName === 'transfer') updateUsersList();
+            } catch (error) {
+                console.error('Ошибка перевода:', error);
+                showTempMessage('❌ Ошибка сети при переводе', true);
             }
         }
 
@@ -2226,21 +2162,20 @@ async function saveUserDataToAPI() {
         
         // Обновляем функцию сохранения данных
         function saveUserData() {
-    userData.lastUpdate = Date.now();
-    
-    // Сохраняем в localStorage как раньше
-    localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
-    
-    const upgradesData = {};
-    for (const key in upgrades) {
-        upgradesData[key] = upgrades[key].level;
-    }
-    localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
-    
-    // Сохраняем в API
-    saveUserDataToAPI();
-}
-        
+            userData.lastUpdate = Date.now();
+            
+            // Сохраняем в localStorage как раньше
+            localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
+            
+            const upgradesData = {};
+            for (const key in upgrades) {
+                upgradesData[key] = upgrades[key].level;
+            }
+            localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
+            
+            // Сохраняем в API
+            saveUserDataToAPI();
+        }
         
         // Очистка сессии при закрытии
         window.addEventListener('beforeunload', function() {
