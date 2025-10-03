@@ -751,40 +751,43 @@
     <div class="api-status disconnected" id="apiStatus">API: Отключен</div>
 
     <div class="container">
-        <div class="header">
-            <h1>Sparkcoin</h1>
-        </div>
-        
-        <div class="balance-section">
-            <div class="balance-amount" id="balanceValue">0.000000100 S</div>
+        <!-- Главная секция -->
+        <div id="main-section" class="section active">
+            <div class="header">
+                <h1>Sparkcoin</h1>
+            </div>
             
-            <div class="coin-section">
-                <div class="click-coin" id="clickCoin">
-                    <div class="coin-letter">S</div>
+            <div class="balance-section">
+                <div class="balance-amount" id="balanceValue">0.000000100 S</div>
+                
+                <div class="coin-section">
+                    <div class="click-coin" id="clickCoin">
+                        <div class="coin-letter">S</div>
+                    </div>
+                    <div class="click-info">
+                        Нажмите на монетку!<br>
+                        <span class="click-value">+<span id="clickValue">0.000000001</span> S за клик</span>
+                    </div>
                 </div>
-                <div class="click-info">
-                    Нажмите на монетку!<br>
-                    <span class="click-value">+<span id="clickValue">0.000000001</span> S за клик</span>
+                
+                <div class="income-stats">
+                    <div class="stat-item">
+                        Скорость клика: <br>
+                        <span class="stat-value" id="clickSpeed">0.000000001 S/сек</span>
+                    </div>
+                    <div class="stat-item">
+                        Скорость майнинга: <br>
+                        <span class="stat-value" id="mineSpeed">0.000000000 S/сек</span>
+                    </div>
                 </div>
             </div>
             
-            <div class="income-stats">
-                <div class="stat-item">
-                    Скорость клика: <br>
-                    <span class="stat-value" id="clickSpeed">0.000000001 S/сек</span>
-                </div>
-                <div class="stat-item">
-                    Скорость майнинга: <br>
-                    <span class="stat-value" id="mineSpeed">0.000000000 S/сек</span>
-                </div>
+            <div class="main-menu">
+                <button class="menu-button" onclick="showSection('shop')">🛠️ Магазин</button>
+                <button class="menu-button" onclick="showSection('games')">🎮 Игры</button>
+                <button class="menu-button" onclick="showSection('top')">🏆 Рейтинг</button>
+                <button class="menu-button" onclick="showSection('transfer')">💸 Переводы</button>
             </div>
-        </div>
-        
-        <div class="main-menu">
-            <button class="menu-button" onclick="showSection('shop')">🛠️ Магазин</button>
-            <button class="menu-button" onclick="showSection('games')">🎮 Игры</button>
-            <button class="menu-button" onclick="showSection('top')">🏆 Рейтинг</button>
-            <button class="menu-button" onclick="showSection('transfer')">💸 Переводы</button>
         </div>
         
         <!-- Магазин -->
@@ -1253,6 +1256,60 @@
             mouse8: { name: "Мышка Админа", basePrice: 17.179869184, baseBonus: 0.002097152, level: 0, type: 'click' }
         };
 
+        // ==================== ФУНКЦИИ ПЕРЕКЛЮЧЕНИЯ СЕКЦИЙ ====================
+
+        function showSection(sectionName) {
+            // Скрываем все секции
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Показываем нужную секцию
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+                
+                // Обновляем данные при открытии определенных секций
+                switch(sectionName) {
+                    case 'top':
+                        updateLeaderboard();
+                        break;
+                    case 'transfer':
+                        updateUsersList();
+                        break;
+                    case 'shop':
+                        updateShopUI();
+                        break;
+                    case 'games':
+                        updateLottery();
+                        break;
+                }
+            }
+        }
+
+        function showShopTab(tabName) {
+            document.querySelectorAll('.shop-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.shop-category').forEach(category => {
+                category.classList.add('hidden');
+            });
+            
+            event.target.classList.add('active');
+            document.getElementById('shop-' + tabName).classList.remove('hidden');
+        }
+
+        function showRatingTab(tab) {
+            currentRatingTab = tab;
+            document.querySelectorAll('.rating-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Обновляем рейтинг при смене вкладки
+            updateLeaderboard();
+        }
+
         // ==================== ИСПРАВЛЕННЫЕ ФУНКЦИИ API ====================
 
         // Функция для обновления статуса API
@@ -1550,7 +1607,7 @@
             }
         }
 
-        // ==================== СТАРЫЕ ФУНКЦИИ (без изменений) ====================
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ИГРЫ ====================
 
         // Инициализация
         tg.expand();
@@ -2136,30 +2193,6 @@
             document.getElementById('mineSpeed').textContent = miningSpeed.toFixed(9) + ' S/сек';
         }
         
-        function showShopTab(tabName) {
-            document.querySelectorAll('.shop-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.shop-category').forEach(category => {
-                category.classList.add('hidden');
-            });
-            
-            event.target.classList.add('active');
-            document.getElementById('shop-' + tabName).classList.remove('hidden');
-        }
-
-        // Обновляем функцию показа вкладки рейтинга
-        function showRatingTab(tab) {
-            currentRatingTab = tab;
-            document.querySelectorAll('.rating-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Обновляем рейтинг при смене вкладки
-            updateLeaderboard();
-        }
-        
         // Обновляем функцию сохранения данных
         function saveUserData() {
             userData.lastUpdate = Date.now();
@@ -2191,6 +2224,9 @@
             loadUserData();
             setInterval(updateUI, 100);
             setInterval(saveUserData, 5000); // Сохраняем каждые 5 секунд
+            
+            // Показываем главную секцию при загрузке
+            showSection('main');
         }
 
         document.addEventListener('DOMContentLoaded', initializeApp);
