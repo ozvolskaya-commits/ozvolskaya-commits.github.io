@@ -54,7 +54,7 @@ def health_check():
 def player_api(user_id):
     if request.method == 'OPTIONS':
         return jsonify({'status': 'ok'})
-    
+
     if user_id == 'undefined' or not user_id:
         return jsonify({'success': False, 'error': 'Invalid user ID'}), 400
 
@@ -62,11 +62,11 @@ def player_api(user_id):
         if request.method == 'GET':
             logger.info(f"GET request for user: {user_id}")
             player_data = get_player_data(user_id)
-            
+
             if player_data:
                 return jsonify({'success': True, 'player': player_data})
             else:
-                # Создаем нового игрока
+                # Создаем нового игрока если не найден
                 new_player = {
                     'userId': user_id,
                     'username': f'Player_{user_id[-8:]}',
@@ -78,7 +78,7 @@ def player_api(user_id):
                     'transfers': {'sent': 0, 'received': 0},
                     'upgrades': {}
                 }
-                
+
                 # Базовые улучшения
                 for i in range(1, 9):
                     new_player['upgrades'][f"gpu{i}"] = {"level": 0}
@@ -87,7 +87,7 @@ def player_api(user_id):
 
                 update_player(new_player)
                 created_player = get_player_data(user_id)
-                
+
                 if created_player:
                     return jsonify({
                         'success': True,
@@ -103,8 +103,21 @@ def player_api(user_id):
                 return jsonify({'success': False, 'error': 'No data provided'}), 400
 
             logger.info(f"POST request for user: {user_id}")
-            data['userId'] = user_id
-            update_player(data)
+
+            # Обрабатываем данные от фронтенда
+            player_data = {
+                'userId': user_id,
+                'username': data.get('username', f'Player_{user_id[-8:]}'),
+                'balance': float(data.get('balance', 0.000000100)),
+                'totalEarned': float(data.get('totalEarned', 0.000000100)),
+                'totalClicks': int(data.get('totalClicks', 0)),
+                'lotteryWins': int(data.get('lotteryWins', 0)),
+                'totalBet': float(data.get('totalBet', 0)),
+                'transfers': data.get('transfers', {'sent': 0, 'received': 0}),
+                'upgrades': data.get('upgrades', {})
+            }
+
+            update_player(player_data)
             return jsonify({'success': True, 'message': 'Player data updated'})
 
     except Exception as e:
@@ -119,12 +132,12 @@ def get_leaderboard_api():
         current_user = request.args.get('current_user')
 
         leaderboard_data = get_leaderboard(limit, leaderboard_type)
-        
+
         formatted_leaderboard = []
         for i, player in enumerate(leaderboard_data, 1):
             if not player:
                 continue
-                
+
             user_id = player[0] if len(player) > 0 else f"unknown_{i}"
             username = player[1] if len(player) > 1 and player[1] else f"Player_{i}"
             balance = float(player[2]) if len(player) > 2 and player[2] is not None else 0.0
@@ -231,19 +244,19 @@ def calculate_click_speed(upgrades):
         speed = 0.000000001
         if not upgrades:
             return speed
-            
+
         bonuses = {
             1: 0.000000004, 2: 0.000000008, 3: 0.000000064,
             4: 0.000000512, 5: 0.000004096, 6: 0.000032768,
             7: 0.000262144, 8: 0.002097152
         }
-        
+
         for i in range(1, 9):
             mouse_key = f"mouse{i}"
             if mouse_key in upgrades:
                 level = upgrades[mouse_key].get('level', 0)
                 speed += level * bonuses.get(i, 0)
-        
+
         return speed
     except Exception as e:
         logger.error(f"Click speed calculation error: {e}")
@@ -254,19 +267,19 @@ def calculate_mine_speed(upgrades):
         speed = 0.000000000
         if not upgrades:
             return speed
-            
+
         bonuses = {
             1: 0.000000001, 2: 0.000000008, 3: 0.000000064,
             4: 0.000000512, 5: 0.000004096, 6: 0.000032768,
             7: 0.000262144, 8: 0.002097152
         }
-        
+
         for i in range(1, 9):
             for component in [f"gpu{i}", f"cpu{i}"]:
                 if component in upgrades:
                     level = upgrades[component].get('level', 0)
                     speed += level * bonuses.get(i, 0)
-        
+
         return speed
     except Exception as e:
         logger.error(f"Mine speed calculation error: {e}")
@@ -296,7 +309,7 @@ def update_player(data):
         total_clicks = data.get('totalClicks', 0)
         lottery_wins = data.get('lotteryWins', 0)
         total_bet = data.get('totalBet', 0)
-        
+
         transfers_data = data.get('transfers', {})
         transfers_sent = transfers_data.get('sent', 0)
         transfers_received = transfers_data.get('received', 0)
