@@ -1441,7 +1441,7 @@
             }
         }
 
-        // Обновление отображения рейтинга
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ РЕЙТИНГА
         async function updateLeaderboard() {
             try {
                 const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20&current_user=${userData.userId}`);
@@ -1459,15 +1459,16 @@
                 data.leaderboard.forEach((player, index) => {
                     if (!player) return;
                     
-                    // Защита от ошибок - проверяем все значения
+                    // ЗАЩИТА ОТ ОШИБОК - проверяем все значения с значениями по умолчанию
                     const balance = Number(player.balance) || 0;
                     const totalEarned = Number(player.totalEarned) || 0;
                     const totalSpeed = Number(player.totalSpeed) || 0;
                     const totalClicks = Number(player.totalClicks) || 0;
                     const lotteryWins = Number(player.lotteryWins) || 0;
                     const username = player.username || 'Игрок';
+                    const userId = player.userId || `unknown_${index}`;
                     
-                    const isCurrent = player.userId === userData.userId;
+                    const isCurrent = userId === userData.userId;
                     const currentPlayerClass = isCurrent ? 'current-player' : '';
                     
                     let valueText = '';
@@ -1481,6 +1482,8 @@
                         case 'rich':
                             valueText = `<div class="leader-balance">${totalEarned.toFixed(9)} S всего</div>`;
                             break;
+                        default:
+                            valueText = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
                     }
                     
                     newHTML += `
