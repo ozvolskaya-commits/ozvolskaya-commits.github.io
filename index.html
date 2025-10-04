@@ -1489,7 +1489,8 @@
                     
                     // ЗАЩИТА ОТ UNDEFINED ДЛЯ ЧИСЛОВЫХ ПОЛЕЙ
                     const balance = typeof player.balance === 'number' ? player.balance : 0;
-                    const speed = typeof player.totalSpeed === 'number' ? player.totalSpeed : 0;
+                    const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
+                    const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000001;
                     const earned = typeof player.totalEarned === 'number' ? player.totalEarned : 0;
                     const clicks = typeof player.totalClicks === 'number' ? player.totalClicks : 0;
                     const wins = typeof player.lotteryWins === 'number' ? player.lotteryWins : 0;
@@ -1501,7 +1502,8 @@
                     if (currentRatingTab === 'balance') {
                         displayValue = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
                     } else if (currentRatingTab === 'speed') {
-                        displayValue = `<div class="leader-speed">${speed.toFixed(9)} S/сек</div>`;
+                        // ИСПРАВЛЕНИЕ: отображаем СКОРОСТЬ МАЙНИНГА (mineSpeed)
+                        displayValue = `<div class="leader-speed">${mineSpeed.toFixed(9)} S/сек</div>`;
                     } else {
                         displayValue = `<div class="leader-balance">${earned.toFixed(9)} S всего</div>`;
                     }
@@ -1513,6 +1515,9 @@
                             ${displayValue}
                             <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
                                 Кликов: ${clicks} | Побед: ${wins}
+                            </div>
+                            <div style="font-size: 9px; color: #666;">
+                                Клик: ${clickSpeed.toFixed(9)}/с | Майнинг: ${mineSpeed.toFixed(9)}/с
                             </div>
                         </div>
                     `;
