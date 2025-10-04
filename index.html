@@ -1477,20 +1477,22 @@
                 let newHTML = '';
                 
                 data.leaderboard.forEach((player, index) => {
-                    // ПРОСТАЯ ПРОВЕРКА
-                    if (!player) {
-                        console.log('Skipping null player at index', index);
+                    // НАДЕЖНАЯ ПРОВЕРКА С ЗАЩИТОЙ ОТ UNDEFINED
+                    if (!player || typeof player !== 'object') {
+                        console.log('Skipping invalid player at index', index, player);
                         return;
                     }
                     
-                    // ОЧЕНЬ ПРОСТЫЕ ЗНАЧЕНИЯ ДЛЯ ТЕСТА
+                    // ЗАЩИЩЕННОЕ ИЗВЛЕЧЕНИЕ ДАННЫХ
                     const rank = index + 1;
                     const name = player.username || `Игрок ${rank}`;
-                    const balance = player.balance || 0;
-                    const speed = player.totalSpeed || 0;
-                    const earned = player.totalEarned || 0;
-                    const clicks = player.totalClicks || 0;
-                    const wins = player.lotteryWins || 0;
+                    
+                    // ЗАЩИТА ОТ UNDEFINED ДЛЯ ЧИСЛОВЫХ ПОЛЕЙ
+                    const balance = typeof player.balance === 'number' ? player.balance : 0;
+                    const speed = typeof player.totalSpeed === 'number' ? player.totalSpeed : 0;
+                    const earned = typeof player.totalEarned === 'number' ? player.totalEarned : 0;
+                    const clicks = typeof player.totalClicks === 'number' ? player.totalClicks : 0;
+                    const wins = typeof player.lotteryWins === 'number' ? player.lotteryWins : 0;
                     
                     const isCurrent = player.userId === userData.userId;
                     const currentClass = isCurrent ? 'current-player' : '';
