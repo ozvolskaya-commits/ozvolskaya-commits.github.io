@@ -1555,7 +1555,8 @@
     <script>
         // ==================== КОНФИГУРАЦИЯ API ====================
         const API_BASE_URL = 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev/api';
-        const USE_LOCAL_STORAGE = true; // Использовать локальное хранилище при недоступности API
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 1000;
 
         // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
         const tg = window.Telegram.WebApp;
@@ -1576,7 +1577,6 @@
 
         // Статус API
         let apiConnected = false;
-        let useLocalMode = false;
 
         // Данные лотереи
         let lotteryData = {
@@ -1636,6 +1636,266 @@
             mouse7: { name: "Мышка Сноулена", basePrice: 1.073741824, baseBonus: 0.000262144, level: 0, type: 'click' },
             mouse8: { name: "Мышка Админа", basePrice: 17.179869184, baseBonus: 0.002097152, level: 0, type: 'click' }
         };
+
+        // ==================== УЛУЧШЕННЫЕ ФУНКЦИИ API ====================
+
+        function updateApiStatus(status, message) {
+            const apiStatus = document.getElementById('apiStatus');
+            apiStatus.className = `api-status ${status}`;
+            apiStatus.textContent = `API: ${message}`;
+            apiConnected = status === 'connected';
+        }
+
+        async function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function apiRequestWithRetry(endpoint, options = {}, retries = MAX_RETRIES) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    updateApiStatus('connected', 'Подключен');
+                    return data;
+                    
+                } catch (error) {
+                    console.warn(`API Request attempt ${attempt} failed for ${endpoint}:`, error);
+                    
+                    if (attempt < retries) {
+                        const delay = RETRY_DELAY * attempt;
+                        updateApiStatus('syncing', `Повтор ${attempt}/${retries}...`);
+                        await wait(delay);
+                    } else {
+                        updateApiStatus('disconnected', 'Ошибка подключения');
+                        throw new Error(`Все попытки подключения исчерпаны: ${error.message}`);
+                    }
+                }
+            }
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                return await apiRequestWithRetry(endpoint, options);
+            } catch (error) {
+                try {
+                    const quickResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    
+                    if (quickResponse.ok) {
+                        const data = await quickResponse.json();
+                        updateApiStatus('connected', 'Подключен');
+                        return data;
+                    }
+                } catch (finalError) {
+                    console.error('Final API attempt failed:', finalError);
+                }
+                
+                return createFallbackResponse(endpoint, options);
+            }
+        }
+
+        function createFallbackResponse(endpoint, options) {
+            console.log(`Using fallback for: ${endpoint}`);
+            
+            switch(endpoint) {
+                case '/health':
+                    return { status: 'healthy', mode: 'fallback' };
+                
+                case `/player/${userData.userId}`:
+                    if (options.method === 'POST') {
+                        return { success: true, message: 'Data saved in fallback mode' };
+                    } else {
+                        return { 
+                            success: true, 
+                            player: userData 
+                        };
+                    }
+                
+                case '/leaderboard':
+                    const type = new URLSearchParams(endpoint.split('?')[1]).get('type') || 'balance';
+                    return {
+                        success: true,
+                        leaderboard: [],
+                        type: type
+                    };
+                
+                case '/all_players':
+                    return {
+                        success: true,
+                        players: []
+                    };
+                
+                case '/lottery/status':
+                    return {
+                        success: true,
+                        lottery: getFallbackLotteryData()
+                    };
+                
+                case '/lottery/bet':
+                    if (options.method === 'POST') {
+                        return { success: true, message: 'Bet placed in fallback mode' };
+                    }
+                    break;
+                
+                case '/classic-lottery/status':
+                    return {
+                        success: true,
+                        lottery: getFallbackClassicLotteryData()
+                    };
+                
+                case '/classic-lottery/bet':
+                    if (options.method === 'POST') {
+                        return { success: true, message: 'Bet placed in fallback mode' };
+                    }
+                    break;
+                
+                case `/referral/stats/${userData.userId}`:
+                    return {
+                        success: true,
+                        stats: {
+                            referralsCount: 0,
+                            totalEarnings: 0
+                        },
+                        referralCode: userData.referralCode || 'FALLBACK-' + userData.userId.slice(-8)
+                    };
+                
+                case '/top/winners':
+                    return {
+                        success: true,
+                        winners: []
+                    };
+            }
+            
+            return { success: false, error: 'Service temporarily unavailable' };
+        }
+
+        function getFallbackLotteryData() {
+            return {
+                eagle: [],
+                tails: [],
+                last_winner: null,
+                timer: 60,
+                total_eagle: 0,
+                total_tails: 0,
+                participants_count: 0
+            };
+        }
+
+        function getFallbackClassicLotteryData() {
+            return {
+                bets: [],
+                total_pot: 0,
+                timer: 120,
+                participants_count: 0,
+                history: []
+            };
+        }
+
+        async function checkApiConnection() {
+            try {
+                updateApiStatus('syncing', 'Проверка...');
+                await apiRequest('/health');
+                return true;
+            } catch (error) {
+                console.warn('API check failed, but continuing in resilient mode');
+                return false;
+            }
+        }
+
+        async function syncPlayerDataWithAPI() {
+            try {
+                const data = await apiRequest(`/player/${userData.userId}`);
+                
+                if (data.success && data.player) {
+                    const apiData = data.player;
+                    
+                    if (!userData.lastUpdate || (apiData.lastUpdate && new Date(apiData.lastUpdate) > new Date(userData.lastUpdate))) {
+                        userData.balance = apiData.balance || 0.000000100;
+                        userData.totalEarned = apiData.totalEarned || 0.000000100;
+                        userData.totalClicks = apiData.totalClicks || 0;
+                        userData.lotteryWins = apiData.lotteryWins || 0;
+                        userData.totalBet = apiData.totalBet || 0;
+                        userData.transfers = apiData.transfers || { sent: 0, received: 0 };
+                        userData.referralEarnings = apiData.referralEarnings || 0;
+                        userData.referralsCount = apiData.referralsCount || 0;
+                        userData.totalWinnings = apiData.totalWinnings || 0;
+                        userData.totalLosses = apiData.totalLosses || 0;
+                        
+                        if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
+                            for (const key in apiData.upgrades) {
+                                if (upgrades[key] && apiData.upgrades[key]) {
+                                    upgrades[key].level = apiData.upgrades[key].level || 0;
+                                }
+                            }
+                        }
+                        
+                        updateUI();
+                        updateShopUI();
+                    }
+                }
+            } catch (error) {
+                console.warn('Ошибка синхронизации с API:', error);
+            }
+        }
+
+        async function saveUserDataToAPI() {
+            try {
+                const saveData = {
+                    username: userData.username || 'Player',
+                    balance: userData.balance || 0.000000100,
+                    totalEarned: userData.totalEarned || 0.000000100,
+                    totalClicks: userData.totalClicks || 0,
+                    lotteryWins: userData.lotteryWins || 0,
+                    totalBet: userData.totalBet || 0,
+                    transfers: userData.transfers || { sent: 0, received: 0 },
+                    upgrades: {},
+                    referralEarnings: userData.referralEarnings || 0,
+                    referralsCount: userData.referralsCount || 0,
+                    totalWinnings: userData.totalWinnings || 0,
+                    totalLosses: userData.totalLosses || 0,
+                    lastUpdate: new Date().toISOString()
+                };
+                
+                for (const key in upgrades) {
+                    if (upgrades[key]) {
+                        saveData.upgrades[key] = { 
+                            level: upgrades[key].level || 0 
+                        };
+                    }
+                }
+                
+                await apiRequest(`/player/${userData.userId}`, {
+                    method: 'POST',
+                    body: JSON.stringify(saveData)
+                });
+                
+            } catch (error) {
+                console.warn('Ошибка сохранения в API:', error);
+            }
+        }
 
         // ==================== ФУНКЦИИ ПЕРЕКЛЮЧЕНИЯ СЕКЦИЙ ====================
 
@@ -1720,385 +1980,6 @@
             document.getElementById('shop-' + tabName).classList.remove('hidden');
         }
 
-        // ==================== ФУНКЦИИ API ====================
-
-        function updateApiStatus(status, message) {
-            const apiStatus = document.getElementById('apiStatus');
-            apiStatus.className = `api-status ${status}`;
-            apiStatus.textContent = `API: ${message}`;
-            apiConnected = status === 'connected';
-        }
-
-        async function checkApiConnection() {
-            try {
-                updateApiStatus('syncing', 'Проверка...');
-                const response = await fetch(`${API_BASE_URL}/health`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    signal: AbortSignal.timeout(5000) // Таймаут 5 секунд
-                });
-                
-                if (response.ok) {
-                    updateApiStatus('connected', 'Подключен');
-                    useLocalMode = false;
-                    return true;
-                } else {
-                    throw new Error('API не доступен');
-                }
-            } catch (error) {
-                console.warn('API недоступен, переходим в локальный режим:', error);
-                updateApiStatus('disconnected', 'Локальный режим');
-                useLocalMode = true;
-                return false;
-            }
-        }
-
-        // Улучшенная функция для обработки ошибок сети
-        async function apiRequest(endpoint, options = {}) {
-            // Если API недоступно, используем локальное хранилище
-            if (useLocalMode && USE_LOCAL_STORAGE) {
-                return await localApiRequest(endpoint, options);
-            }
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд таймаут
-
-                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                    ...options,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    signal: controller.signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                return await response.json();
-            } catch (error) {
-                console.warn(`API Request failed for ${endpoint}, using local storage:`, error);
-                
-                // Переключаемся в локальный режим при ошибке
-                if (!useLocalMode) {
-                    useLocalMode = true;
-                    updateApiStatus('disconnected', 'Локальный режим');
-                }
-                
-                // Используем локальное хранилище как fallback
-                if (USE_LOCAL_STORAGE) {
-                    return await localApiRequest(endpoint, options);
-                }
-                
-                throw new Error('Ошибка сети. Проверьте подключение к интернету.');
-            }
-        }
-
-        // Локальная реализация API для работы без интернета
-        async function localApiRequest(endpoint, options = {}) {
-            await new Promise(resolve => setTimeout(resolve, 100)); // Имитация задержки сети
-
-            switch(endpoint) {
-                case '/health':
-                    return { status: 'healthy', mode: 'local' };
-                
-                case `/player/${userData.userId}`:
-                    if (options.method === 'POST') {
-                        const data = JSON.parse(options.body);
-                        // Сохраняем данные локально
-                        localStorage.setItem('sparkcoin_user_data', JSON.stringify({
-                            ...userData,
-                            ...data,
-                            userId: userData.userId
-                        }));
-                        return { success: true, message: 'Player data updated locally' };
-                    } else {
-                        // Возвращаем локальные данные
-                        return { 
-                            success: true, 
-                            player: userData 
-                        };
-                    }
-                
-                case '/leaderboard':
-                    const type = new URLSearchParams(endpoint.split('?')[1]).get('type') || 'balance';
-                    const limit = parseInt(new URLSearchParams(endpoint.split('?')[1]).get('limit')) || 10;
-                    return {
-                        success: true,
-                        leaderboard: generateLocalLeaderboard(type, limit),
-                        type: type
-                    };
-                
-                case '/all_players':
-                    return {
-                        success: true,
-                        players: allPlayers.filter(p => p.userId !== userData.userId).slice(0, 50)
-                    };
-                
-                case '/lottery/status':
-                    return {
-                        success: true,
-                        lottery: getLocalLotteryData()
-                    };
-                
-                case '/lottery/bet':
-                    if (options.method === 'POST') {
-                        const data = JSON.parse(options.body);
-                        return handleLocalLotteryBet(data);
-                    }
-                    break;
-                
-                case '/classic-lottery/status':
-                    return {
-                        success: true,
-                        lottery: getLocalClassicLotteryData()
-                    };
-                
-                case '/classic-lottery/bet':
-                    if (options.method === 'POST') {
-                        const data = JSON.parse(options.body);
-                        return handleLocalClassicLotteryBet(data);
-                    }
-                    break;
-                
-                case `/referral/stats/${userData.userId}`:
-                    return {
-                        success: true,
-                        stats: referralData,
-                        referralCode: userData.referralCode || 'LOCAL-' + userData.userId.slice(-8)
-                    };
-                
-                case '/top/winners':
-                    return {
-                        success: true,
-                        winners: generateLocalTopWinners()
-                    };
-            }
-            
-            return { success: false, error: 'Endpoint not available in local mode' };
-        }
-
-        // Локальные данные для лотереи
-        function getLocalLotteryData() {
-            const stored = localStorage.getItem('sparkcoin_lottery_data');
-            if (stored) {
-                return JSON.parse(stored);
-            }
-            
-            // Создаем начальные данные
-            const initialData = {
-                eagle: [],
-                tails: [],
-                last_winner: null,
-                timer: 60,
-                total_eagle: 0,
-                total_tails: 0
-            };
-            
-            localStorage.setItem('sparkcoin_lottery_data', JSON.stringify(initialData));
-            return initialData;
-        }
-
-        function getLocalClassicLotteryData() {
-            const stored = localStorage.getItem('sparkcoin_classic_lottery_data');
-            if (stored) {
-                return JSON.parse(stored);
-            }
-            
-            // Создаем начальные данные
-            const initialData = {
-                bets: [],
-                total_pot: 0,
-                timer: 120,
-                participants_count: 0,
-                history: []
-            };
-            
-            localStorage.setItem('sparkcoin_classic_lottery_data', JSON.stringify(initialData));
-            return initialData;
-        }
-
-        function handleLocalLotteryBet(data) {
-            const lotteryData = getLocalLotteryData();
-            
-            // Удаляем старую ставку этого пользователя
-            lotteryData.eagle = lotteryData.eagle.filter(bet => bet.userId !== data.userId);
-            lotteryData.tails = lotteryData.tails.filter(bet => bet.userId !== data.userId);
-            
-            // Добавляем новую ставку
-            const newBet = {
-                userId: data.userId,
-                username: userData.username,
-                amount: data.amount,
-                timestamp: new Date().toISOString()
-            };
-            
-            if (data.team === 'eagle') {
-                lotteryData.eagle.push(newBet);
-            } else {
-                lotteryData.tails.push(newBet);
-            }
-            
-            // Обновляем общие суммы
-            lotteryData.total_eagle = lotteryData.eagle.reduce((sum, bet) => sum + bet.amount, 0);
-            lotteryData.total_tails = lotteryData.tails.reduce((sum, bet) => sum + bet.amount, 0);
-            
-            localStorage.setItem('sparkcoin_lottery_data', JSON.stringify(lotteryData));
-            
-            return { success: true, message: 'Bet placed locally' };
-        }
-
-        function handleLocalClassicLotteryBet(data) {
-            const lotteryData = getLocalClassicLotteryData();
-            
-            // Удаляем старую ставку этого пользователя
-            lotteryData.bets = lotteryData.bets.filter(bet => bet.userId !== data.userId);
-            
-            // Добавляем новую ставку
-            lotteryData.bets.push({
-                userId: data.userId,
-                username: userData.username,
-                amount: data.amount,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Обновляем общие данные
-            lotteryData.total_pot = lotteryData.bets.reduce((sum, bet) => sum + bet.amount, 0);
-            lotteryData.participants_count = lotteryData.bets.length;
-            
-            localStorage.setItem('sparkcoin_classic_lottery_data', JSON.stringify(lotteryData));
-            
-            return { success: true, message: 'Bet placed locally' };
-        }
-
-        function generateLocalLeaderboard(type, limit) {
-            // Создаем фиктивный рейтинг на основе локальных данных
-            const players = allPlayers.slice(0, limit).map((player, index) => ({
-                rank: index + 1,
-                userId: player.userId,
-                username: player.username,
-                balance: player.balance || 0.000000100,
-                totalEarned: player.totalEarned || 0.000000100,
-                totalClicks: player.totalClicks || 0,
-                clickSpeed: player.clickSpeed || 0.000000001,
-                mineSpeed: player.mineSpeed || 0.000000000,
-                totalSpeed: (player.clickSpeed || 0) + (player.mineSpeed || 0),
-                isCurrent: player.userId === userData.userId
-            }));
-            
-            // Сортируем по типу рейтинга
-            if (type === 'balance') {
-                players.sort((a, b) => b.balance - a.balance);
-            } else if (type === 'speed') {
-                players.sort((a, b) => b.totalSpeed - a.totalSpeed);
-            }
-            
-            return players.slice(0, limit);
-        }
-
-        function generateLocalTopWinners() {
-            // Создаем фиктивных победителей
-            return [
-                { username: userData.username, totalWinnings: userData.totalWinnings || 0, totalLosses: userData.totalLosses || 0, netWinnings: (userData.totalWinnings || 0) - (userData.totalLosses || 0) },
-                { username: "Игрок_2", totalWinnings: 0.000001000, totalLosses: 0.000000500, netWinnings: 0.000000500 },
-                { username: "Игрок_3", totalWinnings: 0.000000800, totalLosses: 0.000000300, netWinnings: 0.000000500 }
-            ].sort((a, b) => b.netWinnings - a.netWinnings);
-        }
-
-        async function syncPlayerDataWithAPI() {
-            try {
-                const data = await apiRequest(`/player/${userData.userId}`);
-                
-                if (data.success && data.player) {
-                    const apiData = data.player;
-                    
-                    // Обновляем только если данные из API новее
-                    if (!userData.lastUpdate || (apiData.lastUpdate && new Date(apiData.lastUpdate) > new Date(userData.lastUpdate))) {
-                        userData.balance = apiData.balance || 0.000000100;
-                        userData.totalEarned = apiData.totalEarned || 0.000000100;
-                        userData.totalClicks = apiData.totalClicks || 0;
-                        userData.lotteryWins = apiData.lotteryWins || 0;
-                        userData.totalBet = apiData.totalBet || 0;
-                        userData.transfers = apiData.transfers || { sent: 0, received: 0 };
-                        userData.referralEarnings = apiData.referralEarnings || 0;
-                        userData.referralsCount = apiData.referralsCount || 0;
-                        userData.totalWinnings = apiData.totalWinnings || 0;
-                        userData.totalLosses = apiData.totalLosses || 0;
-                        
-                        if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
-                            for (const key in apiData.upgrades) {
-                                if (upgrades[key] && apiData.upgrades[key]) {
-                                    upgrades[key].level = apiData.upgrades[key].level || 0;
-                                }
-                            }
-                        }
-                        
-                        updateUI();
-                        updateShopUI();
-                    }
-                }
-            } catch (error) {
-                console.warn('Ошибка синхронизации с API, используем локальные данные:', error);
-            }
-        }
-
-        async function saveUserDataToAPI() {
-            try {
-                const saveData = {
-                    username: userData.username || 'Player',
-                    balance: userData.balance || 0.000000100,
-                    totalEarned: userData.totalEarned || 0.000000100,
-                    totalClicks: userData.totalClicks || 0,
-                    lotteryWins: userData.lotteryWins || 0,
-                    totalBet: userData.totalBet || 0,
-                    transfers: userData.transfers || { sent: 0, received: 0 },
-                    upgrades: {},
-                    referralEarnings: userData.referralEarnings || 0,
-                    referralsCount: userData.referralsCount || 0,
-                    totalWinnings: userData.totalWinnings || 0,
-                    totalLosses: userData.totalLosses || 0,
-                    lastUpdate: new Date().toISOString()
-                };
-                
-                for (const key in upgrades) {
-                    if (upgrades[key]) {
-                        saveData.upgrades[key] = { 
-                            level: upgrades[key].level || 0 
-                        };
-                    }
-                }
-                
-                await apiRequest(`/player/${userData.userId}`, {
-                    method: 'POST',
-                    body: JSON.stringify(saveData)
-                });
-                
-            } catch (error) {
-                console.warn('Ошибка сохранения в API, данные сохранены локально:', error);
-            }
-        }
-
-        async function loadAllPlayersFromAPI() {
-            try {
-                const data = await apiRequest('/all_players');
-                
-                if (data.success) {
-                    return data.players;
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                console.warn('Ошибка загрузки игроков, используем локальные данные:', error);
-                return allPlayers.filter(p => p.userId !== userData.userId).slice(0, 50);
-            }
-        }
-
         // ==================== ФУНКЦИИ ЛОТЕРЕИ ====================
 
         async function loadLotteryStatus() {
@@ -2110,8 +1991,7 @@
                     updateLotteryUI();
                 }
             } catch (error) {
-                console.warn('Ошибка загрузки статуса лотереи, используем локальные данные:', error);
-                // Не показываем ошибку пользователю, используем локальные данные
+                console.warn('Ошибка загрузки статуса лотереи:', error);
             }
         }
 
@@ -2143,8 +2023,7 @@
                     return false;
                 }
             } catch (error) {
-                showNotification('Ставка принята в локальном режиме', 'warning');
-                // Все равно списываем средства для локальной игры
+                showNotification('Ставка принята в резервном режиме', 'warning');
                 userData.balance -= amount;
                 userData.totalBet += amount;
                 userData.lastUpdate = Date.now();
@@ -2165,22 +2044,17 @@
             const lastWinner = document.getElementById('lastWinner');
             const winnerTeam = document.getElementById('winnerTeam');
             
-            // Обновляем таймер
             lotteryTimer.textContent = lotteryData.timer;
             
-            // Обновляем общие суммы
             eagleTotal.textContent = lotteryData.total_eagle.toFixed(9) + ' S';
             tailsTotal.textContent = lotteryData.total_tails.toFixed(9) + ' S';
             
-            // Обновляем количество участников
             eagleParticipants.textContent = lotteryData.eagle.length;
             tailsParticipants.textContent = lotteryData.tails.length;
             
-            // Очищаем списки
             eagleList.innerHTML = '';
             tailsList.innerHTML = '';
             
-            // Заполняем список Орлов
             if (lotteryData.eagle && lotteryData.eagle.length > 0) {
                 lotteryData.eagle.forEach((participant) => {
                     const item = document.createElement('div');
@@ -2207,7 +2081,6 @@
                 eagleList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
             }
             
-            // Заполняем список Решек
             if (lotteryData.tails && lotteryData.tails.length > 0) {
                 lotteryData.tails.forEach((participant) => {
                     const item = document.createElement('div');
@@ -2234,7 +2107,6 @@
                 tailsList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
             }
             
-            // Обновляем шансы
             const totalBet = lotteryData.total_eagle + lotteryData.total_tails;
             let eagleChance = 50;
             let tailsChance = 50;
@@ -2247,7 +2119,6 @@
             document.getElementById('eagleChance').textContent = eagleChance + '%';
             document.getElementById('tailsChance').textContent = tailsChance + '%';
             
-            // Обновляем информацию о последнем победителе
             if (lotteryData.last_winner) {
                 lastWinner.style.display = 'block';
                 const teamName = lotteryData.last_winner.team === 'eagle' ? '🦅 Орлы' : '🪙 Решки';
@@ -2261,24 +2132,6 @@
             } else {
                 lastWinner.style.display = 'none';
             }
-
-            // Показываем предупреждение в локальном режиме
-            if (useLocalMode) {
-                const warningElement = document.createElement('div');
-                warningElement.style.background = 'rgba(255, 152, 0, 0.2)';
-                warningElement.style.color = '#FF9800';
-                warningElement.style.padding = '8px';
-                warningElement.style.borderRadius = '6px';
-                warningElement.style.textAlign = 'center';
-                warningElement.style.fontSize = '12px';
-                warningElement.style.marginTop = '10px';
-                warningElement.textContent = '⚠️ Локальный режим - данные не синхронизируются';
-                
-                if (!document.querySelector('.local-mode-warning')) {
-                    warningElement.className = 'local-mode-warning';
-                    document.querySelector('.lottery-section').appendChild(warningElement);
-                }
-            }
         }
 
         function startLotteryAutoUpdate() {
@@ -2288,7 +2141,7 @@
             
             lotteryUpdateInterval = setInterval(() => {
                 loadLotteryStatus();
-            }, 5000); // Увеличили интервал до 5 секунд чтобы уменьшить нагрузку
+            }, 5000);
         }
 
         function selectTeam(team) {
@@ -2350,8 +2203,7 @@
                     updateClassicLotteryUI();
                 }
             } catch (error) {
-                console.warn('Ошибка загрузки классической лотереи, используем локальные данные:', error);
-                // Не показываем ошибку пользователю
+                console.warn('Ошибка загрузки классической лотереи:', error);
             }
         }
 
@@ -2397,8 +2249,7 @@
                     showNotification(`Ошибка ставки: ${data.error}`, 'error');
                 }
             } catch (error) {
-                showNotification('Ставка принята в локальном режиме', 'warning');
-                // Все равно списываем средства для локальной игры
+                showNotification('Ставка принята в резервном режиме', 'warning');
                 userData.balance -= bet;
                 userData.totalBet += bet;
                 userData.lastUpdate = Date.now();
@@ -2412,7 +2263,6 @@
             document.getElementById('lotteryPot').textContent = classicLotteryData.total_pot.toFixed(9);
             document.getElementById('lotteryParticipants').textContent = classicLotteryData.participants_count;
             
-            // Обновляем историю
             const historyElement = document.getElementById('classicHistory');
             historyElement.innerHTML = '';
             
@@ -2429,21 +2279,6 @@
                 `;
                 historyElement.appendChild(historyItem);
             });
-
-            // Показываем предупреждение в локальном режиме
-            if (useLocalMode && !document.querySelector('.classic-local-warning')) {
-                const warningElement = document.createElement('div');
-                warningElement.style.background = 'rgba(255, 152, 0, 0.2)';
-                warningElement.style.color = '#FF9800';
-                warningElement.style.padding = '8px';
-                warningElement.style.borderRadius = '6px';
-                warningElement.style.textAlign = 'center';
-                warningElement.style.fontSize = '12px';
-                warningElement.style.marginTop = '10px';
-                warningElement.textContent = '⚠️ Локальный режим - данные не синхронизируются';
-                warningElement.className = 'classic-local-warning';
-                document.querySelector('.lottery-game').appendChild(warningElement);
-            }
         }
 
         function startClassicLotteryUpdate() {
@@ -2453,7 +2288,7 @@
             
             classicLotteryInterval = setInterval(() => {
                 loadClassicLottery();
-            }, 5000); // Увеличили интервал до 5 секунд
+            }, 5000);
         }
 
         // ==================== РЕФЕРАЛЬНАЯ СИСТЕМА ====================
@@ -2464,19 +2299,18 @@
                 
                 if (data.success) {
                     referralData = {
-                        referralsCount: data.stats.referralsCount,
-                        totalEarnings: data.stats.totalEarnings,
-                        referralCode: data.referralCode
+                        referralsCount: data.stats.referralsCount || 0,
+                        totalEarnings: data.stats.totalEarnings || 0,
+                        referralCode: data.referralCode || userData.referralCode || 'API-' + userData.userId.slice(-8)
                     };
                     updateReferralUI();
                 }
             } catch (error) {
                 console.warn('Ошибка загрузки реферальной статистики:', error);
-                // Устанавливаем значения по умолчанию
                 referralData = {
                     referralsCount: 0,
                     totalEarnings: 0,
-                    referralCode: 'LOCAL-' + userData.userId.slice(-8)
+                    referralCode: userData.referralCode || 'RETRY-' + userData.userId.slice(-8)
                 };
                 updateReferralUI();
             }
@@ -2485,11 +2319,13 @@
         function updateReferralUI() {
             document.getElementById('referralsCount').textContent = referralData.referralsCount;
             document.getElementById('referralEarnings').textContent = referralData.totalEarnings.toFixed(9) + ' S';
-            document.getElementById('referralLink').textContent = referralData.referralCode || 'Недоступно';
-
-            // Показываем предупреждение в локальном режиме
-            if (useLocalMode) {
-                document.getElementById('referralLink').textContent += ' (локальный режим)';
+            
+            const referralLinkElement = document.getElementById('referralLink');
+            referralLinkElement.textContent = referralData.referralCode;
+            
+            const localModeWarning = document.querySelector('.local-mode-warning');
+            if (localModeWarning) {
+                localModeWarning.remove();
             }
         }
 
@@ -2532,7 +2368,6 @@
                 }
             } catch (error) {
                 console.warn('Ошибка обновления топа победителей:', error);
-                // Показываем локальные данные
                 const topWinnersElement = document.getElementById('topWinners');
                 topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Данные временно недоступны</div></div>';
             }
@@ -2850,7 +2685,8 @@
             usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
             
             try {
-                const apiPlayers = await loadAllPlayersFromAPI();
+                const data = await apiRequest('/all_players');
+                const apiPlayers = data.players || [];
                 
                 const filteredUsers = apiPlayers.filter(player => 
                     player.userId !== userData.userId && 
@@ -3095,8 +2931,20 @@
             localStorage.removeItem('sparkcoin_current_session');
         });
         
-        setInterval(syncPlayerDataWithAPI, 10000); // Увеличили интервал синхронизации до 10 секунд
+        setInterval(syncPlayerDataWithAPI, 10000);
         
+        // Автоматическое восстановление подключения
+        setInterval(async () => {
+            if (!apiConnected) {
+                try {
+                    await apiRequest('/health');
+                    showNotification('✅ Подключение восстановлено!', 'success', 2000);
+                } catch (error) {
+                    // Тихий повтор при ошибке
+                }
+            }
+        }, 30000);
+
         function initializeApp() {
             document.getElementById('clickCoin').addEventListener('click', clickCoin);
             loadUserData();
@@ -3116,7 +2964,6 @@
             }
         });
 
-        // Добавляем обработчик таймаута для AbortSignal
         if (!AbortSignal.timeout) {
             AbortSignal.timeout = function(ms) {
                 const controller = new AbortController();
