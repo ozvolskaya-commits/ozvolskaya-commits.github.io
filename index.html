@@ -752,38 +752,228 @@
             margin-top: 2px;
         }
 
-        /* ==================== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ==================== */
+        /* ==================== НОВЫЕ СТИЛИ ДЛЯ МИНИ-ИГР ==================== */
 
-        /* Прогресс-бар для лотереи */
-        .progress-bar {
+        .games-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 5px;
+            gap: 5px;
+        }
+
+        .game-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .game-tab.active {
+            background: #2196F3;
+            font-weight: bold;
+        }
+
+        .game-section {
+            display: none;
+        }
+
+        .game-section.active {
+            display: block;
+        }
+
+        .lottery-game {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .lottery-timer-large {
+            background: linear-gradient(135deg, #FF5722, #FF9800);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            color: white;
+            font-size: 18px;
+        }
+
+        .lottery-pot {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid #FFD700;
+        }
+
+        .lottery-history {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .history-item.lost {
+            border-left-color: #f44336;
+        }
+
+        .result-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 10000;
+            border: 3px solid #FFD700;
+            display: none;
+        }
+
+        .result-popup.win {
+            border-color: #4CAF50;
+        }
+
+        .result-popup.lose {
+            border-color: #f44336;
+        }
+
+        .result-emoji {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .result-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-amount {
+            font-size: 20px;
+            color: #4CAF50;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .referral-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .referral-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .referral-stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .referral-link {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+        }
+
+        .share-button {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
             width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            margin: 12px 0;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        .top-winners {
+            max-height: 400px;
+            overflow-y: auto;
         }
 
-        .progress-fill.eagle {
-            background: linear-gradient(90deg, #FF5722, #FF9800);
-            box-shadow: 0 0 10px rgba(255, 87, 34, 0.3);
+        .winner-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .progress-fill.tails {
-            background: linear-gradient(90deg, #4CAF50, #8BC34A);
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        .winner-rank {
+            font-weight: bold;
+            color: #FFD700;
+            font-size: 16px;
+            min-width: 30px;
         }
 
-        /* Уведомления */
+        .winner-name {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        .winner-amount {
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .nav-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 5px;
+            gap: 5px;
+        }
+
+        .nav-tab {
+            flex: 1;
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: #2196F3;
+            font-weight: bold;
+        }
+
         .notification {
             position: fixed;
             top: 20px;
@@ -829,337 +1019,6 @@
             margin: 0;
             font-size: 14px;
             opacity: 0.9;
-        }
-
-        /* Улучшенные стили для участников лотереи */
-        .participant-item {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 12px;
-            margin: 6px 0;
-            border-radius: 10px;
-            border-left: 4px solid #2196F3;
-            transition: all 0.3s ease;
-            font-size: 13px;
-            backdrop-filter: blur(10px);
-        }
-
-        .participant-item.eagle {
-            border-left-color: #FF5722;
-            background: rgba(255, 87, 34, 0.1);
-        }
-
-        .participant-item.tails {
-            border-left-color: #4CAF50;
-            background: rgba(76, 175, 80, 0.1);
-        }
-
-        .participant-item.current-player {
-            border: 2px solid #4CC9F0;
-            background: rgba(76, 201, 240, 0.2);
-            transform: scale(1.02);
-            box-shadow: 0 0 20px rgba(76, 201, 240, 0.4);
-        }
-
-        .participant-item:hover {
-            transform: translateX(5px);
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .participant-bet {
-            color: #4CAF50;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            background: rgba(76, 175, 80, 0.15);
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-
-        .participant-time {
-            font-size: 10px;
-            color: #aaa;
-            margin-top: 4px;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* Улучшенные кнопки команд */
-        .team-button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .team-button.eagle {
-            border-color: #FF5722;
-            background: rgba(255, 87, 34, 0.1);
-        }
-
-        .team-button.tails {
-            border-color: #4CAF50;
-            background: rgba(76, 175, 80, 0.1);
-        }
-
-        .team-button.active.eagle {
-            background: linear-gradient(135deg, #FF5722, #E64A19);
-            border-color: #FF5722;
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(255, 87, 34, 0.4);
-        }
-
-        .team-button.active.tails {
-            background: linear-gradient(135deg, #4CAF50, #388E3C);
-            border-color: #4CAF50;
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
-        }
-
-        .team-button:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-        }
-
-        /* Анимации для лотереи */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        .lottery-timer {
-            background: linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 140, 0, 0.2));
-            padding: 12px;
-            border-radius: 10px;
-            text-align: center;
-            margin: 15px 0;
-            font-weight: bold;
-            color: #FFA500;
-            border: 1px solid rgba(255, 165, 0, 0.5);
-            animation: pulse 2s infinite;
-        }
-
-        .lottery-stat {
-            background: rgba(255, 255, 255, 0.08);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .lottery-stat:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        }
-
-        .lottery-stat.eagle {
-            border-left: 4px solid #FF5722;
-            background: rgba(255, 87, 34, 0.1);
-        }
-
-        .lottery-stat.tails {
-            border-left: 4px solid #4CAF50;
-            background: rgba(76, 175, 80, 0.1);
-        }
-
-        .stat-percentage {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 8px 0;
-            font-family: 'Courier New', monospace;
-        }
-
-        .stat-amount {
-            font-size: 14px;
-            color: #ccc;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* Улучшенный последний победитель */
-        .last-winner {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 193, 7, 0.15));
-            padding: 15px;
-            border-radius: 12px;
-            margin: 15px 0;
-            text-align: center;
-            border: 2px solid #FFD700;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-        }
-
-        .winner-team {
-            font-weight: bold;
-            color: #FFD700;
-            margin: 8px 0;
-            font-size: 16px;
-        }
-
-        .winner-prize {
-            color: #4CAF50;
-            font-weight: bold;
-            font-size: 18px;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* Анимации для новых ставок */
-        @keyframes newBet {
-            0% {
-                background: rgba(76, 201, 240, 0.5);
-                transform: scale(0.95);
-            }
-            50% {
-                background: rgba(76, 201, 240, 0.8);
-                transform: scale(1.02);
-            }
-            100% {
-                background: rgba(255, 255, 255, 0.08);
-                transform: scale(1);
-            }
-        }
-
-        .new-bet {
-            animation: newBet 1s ease;
-        }
-
-        /* Улучшенные поля ввода */
-        .bet-input, .transfer-amount-input {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(33, 150, 243, 0.5);
-            color: white;
-            padding: 14px;
-            border-radius: 10px;
-            font-size: 16px;
-            width: 100%;
-            margin-bottom: 15px;
-            outline: none;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .bet-input:focus, .transfer-amount-input:focus {
-            border-color: #2196F3;
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
-        }
-
-        /* Улучшенные кнопки действий */
-        .play-button, .transfer-button {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            border: none;
-            color: white;
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            width: 100%;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(76, 175, 80, 0.3);
-        }
-
-        .play-button:hover, .transfer-button:hover:not(:disabled) {
-            background: linear-gradient(135deg, #45a049, #4CAF50);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
-        }
-
-        .play-button:disabled, .transfer-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            opacity: 0.6;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Адаптивность для мобильных устройств */
-        @media (max-width: 480px) {
-            .notification {
-                top: 10px;
-                right: 10px;
-                left: 10px;
-                max-width: none;
-                transform: translateY(-100px);
-            }
-            
-            .notification.show {
-                transform: translateY(0);
-            }
-            
-            .participant-item {
-                padding: 10px;
-                font-size: 12px;
-            }
-            
-            .team-button {
-                padding: 12px;
-                font-size: 14px;
-            }
-            
-            .lottery-stat {
-                padding: 12px;
-            }
-        }
-
-        /* Специальные эффекты для победителя */
-        .winner-glow {
-            animation: winnerGlow 2s ease-in-out infinite;
-        }
-
-        @keyframes winnerGlow {
-            0%, 100% {
-                box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-            }
-            50% {
-                box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
-            }
-        }
-
-        /* Прогресс-бар для таймера лотереи */
-        .timer-progress {
-            width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-            margin-top: 8px;
-            overflow: hidden;
-        }
-
-        .timer-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FF9800, #FF5722);
-            border-radius: 3px;
-            transition: width 1s linear;
-        }
-
-        /* Улучшенные заголовки секций */
-        .section-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #4CC9F0;
-            text-align: center;
-            margin-bottom: 20px;
-            text-shadow: 0 2px 10px rgba(76, 201, 240, 0.3);
-            position: relative;
-        }
-
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #4CC9F0, transparent);
-            border-radius: 2px;
         }
     </style>
 </head>
@@ -1526,56 +1385,106 @@
         <div id="games-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             
-            <div class="lottery-section">
-                <div class="lottery-title">👥 Командная лотерея</div>
-                
-                <div class="lottery-stats">
-                    <div class="lottery-stat eagle">
-                        <div>🦅 Орлы</div>
-                        <div class="stat-percentage" id="eagleChance">50%</div>
-                        <div class="stat-amount" id="eagleTotal">0.000000000 S</div>
+            <div class="games-tabs">
+                <button class="game-tab active" onclick="showGameTab('team-lottery')">👥 Командная</button>
+                <button class="game-tab" onclick="showGameTab('classic-lottery')">🎰 Классическая</button>
+                <button class="game-tab" onclick="showGameTab('referral')">👥 Рефералы</button>
+            </div>
+            
+            <!-- Командная лотерея -->
+            <div id="team-lottery-game" class="game-section active">
+                <div class="lottery-section">
+                    <div class="lottery-title">👥 Командная лотерея</div>
+                    
+                    <div class="lottery-stats">
+                        <div class="lottery-stat eagle">
+                            <div>🦅 Орлы</div>
+                            <div class="stat-percentage" id="eagleChance">50%</div>
+                            <div class="stat-amount" id="eagleTotal">0.000000000 S</div>
+                        </div>
+                        <div class="lottery-stat tails">
+                            <div>🪙 Решки</div>
+                            <div class="stat-percentage" id="tailsChance">50%</div>
+                            <div class="stat-amount" id="tailsTotal">0.000000000 S</div>
+                        </div>
                     </div>
-                    <div class="lottery-stat tails">
-                        <div>🪙 Решки</div>
-                        <div class="stat-percentage" id="tailsChance">50%</div>
-                        <div class="stat-amount" id="tailsTotal">0.000000000 S</div>
+                    
+                    <div class="last-winner" id="lastWinner" style="display: none;">
+                        <div class="winner-team" id="winnerTeam"></div>
+                    </div>
+                    
+                    <div class="team-buttons">
+                        <button class="team-button eagle" onclick="selectTeam('eagle')">🦅 Орлы</button>
+                        <button class="team-button tails" onclick="selectTeam('tails')">🪙 Решки</button>
+                    </div>
+                    
+                    <input type="number" class="bet-input" id="teamBet" placeholder="Сумма ставки" value="0.000000100" min="0.000000001" step="0.000000001">
+                    <button class="play-button" onclick="playTeamLottery()">Участвовать</button>
+                    
+                    <div class="lottery-timer">
+                        До розыгрыша: <span id="lotteryTimer">60</span> сек
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <h4>🦅 Орлы (<span id="eagleParticipants">0</span> игроков)</h4>
+                            <div class="participants" id="teamEagle"></div>
+                        </div>
+                        <div>
+                            <h4>🪙 Решки (<span id="tailsParticipants">0</span> игроков)</h4>
+                            <div class="participants" id="teamTails"></div>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Прогресс-бар для шансов -->
-                <div class="progress-bar">
-                    <div class="progress-fill" id="chanceProgress" style="width: 50%"></div>
-                </div>
-                
-                <div class="last-winner" id="lastWinner" style="display: none;">
-                    <div class="section-title">🎉 Последний победитель</div>
-                    <div class="winner-team" id="winnerTeam"></div>
-                </div>
-                
-                <div class="team-buttons">
-                    <button class="team-button eagle" onclick="selectTeam('eagle')">🦅 Орлы</button>
-                    <button class="team-button tails" onclick="selectTeam('tails')">🪙 Решки</button>
-                </div>
-                
-                <input type="number" class="bet-input" id="teamBet" placeholder="Сумма ставки" value="0.000000100" min="0.000000001" step="0.000000001">
-                <button class="play-button" onclick="playTeamLottery()">Участвовать</button>
-                
-                <div class="lottery-timer">
-                    До розыгрыша: <span id="lotteryTimer">60</span> сек
-                    <div class="timer-progress">
-                        <div class="timer-progress-fill" id="timerProgress" style="width: 0%"></div>
+            </div>
+            
+            <!-- Классическая лотерея -->
+            <div id="classic-lottery-game" class="game-section">
+                <div class="lottery-game">
+                    <div class="lottery-title">🎰 Классическая лотерея</div>
+                    
+                    <div class="lottery-timer-large">
+                        До розыгрыша: <span id="classicTimer">120</span> сек
                     </div>
+                    
+                    <div class="lottery-pot">
+                        <div>💰 Общий банк: <span id="lotteryPot">0.000000000</span> S</div>
+                        <div>👥 Участников: <span id="lotteryParticipants">0</span></div>
+                    </div>
+                    
+                    <input type="number" class="bet-input" id="classicBet" placeholder="Сумма ставки" value="0.000000100" min="0.000000001" step="0.000000001">
+                    <button class="play-button" onclick="playClassicLottery()">Участвовать</button>
+                    
+                    <div class="lottery-history" id="classicHistory"></div>
                 </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <h4>🦅 Орлы (<span id="eagleParticipants">0</span> игроков)</h4>
-                        <div class="participants" id="teamEagle"></div>
+            </div>
+            
+            <!-- Реферальная система -->
+            <div id="referral-game" class="game-section">
+                <div class="referral-section">
+                    <div class="lottery-title">👥 Реферальная система</div>
+                    
+                    <p style="text-align: center; margin-bottom: 15px; color: #ccc;">
+                        Вы можете дополнительно зарабатывать Sparkcoin на приглашении друзей.
+                    </p>
+                    
+                    <div class="referral-stats">
+                        <div class="referral-stat">
+                            <div style="font-size: 12px; color: #ccc;">Приглашено</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #4CC9F0;" id="referralsCount">0</div>
+                        </div>
+                        <div class="referral-stat">
+                            <div style="font-size: 12px; color: #ccc;">Заработано</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #4CAF50;" id="referralEarnings">0.000000000 S</div>
+                        </div>
                     </div>
-                    <div>
-                        <h4>🪙 Решки (<span id="tailsParticipants">0</span> игроков)</h4>
-                        <div class="participants" id="teamTails"></div>
+                    
+                    <div class="referral-link">
+                        <div style="font-size: 12px; color: #ccc; margin-bottom: 5px;">Ваша реферальная ссылка:</div>
+                        <div id="referralLink" style="font-weight: bold; color: #4CC9F0;">Загрузка...</div>
                     </div>
+                    
+                    <button class="share-button" onclick="shareReferral()">📤 Поделиться</button>
                 </div>
             </div>
         </div>
@@ -1584,13 +1493,24 @@
         <div id="top-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             
-            <div class="rating-tabs">
-                <button class="rating-tab active" onclick="showRatingTab('balance')">💰 Баланс</button>
-                <button class="rating-tab" onclick="showRatingTab('speed')">⚡ Скорость</button>
-                <button class="rating-tab" onclick="showRatingTab('rich')">🏆 Богатые</button>
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTopTab('winners')">🏆 Победители</button>
+                <button class="nav-tab" onclick="showTopTab('balance')">💰 Баланс</button>
+                <button class="nav-tab" onclick="showTopTab('speed')">⚡ Скорость</button>
             </div>
             
-            <div class="leaderboard" id="leaderboard"></div>
+            <div id="winners-tab" class="game-section active">
+                <div class="lottery-title">🏆 Топ победителей за сегодня</div>
+                <div class="top-winners" id="topWinners"></div>
+            </div>
+            
+            <div id="balance-tab" class="game-section">
+                <div class="leaderboard" id="leaderboard"></div>
+            </div>
+            
+            <div id="speed-tab" class="game-section">
+                <div class="leaderboard" id="speedLeaderboard"></div>
+            </div>
         </div>
         
         <!-- Переводы -->
@@ -1615,6 +1535,14 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Попап результата -->
+    <div class="result-popup" id="resultPopup">
+        <div class="result-emoji" id="resultEmoji">🎉</div>
+        <div class="result-text" id="resultText">Победа!</div>
+        <div class="result-amount" id="resultAmount">+0.000000000 S</div>
+        <button class="play-button" style="margin-top: 15px;" onclick="closeResultPopup()">OK</button>
     </div>
 
     <div class="anti-cheat" id="antiCheat">
@@ -1658,7 +1586,24 @@
             total_tails: 0
         };
 
+        // Данные классической лотереи
+        let classicLotteryData = {
+            bets: [],
+            total_pot: 0,
+            timer: 120,
+            participants_count: 0,
+            history: []
+        };
+
         let lotteryUpdateInterval;
+        let classicLotteryInterval;
+
+        // Реферальные данные
+        let referralData = {
+            referralsCount: 0,
+            totalEarnings: 0,
+            referralCode: ''
+        };
 
         // БАЗА УЛУЧШЕНИЙ
         const upgrades = {
@@ -1703,6 +1648,7 @@
                 
                 switch(sectionName) {
                     case 'top':
+                        updateTopWinners();
                         updateLeaderboard();
                         break;
                     case 'transfer':
@@ -1711,6 +1657,9 @@
                     case 'shop':
                         updateShopUI();
                         break;
+                    case 'games':
+                        showGameTab('team-lottery');
+                        break;
                 }
             }
         }
@@ -1718,6 +1667,43 @@
         function showGamesSection() {
             showSection('games');
             startLotteryAutoUpdate();
+            startClassicLotteryUpdate();
+        }
+
+        function showGameTab(tabName) {
+            document.querySelectorAll('.game-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.game-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-game').classList.add('active');
+        }
+
+        function showTopTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.game-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            switch(tabName) {
+                case 'winners':
+                    updateTopWinners();
+                    break;
+                case 'balance':
+                    updateLeaderboard();
+                    break;
+                case 'speed':
+                    updateSpeedLeaderboard();
+                    break;
+            }
         }
 
         function showShopTab(tabName) {
@@ -1730,16 +1716,6 @@
             
             event.target.classList.add('active');
             document.getElementById('shop-' + tabName).classList.remove('hidden');
-        }
-
-        function showRatingTab(tab) {
-            currentRatingTab = tab;
-            document.querySelectorAll('.rating-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            updateLeaderboard();
         }
 
         // ==================== ФУНКЦИИ API ====================
@@ -1768,10 +1744,31 @@
             }
         }
 
+        // Улучшенная функция для обработки ошибок сети
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`API Request failed for ${endpoint}:`, error);
+                throw new Error('Ошибка сети. Проверьте подключение к интернету.');
+            }
+        }
+
         async function syncPlayerDataWithAPI() {
             try {
-                const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`);
-                const data = await response.json();
+                const data = await apiRequest(`/player/${userData.userId}`);
                 
                 if (data.success && data.player) {
                     const apiData = data.player;
@@ -1782,6 +1779,10 @@
                     userData.lotteryWins = apiData.lotteryWins || 0;
                     userData.totalBet = apiData.totalBet || 0;
                     userData.transfers = apiData.transfers || { sent: 0, received: 0 };
+                    userData.referralEarnings = apiData.referralEarnings || 0;
+                    userData.referralsCount = apiData.referralsCount || 0;
+                    userData.totalWinnings = apiData.totalWinnings || 0;
+                    userData.totalLosses = apiData.totalLosses || 0;
                     
                     if (apiData.upgrades && Object.keys(apiData.upgrades).length > 0) {
                         for (const key in apiData.upgrades) {
@@ -1809,7 +1810,11 @@
                     lotteryWins: userData.lotteryWins || 0,
                     totalBet: userData.totalBet || 0,
                     transfers: userData.transfers || { sent: 0, received: 0 },
-                    upgrades: {}
+                    upgrades: {},
+                    referralEarnings: userData.referralEarnings || 0,
+                    referralsCount: userData.referralsCount || 0,
+                    totalWinnings: userData.totalWinnings || 0,
+                    totalLosses: userData.totalLosses || 0
                 };
                 
                 for (const key in upgrades) {
@@ -1820,18 +1825,11 @@
                     }
                 }
                 
-                const response = await fetch(`${API_BASE_URL}/player/${userData.userId}`, {
+                await apiRequest(`/player/${userData.userId}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify(saveData)
                 });
                 
-                const result = await response.json();
-                if (!result.success) {
-                    console.error('Ошибка сохранения в API:', result.error);
-                }
             } catch (error) {
                 console.error('Ошибка сохранения в API:', error);
             }
@@ -1839,8 +1837,7 @@
 
         async function loadAllPlayersFromAPI() {
             try {
-                const response = await fetch(`${API_BASE_URL}/all_players`);
-                const data = await response.json();
+                const data = await apiRequest('/all_players');
                 
                 if (data.success) {
                     return data.players;
@@ -1853,118 +1850,26 @@
             }
         }
 
-        async function updateLeaderboard() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20&current_user=${userData.userId}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const leaderboard = document.getElementById('leaderboard');
-                
-                if (!data || !data.success || !data.leaderboard) {
-                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
-                    return;
-                }
-                
-                if (!Array.isArray(data.leaderboard)) {
-                    leaderboard.innerHTML = '<div class="leader-item">Ошибка формата данных</div>';
-                    return;
-                }
-                
-                if (data.leaderboard.length === 0) {
-                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
-                    return;
-                }
-                
-                let newHTML = '';
-                
-                data.leaderboard.forEach((player, index) => {
-                    if (!player || typeof player !== 'object') {
-                        return;
-                    }
-                    
-                    const rank = index + 1;
-                    const name = player.username || `Игрок ${rank}`;
-                    const balance = typeof player.balance === 'number' ? player.balance : 0;
-                    const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
-                    const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000001;
-                    const earned = typeof player.totalEarned === 'number' ? player.totalEarned : 0;
-                    const clicks = typeof player.totalClicks === 'number' ? player.totalClicks : 0;
-                    const wins = typeof player.lotteryWins === 'number' ? player.lotteryWins : 0;
-                    
-                    const isCurrent = player.userId === userData.userId;
-                    const currentClass = isCurrent ? 'current-player' : '';
-                    
-                    let displayValue = '';
-                    if (currentRatingTab === 'balance') {
-                        displayValue = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
-                    } else if (currentRatingTab === 'speed') {
-                        displayValue = `<div class="leader-speed">${mineSpeed.toFixed(9)} S/сек</div>`;
-                    } else {
-                        displayValue = `<div class="leader-balance">${earned.toFixed(9)} S всего</div>`;
-                    }
-                    
-                    newHTML += `
-                        <div class="leader-item ${currentClass}">
-                            <div class="leader-rank">${rank} место</div>
-                            <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                            ${displayValue}
-                            <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                                Кликов: ${clicks} | Побед: ${wins}
-                            </div>
-                            <div style="font-size: 9px; color: #666;">
-                                Клик: ${clickSpeed.toFixed(9)}/с | Майнинг: ${mineSpeed.toFixed(9)}/с
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                leaderboard.innerHTML = newHTML;
-                
-            } catch (error) {
-                console.error('Ошибка обновления рейтинга:', error);
-                document.getElementById('leaderboard').innerHTML = 
-                    '<div class="leader-item">Ошибка загрузки рейтинга</div>';
-            }
-        }
-
         // ==================== ФУНКЦИИ ЛОТЕРЕИ ====================
 
         async function loadLotteryStatus() {
             try {
-                console.log('Loading lottery status...');
-                const response = await fetch(`${API_BASE_URL}/lottery/status`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('Lottery API response:', data);
+                const data = await apiRequest('/lottery/status');
                 
                 if (data.success && data.lottery) {
                     lotteryData = data.lottery;
                     updateLotteryUI();
-                } else {
-                    console.error('Lottery API error:', data.error);
                 }
             } catch (error) {
                 console.error('Ошибка загрузки статуса лотереи:', error);
+                showNotification(error.message, 'error');
             }
         }
 
         async function placeLotteryBet(team, amount) {
             try {
-                console.log(`Placing bet: ${amount} on ${team}`);
-                
-                const response = await fetch(`${API_BASE_URL}/lottery/bet`, {
+                const data = await apiRequest('/lottery/bet', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify({
                         userId: userData.userId,
                         team: team,
@@ -1972,20 +1877,14 @@
                     })
                 });
                 
-                const data = await response.json();
-                console.log('Bet response:', data);
-                
                 if (data.success) {
-                    // Обновляем локальные данные
                     userData.balance -= amount;
                     userData.totalBet += amount;
                     userData.lastUpdate = Date.now();
                     
-                    // Обновляем UI
                     updateUI();
                     saveUserData();
                     
-                    // Перезагружаем статус лотереи
                     await loadLotteryStatus();
                     
                     showNotification(`Ставка ${amount.toFixed(9)} S за команду ${team === 'eagle' ? 'Орлов' : 'Решки'} принята!`, 'success');
@@ -1995,68 +1894,12 @@
                     return false;
                 }
             } catch (error) {
-                console.error('Ошибка размещения ставки:', error);
-                showNotification('Ошибка сети при размещении ставки', 'error');
+                showNotification(error.message, 'error');
                 return false;
             }
         }
 
-        // Функция для показа улучшенных уведомлений
-        function showNotification(message, type = 'info', duration = 3000) {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            
-            const title = type === 'success' ? '✅ Успех' : 
-                         type === 'error' ? '❌ Ошибка' :
-                         type === 'warning' ? '⚠️ Внимание' : 'ℹ️ Информация';
-            
-            notification.innerHTML = `
-                <h4>${title}</h4>
-                <p>${message}</p>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Показываем уведомление
-            setTimeout(() => notification.classList.add('show'), 100);
-            
-            // Убираем уведомление
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 400);
-            }, duration);
-        }
-
-        // Обновленная функция временных сообщений
-        function showTempMessage(message, isError = false) {
-            showNotification(message, isError ? 'error' : 'success');
-        }
-
-        // Функция для обновления прогресс-бара лотереи
-        function updateLotteryProgress() {
-            const progressFill = document.getElementById('chanceProgress');
-            const timerProgress = document.getElementById('timerProgress');
-            
-            if (progressFill && lotteryData.timer !== undefined) {
-                const totalBet = lotteryData.total_eagle + lotteryData.total_tails;
-                const eagleProgress = totalBet > 0 ? (lotteryData.total_eagle / totalBet) * 100 : 50;
-                progressFill.style.width = `${eagleProgress}%`;
-                progressFill.className = `progress-fill ${eagleProgress > 50 ? 'eagle' : 'tails'}`;
-            }
-            
-            if (timerProgress && lotteryData.timer !== undefined) {
-                const timerProgressValue = ((60 - lotteryData.timer) / 60) * 100;
-                timerProgress.style.width = `${timerProgressValue}%`;
-            }
-        }
-
         function updateLotteryUI() {
-            console.log('Updating lottery UI with data:', lotteryData);
-            
             const eagleList = document.getElementById('teamEagle');
             const tailsList = document.getElementById('teamTails');
             const eagleTotal = document.getElementById('eagleTotal');
@@ -2089,7 +1932,6 @@
                     item.className = `participant-item eagle ${participant.userId === userData.userId ? 'current-player' : ''}`;
                     item.setAttribute('data-user-id', participant.userId);
                     
-                    // Форматируем время
                     const betTime = new Date(participant.timestamp);
                     const timeString = betTime.toLocaleTimeString();
                     
@@ -2117,7 +1959,6 @@
                     item.className = `participant-item tails ${participant.userId === userData.userId ? 'current-player' : ''}`;
                     item.setAttribute('data-user-id', participant.userId);
                     
-                    // Форматируем время
                     const betTime = new Date(participant.timestamp);
                     const timeString = betTime.toLocaleTimeString();
                     
@@ -2151,9 +1992,6 @@
             document.getElementById('eagleChance').textContent = eagleChance + '%';
             document.getElementById('tailsChance').textContent = tailsChance + '%';
             
-            // Обновляем прогресс-бар
-            updateLotteryProgress();
-            
             // Обновляем информацию о последнем победителе
             if (lotteryData.last_winner) {
                 lastWinner.style.display = 'block';
@@ -2168,8 +2006,6 @@
             } else {
                 lastWinner.style.display = 'none';
             }
-            
-            console.log('Lottery UI updated successfully');
         }
 
         function startLotteryAutoUpdate() {
@@ -2180,27 +2016,17 @@
             lotteryUpdateInterval = setInterval(() => {
                 loadLotteryStatus();
             }, 2000);
-            
-            console.log('Lottery auto-update started');
         }
 
         function selectTeam(team) {
             selectedTeam = team;
             document.querySelectorAll('.team-button').forEach(btn => btn.classList.remove('active'));
             
-            // Подсвечиваем выбранную команду
             document.querySelectorAll('.team-button').forEach(btn => {
                 if (btn.classList.contains('eagle') && team === 'eagle') {
                     btn.classList.add('active');
-                    btn.style.background = '#FF5722';
-                    btn.style.transform = 'scale(1.05)';
                 } else if (btn.classList.contains('tails') && team === 'tails') {
                     btn.classList.add('active');
-                    btn.style.background = '#4CAF50';
-                    btn.style.transform = 'scale(1.05)';
-                } else {
-                    btn.style.background = 'rgba(255,255,255,0.1)';
-                    btn.style.transform = 'scale(1)';
                 }
             });
         }
@@ -2232,15 +2058,222 @@
             const success = await placeLotteryBet(selectedTeam, bet);
             
             if (success) {
-                // Сбрасываем выбор
                 document.querySelectorAll('.team-button').forEach(btn => {
                     btn.classList.remove('active');
-                    btn.style.background = 'rgba(255,255,255,0.1)';
-                    btn.style.transform = 'scale(1)';
                 });
                 selectedTeam = null;
                 betInput.value = '0.000000100';
             }
+        }
+
+        // ==================== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ ====================
+
+        async function loadClassicLottery() {
+            try {
+                const data = await apiRequest('/classic-lottery/status');
+                
+                if (data.success && data.lottery) {
+                    classicLotteryData = data.lottery;
+                    updateClassicLotteryUI();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки классической лотереи:', error);
+            }
+        }
+
+        async function playClassicLottery() {
+            const betInput = document.getElementById('classicBet');
+            const bet = parseFloat(betInput.value);
+            
+            if (isNaN(bet) || bet <= 0) {
+                showNotification('Введите корректную сумму ставки', 'error');
+                return;
+            }
+            
+            if (bet > userData.balance) {
+                showNotification('Недостаточно средств', 'error');
+                return;
+            }
+            
+            if (bet < 0.000000001) {
+                showNotification('Минимальная ставка 0.000000001 S', 'error');
+                return;
+            }
+            
+            try {
+                const data = await apiRequest('/classic-lottery/bet', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        userId: userData.userId,
+                        amount: bet
+                    })
+                });
+                
+                if (data.success) {
+                    userData.balance -= bet;
+                    userData.totalBet += bet;
+                    userData.lastUpdate = Date.now();
+                    
+                    updateUI();
+                    saveUserData();
+                    await loadClassicLottery();
+                    
+                    showNotification(`Ставка ${bet.toFixed(9)} S принята!`, 'success');
+                } else {
+                    showNotification(`Ошибка ставки: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        }
+
+        function updateClassicLotteryUI() {
+            document.getElementById('classicTimer').textContent = classicLotteryData.timer;
+            document.getElementById('lotteryPot').textContent = classicLotteryData.total_pot.toFixed(9);
+            document.getElementById('lotteryParticipants').textContent = classicLotteryData.participants_count;
+            
+            // Обновляем историю
+            const historyElement = document.getElementById('classicHistory');
+            historyElement.innerHTML = '';
+            
+            classicLotteryData.history.forEach(item => {
+                const historyItem = document.createElement('div');
+                const isWinner = item.winner === userData.username;
+                historyItem.className = `history-item ${isWinner ? '' : 'lost'}`;
+                historyItem.innerHTML = `
+                    <div style="font-weight: bold;">${item.winner}</div>
+                    <div style="color: ${isWinner ? '#4CAF50' : '#f44336'};">
+                        ${isWinner ? 'Выиграл' : 'Проиграл'} ${item.prize.toFixed(9)} S
+                    </div>
+                    <div style="font-size: 10px; color: #ccc;">Участников: ${item.participants}</div>
+                `;
+                historyElement.appendChild(historyItem);
+            });
+        }
+
+        function startClassicLotteryUpdate() {
+            clearInterval(classicLotteryInterval);
+            
+            loadClassicLottery();
+            
+            classicLotteryInterval = setInterval(() => {
+                loadClassicLottery();
+            }, 2000);
+        }
+
+        // ==================== РЕФЕРАЛЬНАЯ СИСТЕМА ====================
+
+        async function loadReferralStats() {
+            try {
+                const data = await apiRequest(`/referral/stats/${userData.userId}`);
+                
+                if (data.success) {
+                    referralData = {
+                        referralsCount: data.stats.referralsCount,
+                        totalEarnings: data.stats.totalEarnings,
+                        referralCode: data.referralCode
+                    };
+                    updateReferralUI();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки реферальной статистики:', error);
+            }
+        }
+
+        function updateReferralUI() {
+            document.getElementById('referralsCount').textContent = referralData.referralsCount;
+            document.getElementById('referralEarnings').textContent = referralData.totalEarnings.toFixed(9) + ' S';
+            document.getElementById('referralLink').textContent = referralData.referralCode || 'Недоступно';
+        }
+
+        function shareReferral() {
+            const shareText = `Присоединяйся к Sparkcoin! Используй мою реферальную ссылку: ${referralData.referralCode}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Sparkcoin',
+                    text: shareText,
+                    url: window.location.href
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    showNotification('Ссылка скопирована в буфер обмена!', 'success');
+                });
+            }
+        }
+
+        // ==================== ТОП ПОБЕДИТЕЛЕЙ ====================
+
+        async function updateTopWinners() {
+            try {
+                const data = await apiRequest('/top/winners?limit=50');
+                
+                if (data.success) {
+                    const topWinnersElement = document.getElementById('topWinners');
+                    topWinnersElement.innerHTML = '';
+                    
+                    data.winners.forEach((winner, index) => {
+                        const winnerItem = document.createElement('div');
+                        winnerItem.className = 'winner-item';
+                        winnerItem.innerHTML = `
+                            <div class="winner-rank">${index + 1}</div>
+                            <div class="winner-name">${winner.username}</div>
+                            <div class="winner-amount">${winner.netWinnings.toFixed(9)} S</div>
+                        `;
+                        topWinnersElement.appendChild(winnerItem);
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка обновления топа победителей:', error);
+            }
+        }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
+        function showNotification(message, type = 'info', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const title = type === 'success' ? '✅ Успех' : 
+                         type === 'error' ? '❌ Ошибка' :
+                         type === 'warning' ? '⚠️ Внимание' : 'ℹ️ Информация';
+            
+            notification.innerHTML = `
+                <h4>${title}</h4>
+                <p>${message}</p>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 400);
+            }, duration);
+        }
+
+        function showResultPopup(isWin, amount, emoji) {
+            const popup = document.getElementById('resultPopup');
+            const emojiElement = document.getElementById('resultEmoji');
+            const textElement = document.getElementById('resultText');
+            const amountElement = document.getElementById('resultAmount');
+            
+            popup.className = `result-popup ${isWin ? 'win' : 'lose'}`;
+            emojiElement.textContent = emoji;
+            textElement.textContent = isWin ? 'Победа!' : 'Проигрыш';
+            amountElement.textContent = `${amount >= 0 ? '+' : ''}${amount.toFixed(9)} S`;
+            amountElement.style.color = isWin ? '#4CAF50' : '#f44336';
+            
+            popup.style.display = 'block';
+        }
+
+        function closeResultPopup() {
+            document.getElementById('resultPopup').style.display = 'none';
         }
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ИГРЫ ====================
@@ -2319,6 +2352,8 @@
             
             setTimeout(syncPlayerDataWithAPI, 1000);
             startLotteryAutoUpdate();
+            startClassicLotteryUpdate();
+            loadReferralStats();
         }
         
         function createNewUserData(userId, username) {
@@ -2336,7 +2371,11 @@
                 transfers: {
                     sent: 0,
                     received: 0
-                }
+                },
+                referralEarnings: 0,
+                referralsCount: 0,
+                totalWinnings: 0,
+                totalLosses: 0
             };
         }
         
@@ -2572,11 +2611,8 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE_URL}/transfer`, {
+                const data = await apiRequest('/transfer', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
                     body: JSON.stringify({
                         fromUserId: userData.userId,
                         toUserId: selectedTransferUser.userId,
@@ -2584,7 +2620,6 @@
                     })
                 });
                 
-                const data = await response.json();
                 if (data.success) {
                     userData.balance -= amount;
                     userData.transfers.sent += amount;
@@ -2597,13 +2632,12 @@
                     selectedTransferUser = null;
                     document.getElementById('userSearch').value = '';
                     
-                    showNotification(`Перевод ${amount.toFixed(9)} S пользователю ${selectedTransferUser.username} выполнен!`, 'success');
+                    showNotification(`Перевод ${amount.toFixed(9)} S выполнен!`, 'success');
                 } else {
                     showNotification(`Ошибка перевода: ${data.error}`, 'error');
                 }
             } catch (error) {
-                console.error('Ошибка перевода:', error);
-                showNotification('Ошибка сети при переводе', 'error');
+                showNotification(error.message, 'error');
             }
         }
         
@@ -2661,6 +2695,90 @@
             localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
             
             saveUserDataToAPI();
+        }
+        
+        async function updateLeaderboard() {
+            try {
+                const data = await apiRequest(`/leaderboard?type=balance&limit=20&current_user=${userData.userId}`);
+                
+                const leaderboard = document.getElementById('leaderboard');
+                
+                if (!data || !data.success || !data.leaderboard) {
+                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+                    return;
+                }
+                
+                let newHTML = '';
+                
+                data.leaderboard.forEach((player, index) => {
+                    if (!player || typeof player !== 'object') {
+                        return;
+                    }
+                    
+                    const rank = index + 1;
+                    const name = player.username || `Игрок ${rank}`;
+                    const balance = typeof player.balance === 'number' ? player.balance : 0;
+                    const isCurrent = player.userId === userData.userId;
+                    const currentClass = isCurrent ? 'current-player' : '';
+                    
+                    newHTML += `
+                        <div class="leader-item ${currentClass}">
+                            <div class="leader-rank">${rank} место</div>
+                            <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                            <div class="leader-balance">${balance.toFixed(9)} S</div>
+                        </div>
+                    `;
+                });
+                
+                leaderboard.innerHTML = newHTML;
+                
+            } catch (error) {
+                console.error('Ошибка обновления рейтинга:', error);
+                document.getElementById('leaderboard').innerHTML = 
+                    '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+            }
+        }
+
+        async function updateSpeedLeaderboard() {
+            try {
+                const data = await apiRequest(`/leaderboard?type=speed&limit=20&current_user=${userData.userId}`);
+                
+                const leaderboard = document.getElementById('speedLeaderboard');
+                
+                if (!data || !data.success || !data.leaderboard) {
+                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+                    return;
+                }
+                
+                let newHTML = '';
+                
+                data.leaderboard.forEach((player, index) => {
+                    if (!player || typeof player !== 'object') {
+                        return;
+                    }
+                    
+                    const rank = index + 1;
+                    const name = player.username || `Игрок ${rank}`;
+                    const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
+                    const isCurrent = player.userId === userData.userId;
+                    const currentClass = isCurrent ? 'current-player' : '';
+                    
+                    newHTML += `
+                        <div class="leader-item ${currentClass}">
+                            <div class="leader-rank">${rank} место</div>
+                            <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                            <div class="leader-speed">${mineSpeed.toFixed(9)} S/сек</div>
+                        </div>
+                    `;
+                });
+                
+                leaderboard.innerHTML = newHTML;
+                
+            } catch (error) {
+                console.error('Ошибка обновления рейтинга скорости:', error);
+                document.getElementById('speedLeaderboard').innerHTML = 
+                    '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+            }
         }
         
         window.addEventListener('beforeunload', function() {
