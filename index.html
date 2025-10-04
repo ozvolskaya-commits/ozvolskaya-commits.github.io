@@ -1444,12 +1444,32 @@
         // ИСПРАВЛЕННАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ РЕЙТИНГА
         async function updateLeaderboard() {
             try {
+                console.log('Starting leaderboard update...');
+                
                 const response = await fetch(`${API_BASE_URL}/leaderboard?type=${currentRatingTab}&limit=20&current_user=${userData.userId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Leaderboard API response:', data);
                 
                 const leaderboard = document.getElementById('leaderboard');
                 
-                if (!data.success || !data.leaderboard || data.leaderboard.length === 0) {
+                if (!data || !data.success || !data.leaderboard) {
+                    console.log('No leaderboard data available');
+                    leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+                    return;
+                }
+                
+                if (!Array.isArray(data.leaderboard)) {
+                    console.log('Leaderboard is not an array:', data.leaderboard);
+                    leaderboard.innerHTML = '<div class="leader-item">Ошибка формата данных</div>';
+                    return;
+                }
+                
+                if (data.leaderboard.length === 0) {
                     leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
                     return;
                 }
@@ -1457,50 +1477,47 @@
                 let newHTML = '';
                 
                 data.leaderboard.forEach((player, index) => {
-                    if (!player) return;
+                    // ПРОСТАЯ ПРОВЕРКА
+                    if (!player) {
+                        console.log('Skipping null player at index', index);
+                        return;
+                    }
                     
-                    // ЗАЩИТА ОТ ОШИБОК - проверяем все значения с значениями по умолчанию
-                    const balance = Number(player.balance) || 0;
-                    const totalEarned = Number(player.totalEarned) || 0;
-                    const totalSpeed = Number(player.totalSpeed) || 0;
-                    const totalClicks = Number(player.totalClicks) || 0;
-                    const lotteryWins = Number(player.lotteryWins) || 0;
-                    const username = player.username || 'Игрок';
-                    const userId = player.userId || `unknown_${index}`;
+                    // ОЧЕНЬ ПРОСТЫЕ ЗНАЧЕНИЯ ДЛЯ ТЕСТА
+                    const rank = index + 1;
+                    const name = player.username || `Игрок ${rank}`;
+                    const balance = player.balance || 0;
+                    const speed = player.totalSpeed || 0;
+                    const earned = player.totalEarned || 0;
+                    const clicks = player.totalClicks || 0;
+                    const wins = player.lotteryWins || 0;
                     
-                    const isCurrent = userId === userData.userId;
-                    const currentPlayerClass = isCurrent ? 'current-player' : '';
+                    const isCurrent = player.userId === userData.userId;
+                    const currentClass = isCurrent ? 'current-player' : '';
                     
-                    let valueText = '';
-                    switch (currentRatingTab) {
-                        case 'balance':
-                            valueText = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
-                            break;
-                        case 'speed':
-                            valueText = `<div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>`;
-                            break;
-                        case 'rich':
-                            valueText = `<div class="leader-balance">${totalEarned.toFixed(9)} S всего</div>`;
-                            break;
-                        default:
-                            valueText = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
+                    let displayValue = '';
+                    if (currentRatingTab === 'balance') {
+                        displayValue = `<div class="leader-balance">${balance.toFixed(9)} S</div>`;
+                    } else if (currentRatingTab === 'speed') {
+                        displayValue = `<div class="leader-speed">${speed.toFixed(9)} S/сек</div>`;
+                    } else {
+                        displayValue = `<div class="leader-balance">${earned.toFixed(9)} S всего</div>`;
                     }
                     
                     newHTML += `
-                        <div class="leader-item ${currentPlayerClass}">
-                            <div class="leader-rank">${index + 1} место</div>
-                            <div class="leader-name ${currentPlayerClass}">
-                                ${username} ${isCurrent ? '👑' : ''}
-                            </div>
-                            ${valueText}
+                        <div class="leader-item ${currentClass}">
+                            <div class="leader-rank">${rank} место</div>
+                            <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                            ${displayValue}
                             <div style="font-size: 10px; color: #ccc; margin-top: 3px;">
-                                Кликов: ${totalClicks} | Побед: ${lotteryWins}
+                                Кликов: ${clicks} | Побед: ${wins}
                             </div>
                         </div>
                     `;
                 });
                 
                 leaderboard.innerHTML = newHTML;
+                console.log('Leaderboard updated successfully');
                 
             } catch (error) {
                 console.error('Ошибка обновления рейтинга:', error);
