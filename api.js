@@ -1,17 +1,22 @@
-// ==================== УЛУЧШЕННЫЙ УСТОЙЧИВЫЙ API ====================
+// ==================== УЛУЧШЕННЫЙ УСТОЙЧИВЫЙ API ДЛЯ СЛАБОГО ИНТЕРНЕТА ====================
 
 let apiConnected = false;
 let isOnline = navigator.onLine;
 let pendingRequests = [];
 let syncInProgress = false;
+let lastSuccessfulRequest = Date.now();
+let connectionRetries = 0;
+const MAX_RETRIES = 5;
+const BASE_DELAY = 1000;
 
-// Кэш для данных
+// Расширенный кэш для данных
 const dataCache = new Map();
-const CACHE_TTL = 30000; // 30 секунд
+const CACHE_TTL = 60000; // 60 секунд для слабого интернета
+const OFFLINE_CACHE_TTL = 300000; // 5 минут для офлайн режима
 
 // Обработчики онлайн/офлайн статуса
 window.addEventListener('online', () => {
-    console.log('Соединение восстановлено');
+    console.log('📡 Соединение восстановлено');
     isOnline = true;
     updateApiStatus('syncing', 'Восстановление...');
     processPendingRequests();
@@ -19,29 +24,48 @@ window.addEventListener('online', () => {
 });
 
 window.addEventListener('offline', () => {
-    console.log('Соединение потеряно');
+    console.log('📡 Соединение потеряно');
     isOnline = false;
     updateApiStatus('disconnected', 'Офлайн режим');
+    showTemporaryNotification('Работаем в автономном режиме', 'warning');
 });
+
+// Мониторинг качества соединения
+let networkQuality = 'good';
+let requestTimings = [];
+
+function monitorNetworkQuality() {
+    const now = Date.now();
+    requestTimings = requestTimings.filter(time => now - time < 60000); // Последние 60 сек
+    
+    if (requestTimings.length > 20) {
+        networkQuality = 'excellent';
+    } else if (requestTimings.length > 10) {
+        networkQuality = 'good';
+    } else if (requestTimings.length > 5) {
+        networkQuality = 'poor';
+    } else {
+        networkQuality = 'very-poor';
+    }
+}
 
 function updateApiStatus(status, message) {
     const apiStatus = document.getElementById('apiStatus');
     if (apiStatus) {
         apiStatus.className = `api-status ${status}`;
         apiStatus.textContent = `API: ${message}`;
-        apiStatus.title = `Статус соединения: ${message}`;
+        apiStatus.title = `Статус соединения: ${message}\nКачество: ${networkQuality}`;
     }
     apiConnected = status === 'connected';
     
-    // Уведомление пользователя о смене статуса
-    if (status === 'disconnected' && isOnline) {
-        showTemporaryNotification('Работаем в автономном режиме', 'warning');
-    } else if (status === 'connected' && !apiConnected) {
-        showTemporaryNotification('Соединение восстановлено', 'success');
-    }
+    // Сохраняем статус для использования в офлайн режиме
+    localStorage.setItem('lastApiStatus', status);
+    localStorage.setItem('lastApiMessage', message);
 }
 
 function showTemporaryNotification(message, type = 'info') {
+    if (!isOnline && type !== 'warning') return;
+    
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
@@ -69,37 +93,48 @@ function showTemporaryNotification(message, type = 'info') {
     }, 3000);
 }
 
-async function wait(ms) {
+// Улучшенная система ожидания с прогрессом
+async function wait(ms, reason = '') {
+    if (reason) {
+        console.log(`⏳ Ожидание ${ms}ms: ${reason}`);
+    }
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Улучшенный кэширующий запрос
-async function apiRequestWithRetry(endpoint, options = {}, retries = CONFIG.MAX_RETRIES) {
+// Умная система ретраев с адаптивными задержками
+async function apiRequestWithRetry(endpoint, options = {}, retries = MAX_RETRIES) {
     const cacheKey = `${endpoint}_${JSON.stringify(options.body || '')}`;
+    const startTime = Date.now();
     
-    // Проверка кэша для GET запросов
-    if (options.method === 'GET' || !options.method) {
+    // Для GET запросов проверяем кэш в первую очередь
+    if ((options.method === 'GET' || !options.method) && !options.forceRefresh) {
         const cached = getCachedData(cacheKey);
-        if (cached) {
-            return cached;
+        if (cached && isCacheValid(cached, endpoint)) {
+            console.log(`📦 Используем кэш для: ${endpoint}`);
+            updateApiStatus('connected', 'Кэш');
+            return cached.data;
         }
     }
     
-    // Если офлайн и есть кэш - возвращаем кэш
-    if (!isOnline && options.method === 'GET') {
+    // Если офлайн и есть кэш - возвращаем кэш с пометкой
+    if (!isOnline) {
         const cached = getCachedData(cacheKey);
         if (cached) {
             updateApiStatus('disconnected', 'Офлайн (кэш)');
-            return cached;
+            return { ...cached.data, _cached: true, _offline: true };
         }
+        throw new Error('OFFLINE: No cached data available');
     }
     
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
-            // Динамический таймаут в зависимости от попытки
-            const timeoutMs = Math.min(10000 + (attempt * 2000), 30000);
+            // Адаптивный таймаут в зависимости от качества сети
+            const timeoutMs = calculateTimeout(attempt, networkQuality);
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+            console.log(`🔄 Попытка ${attempt}/${retries} для ${endpoint}`);
+            updateApiStatus('syncing', `Запрос... (${attempt}/${retries})`);
 
             const response = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
                 ...options,
@@ -117,27 +152,104 @@ async function apiRequestWithRetry(endpoint, options = {}, retries = CONFIG.MAX_
             }
             
             const data = await response.json();
+            const endTime = Date.now();
+            const duration = endTime - startTime;
+            
+            // Записываем успешный запрос для мониторинга качества
+            requestTimings.push(endTime);
+            monitorNetworkQuality();
             
             // Кэшируем успешные ответы
             if (options.method === 'GET' || !options.method) {
-                cacheData(cacheKey, data);
+                cacheData(cacheKey, data, getCacheTTL(endpoint));
             }
             
-            updateApiStatus('connected', 'Подключен');
+            connectionRetries = 0;
+            lastSuccessfulRequest = Date.now();
+            updateApiStatus('connected', getConnectionMessage(networkQuality));
+            
+            console.log(`✅ Успех: ${endpoint} (${duration}ms)`);
             return data;
             
         } catch (error) {
-            console.warn(`API Request attempt ${attempt} failed for ${endpoint}:`, error);
+            console.warn(`❌ Попытка ${attempt} провалена для ${endpoint}:`, error);
             
             if (attempt < retries) {
-                const delay = CONFIG.RETRY_DELAY * Math.pow(2, attempt - 1); // Экспоненциальная задержка
+                const delay = calculateRetryDelay(attempt, networkQuality);
                 updateApiStatus('syncing', `Повтор ${attempt}/${retries}...`);
-                await wait(delay);
+                await wait(delay, `Retry ${attempt} for ${endpoint}`);
             } else {
-                updateApiStatus('disconnected', 'Ошибка подключения');
+                connectionRetries++;
+                updateApiStatus('disconnected', getErrorMessage(error));
                 throw error;
             }
         }
+    }
+}
+
+// Вспомогательные функции для расчета задержек
+function calculateTimeout(attempt, quality) {
+    const baseTimeouts = {
+        'excellent': 5000,
+        'good': 8000,
+        'poor': 15000,
+        'very-poor': 25000
+    };
+    
+    const baseTimeout = baseTimeouts[quality] || 10000;
+    return Math.min(baseTimeout * attempt, 60000); // Макс 60 секунд
+}
+
+function calculateRetryDelay(attempt, quality) {
+    const baseDelays = {
+        'excellent': 500,
+        'good': 1000,
+        'poor': 2000,
+        'very-poor': 4000
+    };
+    
+    const baseDelay = baseDelays[quality] || 1000;
+    return Math.min(baseDelay * Math.pow(2, attempt - 1), 30000); // Экспоненциальная задержка
+}
+
+function getCacheTTL(endpoint) {
+    const ttls = {
+        '/health': 10000, // 10 секунд
+        '/leaderboard': 30000, // 30 секунд
+        '/all_players': 60000, // 60 секунд
+        '/lottery/status': 15000, // 15 секунд
+        '/classic-lottery/status': 15000, // 15 секунд
+        '/referral/stats/': 30000 // 30 секунд
+    };
+    
+    for (const [key, ttl] of Object.entries(ttls)) {
+        if (endpoint.includes(key)) {
+            return ttl;
+        }
+    }
+    
+    return isOnline ? CACHE_TTL : OFFLINE_CACHE_TTL;
+}
+
+function getConnectionMessage(quality) {
+    const messages = {
+        'excellent': 'Отличное соединение',
+        'good': 'Хорошее соединение',
+        'poor': 'Слабое соединение',
+        'very-poor': 'Очень слабое соединение'
+    };
+    return messages[quality] || 'Подключен';
+}
+
+function getErrorMessage(error) {
+    if (error.name === 'AbortError') {
+        return 'Таймаут запроса';
+    } else if (error.message.includes('Failed to fetch')) {
+        return 'Нет соединения';
+    } else if (error.message.includes('OFFLINE')) {
+        return 'Офлайн режим';
+    } else {
+        return 'Ошибка подключения';
     }
 }
 
@@ -156,17 +268,20 @@ async function apiRequest(endpoint, options = {}, useFallback = true) {
         if (!useFallback) throw error;
         
         // Быстрая проверка соединения
-        try {
-            const quickCheck = await fetch(`${CONFIG.API_BASE_URL}/health`, {
-                signal: AbortSignal.timeout(2000)
-            });
-            
-            if (quickCheck.ok) {
-                updateApiStatus('connected', 'Подключен');
-                return await apiRequestWithRetry(endpoint, options);
+        if (isOnline) {
+            try {
+                const quickCheck = await fetch(`${CONFIG.API_BASE_URL}/health`, {
+                    signal: AbortSignal.timeout(2000)
+                });
+                
+                if (quickCheck.ok) {
+                    updateApiStatus('connected', 'Подключен');
+                    return await apiRequestWithRetry(endpoint, options);
+                }
+            } catch (quickError) {
+                console.log('Быстрая проверка тоже провалилась');
+                isOnline = false;
             }
-        } catch (quickError) {
-            console.log('Быстрая проверка тоже провалилась');
         }
         
         // Используем fallback
@@ -177,27 +292,93 @@ async function apiRequest(endpoint, options = {}, useFallback = true) {
             addToPendingQueue(endpoint, options);
         }
         
-        return fallbackResponse;
+        return { ...fallbackResponse, _fallback: true };
     }
 }
 
-// Система очереди запросов
+// Улучшенная система кэширования
+function cacheData(key, data, ttl = CACHE_TTL) {
+    const cacheEntry = {
+        data,
+        timestamp: Date.now(),
+        ttl,
+        endpoint: key.split('_')[0] // Сохраняем endpoint для валидации
+    };
+    
+    dataCache.set(key, cacheEntry);
+    
+    // Сохраняем в localStorage для persistence
+    try {
+        const persistentCache = JSON.parse(localStorage.getItem('persistentCache') || '{}');
+        persistentCache[key] = cacheEntry;
+        // Очищаем старые записи
+        const oneHourAgo = Date.now() - 3600000;
+        Object.keys(persistentCache).forEach(k => {
+            if (persistentCache[k].timestamp < oneHourAgo) {
+                delete persistentCache[k];
+            }
+        });
+        localStorage.setItem('persistentCache', JSON.stringify(persistentCache));
+    } catch (e) {
+        console.warn('Не удалось сохранить в persistent cache');
+    }
+}
+
+function getCachedData(key) {
+    // Сначала проверяем memory cache
+    const cached = dataCache.get(key);
+    if (cached && isCacheValid(cached)) {
+        return cached;
+    }
+    
+    // Затем проверяем persistent cache
+    try {
+        const persistentCache = JSON.parse(localStorage.getItem('persistentCache') || '{}');
+        const persistent = persistentCache[key];
+        if (persistent && isCacheValid(persistent)) {
+            // Восстанавливаем в memory cache
+            dataCache.set(key, persistent);
+            return persistent;
+        }
+    } catch (e) {
+        console.warn('Ошибка чтения persistent cache');
+    }
+    
+    return null;
+}
+
+function isCacheValid(cached, endpoint = '') {
+    const now = Date.now();
+    const age = now - cached.timestamp;
+    
+    // Для критичных данных используем короткий TTL
+    if (endpoint.includes('/lottery/') || endpoint.includes('/health')) {
+        return age < 15000; // 15 секунд
+    }
+    
+    return age < cached.ttl;
+}
+
+// Система очереди запросов с приоритетами
 function addToPendingQueue(endpoint, options) {
     const request = {
         endpoint,
         options,
         timestamp: Date.now(),
-        id: Math.random().toString(36).substr(2, 9)
+        id: Math.random().toString(36).substr(2, 9),
+        priority: getRequestPriority(endpoint),
+        attempts: 0
     };
     
     pendingRequests.push(request);
+    pendingRequests.sort((a, b) => b.priority - a.priority); // Сортируем по приоритету
     
     // Сохраняем в localStorage для восстановления после перезагрузки
     savePendingRequests();
     
     // Лимит очереди
-    if (pendingRequests.length > 50) {
-        pendingRequests = pendingRequests.slice(-50);
+    if (pendingRequests.length > 100) {
+        pendingRequests = pendingRequests.slice(-100);
     }
     
     return { 
@@ -205,6 +386,26 @@ function addToPendingQueue(endpoint, options) {
         message: 'Данные поставлены в очередь для отправки',
         queued: true 
     };
+}
+
+function getRequestPriority(endpoint) {
+    const priorities = {
+        '/player/': 10, // Высокий приоритет для сохранения данных игрока
+        '/lottery/bet': 8, // Высокий приоритет для ставок
+        '/classic-lottery/bet': 8,
+        '/transfer': 7,
+        '/referral/add-earning': 6,
+        '/lottery/draw': 5,
+        '/classic-lottery/draw': 5
+    };
+    
+    for (const [key, priority] of Object.entries(priorities)) {
+        if (endpoint.includes(key)) {
+            return priority;
+        }
+    }
+    
+    return 1; // Низкий приоритет по умолчанию
 }
 
 async function processPendingRequests() {
@@ -217,14 +418,27 @@ async function processPendingRequests() {
         const successfulRequests = [];
         
         for (const request of [...pendingRequests]) {
+            if (request.attempts >= 3) {
+                // Слишком много попыток, пропускаем
+                successfulRequests.push(request.id);
+                continue;
+            }
+            
             try {
                 await apiRequest(request.endpoint, request.options, false);
                 successfulRequests.push(request.id);
+                request.attempts++;
                 
-                // Небольшая задержка между запросами
-                await wait(100);
+                // Задержка между запросами в зависимости от качества сети
+                const delay = networkQuality === 'poor' ? 500 : 100;
+                await wait(delay, 'Processing pending requests');
+                
             } catch (error) {
                 console.warn(`Не удалось отправить отложенный запрос:`, error);
+                request.attempts++;
+                if (request.attempts >= 3) {
+                    successfulRequests.push(request.id); // Удаляем после 3 попыток
+                }
                 break; // Прерываем при первой ошибке
             }
         }
@@ -238,7 +452,7 @@ async function processPendingRequests() {
     } finally {
         syncInProgress = false;
         if (isOnline) {
-            updateApiStatus('connected', 'Синхронизировано');
+            updateApiStatus('connected', getConnectionMessage(networkQuality));
         }
     }
 }
@@ -246,7 +460,10 @@ async function processPendingRequests() {
 // Сохранение/загрузка очереди из localStorage
 function savePendingRequests() {
     try {
-        localStorage.setItem('pendingApiRequests', JSON.stringify(pendingRequests));
+        localStorage.setItem('pendingApiRequests', JSON.stringify({
+            requests: pendingRequests,
+            timestamp: Date.now()
+        }));
     } catch (error) {
         console.warn('Не удалось сохранить очередь запросов:', error);
     }
@@ -256,49 +473,62 @@ function loadPendingRequests() {
     try {
         const saved = localStorage.getItem('pendingApiRequests');
         if (saved) {
-            pendingRequests = JSON.parse(saved) || [];
+            const data = JSON.parse(saved);
+            // Загружаем только свежие запросы (не старше 24 часов)
+            if (Date.now() - data.timestamp < 86400000) {
+                pendingRequests = data.requests || [];
+            }
         }
     } catch (error) {
         console.warn('Не удалось загрузить очередь запросов:', error);
     }
 }
 
-// Система кэширования
-function cacheData(key, data, ttl = CACHE_TTL) {
-    dataCache.set(key, {
-        data,
-        timestamp: Date.now(),
-        ttl
-    });
+// Периодическая синхронизация с адаптивными интервалами
+function getSyncInterval() {
+    const intervals = {
+        'excellent': 30000, // 30 секунд
+        'good': 45000, // 45 секунд
+        'poor': 60000, // 60 секунд
+        'very-poor': 90000 // 90 секунд
+    };
+    return intervals[networkQuality] || 60000;
 }
 
-function getCachedData(key) {
-    const cached = dataCache.get(key);
-    if (!cached) return null;
-    
-    if (Date.now() - cached.timestamp > cached.ttl) {
-        dataCache.delete(key);
-        return null;
-    }
-    
-    return cached.data;
-}
-
-// Периодическая синхронизация
 async function startPeriodicSync() {
-    // Синхронизация каждые 30 секунд когда онлайн
+    // Синхронизация с адаптивными интервалами
     setInterval(() => {
         if (isOnline && apiConnected) {
             syncAllData();
         }
-    }, 30000);
+    }, getSyncInterval());
     
-    // Обработка очереди каждые 10 секунд
+    // Обработка очереди с адаптивными интервалами
     setInterval(() => {
         if (isOnline) {
             processPendingRequests();
         }
+    }, Math.max(5000, getSyncInterval() / 2));
+    
+    // Мониторинг соединения
+    setInterval(() => {
+        monitorNetworkQuality();
+        checkConnectionHealth();
     }, 10000);
+}
+
+async function checkConnectionHealth() {
+    if (!isOnline) return;
+    
+    const timeSinceLastSuccess = Date.now() - lastSuccessfulRequest;
+    if (timeSinceLastSuccess > 30000) { // 30 секунд без успешных запросов
+        console.warn('Долго не было успешных запросов, проверяем соединение...');
+        try {
+            await apiRequest('/health', {}, false);
+        } catch (error) {
+            console.warn('Проверка соединения провалилась');
+        }
+    }
 }
 
 async function syncAllData() {
@@ -306,7 +536,7 @@ async function syncAllData() {
     
     try {
         await syncPlayerDataWithAPI();
-        // Дополнительные синхронизации можно добавить здесь
+        // Можно добавить синхронизацию других данных
     } catch (error) {
         console.warn('Ошибка периодической синхронизации:', error);
     }
@@ -327,7 +557,7 @@ async function checkApiConnection() {
         const connected = result && result.status === 'healthy';
         
         if (connected) {
-            updateApiStatus('connected', 'Подключен');
+            updateApiStatus('connected', getConnectionMessage(networkQuality));
             // Запускаем обработку очереди после восстановления
             setTimeout(() => processPendingRequests(), 1000);
         } else {
@@ -337,94 +567,8 @@ async function checkApiConnection() {
         return connected;
     } catch (error) {
         console.warn('API check failed:', error);
-        updateApiStatus('disconnected', 'Ошибка подключения');
+        updateApiStatus('disconnected', getErrorMessage(error));
         return false;
-    }
-}
-
-// Улучшенная синхронизация данных игрока
-async function syncPlayerDataWithAPI() {
-    try {
-        const data = await apiRequest(`/player/${userData.userId}`);
-        
-        if (data.success && data.player) {
-            const apiData = data.player;
-            
-            if (!userData.lastUpdate || (apiData.lastUpdate && new Date(apiData.lastUpdate) > new Date(userData.lastUpdate))) {
-                Object.assign(userData, {
-                    balance: apiData.balance || 0.000000100,
-                    totalEarned: apiData.totalEarned || 0.000000100,
-                    totalClicks: apiData.totalClicks || 0,
-                    lotteryWins: apiData.lotteryWins || 0,
-                    totalBet: apiData.totalBet || 0,
-                    transfers: apiData.transfers || { sent: 0, received: 0 },
-                    referralEarnings: apiData.referralEarnings || 0,
-                    referralsCount: apiData.referralsCount || 0,
-                    totalWinnings: apiData.totalWinnings || 0,
-                    totalLosses: apiData.totalLosses || 0,
-                    lastUpdate: apiData.lastUpdate || new Date().toISOString()
-                });
-                
-                if (apiData.upgrades) {
-                    for (const key in apiData.upgrades) {
-                        if (upgrades[key]) {
-                            upgrades[key].level = apiData.upgrades[key].level || 0;
-                        }
-                    }
-                }
-                
-                updateUI();
-                updateShopUI();
-                
-                // Кэшируем обновленные данные
-                cacheData(`player_${userData.userId}`, userData, 60000);
-            }
-        }
-    } catch (error) {
-        console.warn('Ошибка синхронизации с API:', error);
-    }
-}
-
-// Улучшенное сохранение данных
-async function saveUserDataToAPI(immediate = false) {
-    const saveData = {
-        username: userData.username || 'Player',
-        balance: userData.balance || 0.000000100,
-        totalEarned: userData.totalEarned || 0.000000100,
-        totalClicks: userData.totalClicks || 0,
-        lotteryWins: userData.lotteryWins || 0,
-        totalBet: userData.totalBet || 0,
-        transfers: userData.transfers || { sent: 0, received: 0 },
-        upgrades: {},
-        referralEarnings: userData.referralEarnings || 0,
-        referralsCount: userData.referralsCount || 0,
-        totalWinnings: userData.totalWinnings || 0,
-        totalLosses: userData.totalLosses || 0,
-        lastUpdate: new Date().toISOString()
-    };
-    
-    for (const key in upgrades) {
-        if (upgrades[key]) {
-            saveData.upgrades[key] = { 
-                level: upgrades[key].level || 0 
-            };
-        }
-    }
-    
-    try {
-        if (immediate && isOnline) {
-            await apiRequest(`/player/${userData.userId}`, {
-                method: 'POST',
-                body: JSON.stringify(saveData)
-            }, false);
-        } else {
-            await apiRequest(`/player/${userData.userId}`, {
-                method: 'POST',
-                body: JSON.stringify(saveData)
-            });
-        }
-    } catch (error) {
-        console.warn('Ошибка сохранения в API:', error);
     }
 }
 
@@ -432,10 +576,18 @@ async function saveUserDataToAPI(immediate = false) {
 function initResilientAPI() {
     loadPendingRequests();
     startPeriodicSync();
+    
+    // Восстанавливаем статус из localStorage
+    const lastStatus = localStorage.getItem('lastApiStatus');
+    const lastMessage = localStorage.getItem('lastApiMessage');
+    if (lastStatus && lastMessage) {
+        updateApiStatus(lastStatus, lastMessage);
+    }
+    
     checkApiConnection();
     
     // Периодическая проверка соединения
-    setInterval(checkApiConnection, 60000);
+    setInterval(checkApiConnection, 30000);
 }
 
 // Инициализируем при загрузке
