@@ -1,0 +1,1354 @@
+/* ОСНОВНЫЕ СТИЛИ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: white;
+    padding: 0;
+}
+
+.container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+    padding-top: 10px;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4CC9F0;
+    margin-bottom: 5px;
+}
+
+.balance-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+    position: relative;
+}
+
+.balance-amount {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4CC9F0;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 10px;
+}
+
+.coin-section {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+}
+
+.click-coin {
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border-radius: 50%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 
+        0 15px 35px rgba(33, 150, 243, 0.4),
+        inset 0 -8px 15px rgba(0,0,0,0.3),
+        inset 0 8px 15px rgba(255,255,255,0.3);
+    border: 4px solid #64B5F6;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    position: relative;
+    user-select: none;
+}
+
+.click-coin:active {
+    transform: scale(0.95);
+    box-shadow: 
+        0 8px 25px rgba(33, 150, 243, 0.6),
+        inset 0 -5px 12px rgba(0,0,0,0.4);
+}
+
+.click-coin::before {
+    content: '';
+    position: absolute;
+    width: 92%;
+    height: 92%;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+}
+
+.coin-letter {
+    font-size: 72px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    font-family: 'Arial', sans-serif;
+}
+
+.click-info {
+    margin-top: 15px;
+    font-size: 16px;
+    color: rgba(255,255,255,0.9);
+}
+
+.click-value {
+    font-weight: bold;
+    color: #4CAF50;
+    font-size: 18px;
+}
+
+.income-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.stat-value {
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+}
+
+.main-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.menu-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    outline: none;
+    border: 2px solid rgba(76, 201, 240, 0.3);
+}
+
+.menu-button:hover {
+    background: rgba(76, 201, 240, 0.2);
+    transform: translateY(-2px);
+}
+
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
+
+.shop-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
+}
+
+.shop-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.shop-tab.active {
+    background: #2196F3;
+    font-weight: bold;
+}
+
+.shop-category {
+    margin-bottom: 20px;
+}
+
+.category-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #2196F3;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.upgrade-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.upgrade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.upgrade-name {
+    font-weight: bold;
+    color: #2196F3;
+    font-size: 14px;
+}
+
+.upgrade-owned {
+    color: #FF9800;
+    font-size: 12px;
+}
+
+.upgrade-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.upgrade-bonus {
+    color: #4CAF50;
+}
+
+.upgrade-price {
+    color: #F44336;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+.buy-button {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.buy-button:hover {
+    background: linear-gradient(135deg, #1976D2, #2196F3);
+}
+
+.buy-button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.hidden {
+    display: none;
+}
+
+.tab-content {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.back-button {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 15px;
+    width: 100%;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+}
+
+.cooldown {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.leaderboard {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.rating-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
+}
+
+.rating-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.3s ease;
+}
+
+.rating-tab.active {
+    background: #2196F3;
+    font-weight: bold;
+}
+
+.leader-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+}
+
+.leader-item.current-player {
+    background: rgba(76, 201, 240, 0.2);
+    border: 2px solid #4CC9F0;
+    box-shadow: 0 0 15px rgba(76, 201, 240, 0.5);
+    transform: scale(1.02);
+}
+
+.leader-rank {
+    font-weight: bold;
+    color: #2196F3;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.leader-name {
+    font-weight: bold;
+    color: #4CC9F0;
+    margin-bottom: 3px;
+}
+
+.leader-name.current-player {
+    color: #4CC9F0;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(76, 201, 240, 0.7);
+}
+
+.leader-balance {
+    color: #4CAF50;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.leader-speed {
+    color: #FF9800;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.lottery-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.lottery-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2196F3;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.team-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.team-button {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid #2196F3;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.team-button.active {
+    background: #2196F3;
+    transform: scale(1.05);
+}
+
+.team-button.eagle {
+    border-color: #FF5722;
+}
+
+.team-button.eagle.active {
+    background: #FF5722;
+}
+
+.team-button.tails {
+    border-color: #4CAF50;
+}
+
+.team-button.tails.active {
+    background: #4CAF50;
+}
+
+.bet-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #2196F3;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+    margin-bottom: 10px;
+    outline: none;
+}
+
+.play-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.lottery-timer {
+    background: rgba(255, 165, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 10px 0;
+    font-weight: bold;
+    color: #FFA500;
+}
+
+.lottery-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.lottery-stat {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.lottery-stat.eagle {
+    border-left: 3px solid #FF5722;
+}
+
+.lottery-stat.tails {
+    border-left: 3px solid #4CAF50;
+}
+
+.stat-percentage {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.stat-amount {
+    font-size: 14px;
+    color: #ccc;
+}
+
+.participants {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 10px 0;
+}
+
+.participant-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 6px;
+    font-size: 12px;
+    border-left: 3px solid #2196F3;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.participant-item.current-player {
+    border: 2px solid #4CC9F0;
+    background: rgba(76, 201, 240, 0.1);
+    transform: scale(1.02);
+}
+
+.participant-item.eagle {
+    border-left-color: #FF5722;
+}
+
+.participant-item.tails {
+    border-left-color: #4CAF50;
+}
+
+.participant-bet {
+    color: #4CAF50;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.last-winner {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: center;
+    border: 1px solid #FFD700;
+}
+
+.winner-team {
+    font-weight: bold;
+    color: #FFD700;
+    margin: 5px 0;
+}
+
+.winner-prize {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.click-popup {
+    position: absolute;
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 16px;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+    font-family: 'Courier New', monospace;
+}
+
+.transfer-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.search-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #2196F3;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 100%;
+    margin-bottom: 15px;
+    outline: none;
+}
+
+.users-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.user-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.user-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+.user-item.selected {
+    background: rgba(33, 150, 243, 0.2);
+    border-color: #2196F3;
+}
+
+.user-name {
+    font-weight: bold;
+    color: #4CC9F0;
+    margin-bottom: 5px;
+}
+
+.user-balance {
+    color: #4CAF50;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+.transfer-amount-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #2196F3;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    width: 100%;
+    margin-bottom: 15px;
+    outline: none;
+    text-align: center;
+}
+
+.transfer-button {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    border: none;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.transfer-button:hover {
+    background: linear-gradient(135deg, #F57C00, #FF9800);
+}
+
+.transfer-button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+}
+
+.anti-cheat {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    flex-direction: column;
+}
+
+.anti-cheat-message {
+    background: #f44336;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 300px;
+    margin: 20px;
+}
+
+.api-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 10px;
+    z-index: 1000;
+}
+
+.api-status.connected {
+    background: #4CAF50;
+    color: white;
+}
+
+.api-status.disconnected {
+    background: #f44336;
+    color: white;
+}
+
+.api-status.syncing {
+    background: #FF9800;
+    color: white;
+}
+
+.participant-time {
+    font-size: 10px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.games-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
+}
+
+.game-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.game-tab.active {
+    background: #2196F3;
+    font-weight: bold;
+}
+
+.game-section {
+    display: none;
+}
+
+.game-section.active {
+    display: block;
+}
+
+.lottery-game {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.lottery-timer-large {
+    background: linear-gradient(135deg, #FF5722, #FF9800);
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 15px 0;
+    font-weight: bold;
+    color: white;
+    font-size: 18px;
+}
+
+.lottery-pot {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 10px 0;
+    border: 1px solid #FFD700;
+}
+
+.lottery-history {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 15px 0;
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+}
+
+.history-item.lost {
+    border-left-color: #f44336;
+}
+
+.result-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    z-index: 10000;
+    border: 3px solid #FFD700;
+    display: none;
+}
+
+.result-popup.win {
+    border-color: #4CAF50;
+}
+
+.result-popup.lose {
+    border-color: #f44336;
+}
+
+.result-emoji {
+    font-size: 64px;
+    margin-bottom: 15px;
+}
+
+.result-text {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.result-amount {
+    font-size: 20px;
+    color: #4CAF50;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.referral-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.referral-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.referral-stat {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.referral-link {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+}
+
+.share-button {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.top-winners {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.winner-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.winner-rank {
+    font-weight: bold;
+    color: #FFD700;
+    font-size: 16px;
+    min-width: 30px;
+}
+
+.winner-name {
+    flex: 1;
+    margin: 0 10px;
+}
+
+.winner-amount {
+    color: #4CAF50;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+.nav-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 5px;
+    gap: 5px;
+}
+
+.nav-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.nav-tab.active {
+    background: #2196F3;
+    font-weight: bold;
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+    transform: translateX(400px);
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    z-index: 10000;
+    max-width: 300px;
+    border-left: 4px solid #4CC9F0;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.success {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-left-color: #8BC34A;
+}
+
+.notification.error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-left-color: #FF9800;
+}
+
+.notification.warning {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    border-left-color: #FFC107;
+}
+
+.notification h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.notification p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* ==================== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ==================== */
+/* Прогресс-бар для лотереи */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    margin: 12px 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.progress-fill.eagle {
+    background: linear-gradient(90deg, #FF5722, #FF9800);
+    box-shadow: 0 0 10px rgba(255, 87, 34, 0.3);
+}
+
+.progress-fill.tails {
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+/* Улучшенные стили для участников лотереи */
+.participant-item {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 10px;
+    border-left: 4px solid #2196F3;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    backdrop-filter: blur(10px);
+}
+
+.participant-item.eagle {
+    border-left-color: #FF5722;
+    background: rgba(255, 87, 34, 0.1);
+}
+
+.participant-item.tails {
+    border-left-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.participant-item.current-player {
+    border: 2px solid #4CC9F0;
+    background: rgba(76, 201, 240, 0.2);
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(76, 201, 240, 0.4);
+}
+
+.participant-item:hover {
+    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.participant-bet {
+    color: #4CAF50;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background: rgba(76, 175, 80, 0.15);
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.participant-time {
+    font-size: 10px;
+    color: #aaa;
+    margin-top: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Улучшенные кнопки команд */
+.team-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.team-button.eagle {
+    border-color: #FF5722;
+    background: rgba(255, 87, 34, 0.1);
+}
+
+.team-button.tails {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.team-button.active.eagle {
+    background: linear-gradient(135deg, #FF5722, #E64A19);
+    border-color: #FF5722;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 87, 34, 0.4);
+}
+
+.team-button.active.tails {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
+    border-color: #4CAF50;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+}
+
+.team-button:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Анимации для лотереи */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.lottery-timer {
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 140, 0, 0.2));
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 15px 0;
+    font-weight: bold;
+    color: #FFA500;
+    border: 1px solid rgba(255, 165, 0, 0.5);
+    animation: pulse 2s infinite;
+}
+
+.lottery-stat {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.lottery-stat:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.lottery-stat.eagle {
+    border-left: 4px solid #FF5722;
+    background: rgba(255, 87, 34, 0.1);
+}
+
+.lottery-stat.tails {
+    border-left: 4px solid #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.stat-percentage {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 8px 0;
+    font-family: 'Courier New', monospace;
+}
+
+.stat-amount {
+    font-size: 14px;
+    color: #ccc;
+    font-family: 'Courier New', monospace;
+}
+
+/* Улучшенный последний победитель */
+.last-winner {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 193, 7, 0.15));
+    padding: 15px;
+    border-radius: 12px;
+    margin: 15px 0;
+    text-align: center;
+    border: 2px solid #FFD700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.winner-team {
+    font-weight: bold;
+    color: #FFD700;
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+.winner-prize {
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 18px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Анимации для новых ставок */
+@keyframes newBet {
+    0% {
+        background: rgba(76, 201, 240, 0.5);
+        transform: scale(0.95);
+    }
+    50% {
+        background: rgba(76, 201, 240, 0.8);
+        transform: scale(1.02);
+    }
+    100% {
+        background: rgba(255, 255, 255, 0.08);
+        transform: scale(1);
+    }
+}
+
+.new-bet {
+    animation: newBet 1s ease;
+}
+
+/* Улучшенные поля ввода */
+.bet-input, .transfer-amount-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(33, 150, 243, 0.5);
+    color: white;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    width: 100%;
+    margin-bottom: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.bet-input:focus, .transfer-amount-input:focus {
+    border-color: #2196F3;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+}
+
+/* Улучшенные кнопки действий */
+.play-button, .transfer-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: none;
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.play-button:hover, .transfer-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #45a049, #4CAF50);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+}
+
+.play-button:disabled, .transfer-button:disabled {
+    background: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 480px) {
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        transform: translateY(-100px);
+    }
+    
+    .notification.show {
+        transform: translateY(0);
+    }
+    
+    .participant-item {
+        padding: 10px;
+        font-size: 12px;
+    }
+    
+    .team-button {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .lottery-stat {
+        padding: 12px;
+    }
+}
+
+/* Специальные эффекты для победителя */
+.winner-glow {
+    animation: winnerGlow 2s ease-in-out infinite;
+}
+
+@keyframes winnerGlow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* Прогресс-бар для таймера лотереи */
+.timer-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.timer-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FF9800, #FF5722);
+    border-radius: 3px;
+    transition: width 1s linear;
+}
+
+/* Улучшенные заголовки секций */
+.section-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #4CC9F0;
+    text-align: center;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 10px rgba(76, 201, 240, 0.3);
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #4CC9F0, transparent);
+    border-radius: 2px;
+}
