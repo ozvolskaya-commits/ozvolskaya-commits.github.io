@@ -68,7 +68,20 @@ function clickCoin(event) {
     userData.totalClicks++;
     userData.lastUpdate = Date.now();
     
-    createClickPopup(event, clickPower);
+    // ИСПРАВЛЕНИЕ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ
+    let clientX, clientY;
+    if (event.type === 'touchstart' || event.type === 'touchend') {
+        // Для тач-событий
+        const touch = event.touches[0] || event.changedTouches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+    } else {
+        // Для мыши
+        clientX = event.clientX;
+        clientY = event.clientY;
+    }
+    
+    createClickPopup(clientX, clientY, clickPower);
     
     const coin = document.getElementById('clickCoin');
     coin.classList.add('cooldown');
@@ -78,19 +91,27 @@ function clickCoin(event) {
     saveUserData();
 }
 
-function createClickPopup(event, amount) {
+// ОБНОВЛЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ПОПАПА
+function createClickPopup(x, y, amount) {
     const popup = document.createElement('div');
     popup.className = 'click-popup';
     popup.textContent = '+' + amount.toFixed(9);
     
-    const rect = event.target.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
+    // Позиционируем относительно окна просмотра
+    popup.style.position = 'fixed';
     popup.style.left = x + 'px';
     popup.style.top = y + 'px';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.zIndex = '10000';
+    popup.style.pointerEvents = 'none';
+    popup.style.color = '#4CAF50';
+    popup.style.fontWeight = 'bold';
+    popup.style.fontSize = '18px';
+    popup.style.fontFamily = 'Courier New, monospace';
+    popup.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
+    popup.style.animation = 'floatUp 1s ease-out forwards';
     
-    document.getElementById('clickCoin').appendChild(popup);
+    document.body.appendChild(popup);
     
     setTimeout(() => {
         if (popup.parentNode) {
