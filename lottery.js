@@ -26,12 +26,16 @@ async function loadLotteryStatus() {
     try {
         const data = await apiRequest('/lottery/status');
         
-        if (data.success && data.lottery) {
+        if (data && data.success && data.lottery) {
             lotteryData = data.lottery;
+            updateLotteryUI();
+        } else {
+            console.log('⚠️ Нет данных лотереи, используем локальные');
             updateLotteryUI();
         }
     } catch (error) {
-        console.warn('Ошибка загрузки статуса лотереи:', error);
+        console.warn('⚠️ Ошибка загрузки статуса лотереи, используем локальные данные:', error);
+        updateLotteryUI();
     }
 }
 
@@ -46,30 +50,75 @@ async function placeLotteryBet(team, amount) {
             })
         });
         
-        if (data.success) {
-            userData.balance -= amount;
-            userData.totalBet += amount;
-            userData.lastUpdate = Date.now();
-            
-            updateUI();
-            saveUserData();
+        if (data && data.success) {
+            if (userData) {
+                userData.balance -= amount;
+                userData.totalBet += amount;
+                userData.lastUpdate = Date.now();
+                
+                updateUI();
+                if (typeof saveUserData === 'function') {
+                    saveUserData();
+                }
+            }
             
             await loadLotteryStatus();
             
-            showNotification(`Ставка ${amount.toFixed(9)} S за команду ${team === 'eagle' ? 'Орлов' : 'Решки'} принята!`, 'success');
+            if (typeof showNotification === 'function') {
+                showNotification(`Ставка ${amount.toFixed(9)} S за команду ${team === 'eagle' ? 'Орлов' : 'Решки'} принята!`, 'success');
+            }
             return true;
         } else {
-            showNotification(`Ошибка ставки: ${data.error}`, 'error');
+            if (typeof showNotification === 'function') {
+                showNotification(`Ошибка ставки: ${data?.error || 'Неизвестная ошибка'}`, 'error');
+            }
             return false;
         }
     } catch (error) {
-        showNotification('Ставка принята в резервном режиме', 'warning');
-        userData.balance -= amount;
-        userData.totalBet += amount;
-        userData.lastUpdate = Date.now();
-        updateUI();
-        saveUserData();
-        return true;
+        console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
+        
+        // Локальная обработка ставки
+        if (userData) {
+            if (userData.balance >= amount) {
+                userData.balance -= amount;
+                userData.totalBet += amount;
+                userData.lastUpdate = Date.now();
+                
+                // Добавляем ставку локально
+                const bet = {
+                    userId: userData.userId,
+                    username: userData.username,
+                    amount: amount,
+                    timestamp: new Date().toISOString()
+                };
+                
+                lotteryData[team].push(bet);
+                
+                if (team === 'eagle') {
+                    lotteryData.total_eagle += amount;
+                } else {
+                    lotteryData.total_tails += amount;
+                }
+                
+                updateUI();
+                updateLotteryUI();
+                
+                if (typeof saveUserData === 'function') {
+                    saveUserData();
+                }
+                
+                if (typeof showNotification === 'function') {
+                    showNotification(`Ставка ${amount.toFixed(9)} S принята в локальном режиме!`, 'warning');
+                }
+                return true;
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Недостаточно средств', 'error');
+                }
+                return false;
+            }
+        }
+        return false;
     }
 }
 
@@ -84,92 +133,100 @@ function updateLotteryUI() {
     const lastWinner = document.getElementById('lastWinner');
     const winnerTeam = document.getElementById('winnerTeam');
     
-    lotteryTimer.textContent = lotteryData.timer;
+    if (lotteryTimer) lotteryTimer.textContent = lotteryData.timer || 60;
+    if (eagleTotal) eagleTotal.textContent = (lotteryData.total_eagle || 0).toFixed(9) + ' S';
+    if (tailsTotal) tailsTotal.textContent = (lotteryData.total_tails || 0).toFixed(9) + ' S';
+    if (eagleParticipants) eagleParticipants.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
+    if (tailsParticipants) tailsParticipants.textContent = lotteryData.tails ? lotteryData.tails.length : 0;
     
-    eagleTotal.textContent = lotteryData.total_eagle.toFixed(9) + ' S';
-    tailsTotal.textContent = lotteryData.total_tails.toFixed(9) + ' S';
+    // Очищаем списки
+    if (eagleList) eagleList.innerHTML = '';
+    if (tailsList) tailsList.innerHTML = '';
     
-    eagleParticipants.textContent = lotteryData.eagle.length;
-    tailsParticipants.textContent = lotteryData.tails.length;
-    
-    eagleList.innerHTML = '';
-    tailsList.innerHTML = '';
-    
-    if (lotteryData.eagle && lotteryData.eagle.length > 0) {
+    // Заполняем список Орлов
+    if (eagleList && lotteryData.eagle && lotteryData.eagle.length > 0) {
         lotteryData.eagle.forEach((participant) => {
-            const item = document.createElement('div');
-            item.className = `participant-item eagle ${participant.userId === userData.userId ? 'current-player' : ''}`;
-            item.setAttribute('data-user-id', participant.userId);
+            if (!participant) return;
             
-            const betTime = new Date(participant.timestamp);
+            const item = document.createElement('div');
+            item.className = `participant-item eagle ${participant.userId === (userData?.userId) ? 'current-player' : ''}`;
+            
+            const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
             const timeString = betTime.toLocaleTimeString();
             
             item.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div style="flex: 1;">
-                        <div style="${participant.userId === userData.userId ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
-                            ${participant.username}
+                        <div style="${participant.userId === (userData?.userId) ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
+                            ${participant.username || 'Игрок'}
                         </div>
                         <div class="participant-time">${timeString}</div>
                     </div>
-                    <span class="participant-bet">${participant.amount.toFixed(9)} S</span>
+                    <span class="participant-bet">${(participant.amount || 0).toFixed(9)} S</span>
                 </div>
             `;
             eagleList.appendChild(item);
         });
-    } else {
+    } else if (eagleList) {
         eagleList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
     }
     
-    if (lotteryData.tails && lotteryData.tails.length > 0) {
+    // Заполняем список Решек
+    if (tailsList && lotteryData.tails && lotteryData.tails.length > 0) {
         lotteryData.tails.forEach((participant) => {
-            const item = document.createElement('div');
-            item.className = `participant-item tails ${participant.userId === userData.userId ? 'current-player' : ''}`;
-            item.setAttribute('data-user-id', participant.userId);
+            if (!participant) return;
             
-            const betTime = new Date(participant.timestamp);
+            const item = document.createElement('div');
+            item.className = `participant-item tails ${participant.userId === (userData?.userId) ? 'current-player' : ''}`;
+            
+            const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
             const timeString = betTime.toLocaleTimeString();
             
             item.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div style="flex: 1;">
-                        <div style="${participant.userId === userData.userId ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
-                            ${participant.username}
+                        <div style="${participant.userId === (userData?.userId) ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
+                            ${participant.username || 'Игрок'}
                         </div>
                         <div class="participant-time">${timeString}</div>
                     </div>
-                    <span class="participant-bet">${participant.amount.toFixed(9)} S</span>
+                    <span class="participant-bet">${(participant.amount || 0).toFixed(9)} S</span>
                 </div>
             `;
             tailsList.appendChild(item);
         });
-    } else {
+    } else if (tailsList) {
         tailsList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
     }
     
-    const totalBet = lotteryData.total_eagle + lotteryData.total_tails;
+    // Обновляем шансы
+    const totalBet = (lotteryData.total_eagle || 0) + (lotteryData.total_tails || 0);
     let eagleChance = 50;
     let tailsChance = 50;
     
     if (totalBet > 0) {
-        eagleChance = Math.round((lotteryData.total_eagle / totalBet) * 100);
+        eagleChance = Math.round(((lotteryData.total_eagle || 0) / totalBet) * 100);
         tailsChance = 100 - eagleChance;
     }
     
-    document.getElementById('eagleChance').textContent = eagleChance + '%';
-    document.getElementById('tailsChance').textContent = tailsChance + '%';
+    const eagleChanceElement = document.getElementById('eagleChance');
+    const tailsChanceElement = document.getElementById('tailsChance');
     
-    if (lotteryData.last_winner) {
+    if (eagleChanceElement) eagleChanceElement.textContent = eagleChance + '%';
+    if (tailsChanceElement) tailsChanceElement.textContent = tailsChance + '%';
+    
+    // Показываем последнего победителя
+    if (lastWinner && winnerTeam && lotteryData.last_winner) {
         lastWinner.style.display = 'block';
         const teamName = lotteryData.last_winner.team === 'eagle' ? '🦅 Орлы' : '🪙 Решки';
-        const winnerTime = new Date(lotteryData.last_winner.timestamp).toLocaleDateString();
+        const winnerTime = lotteryData.last_winner.timestamp ? new Date(lotteryData.last_winner.timestamp).toLocaleDateString() : 'Недавно';
         winnerTeam.innerHTML = `
             <div style="color: #FFD700; font-weight: bold;">${teamName}</div>
-            <div style="color: white;">${lotteryData.last_winner.username}</div>
-            <div style="color: #4CAF50; font-weight: bold;">${lotteryData.last_winner.prize.toFixed(9)} S</div>
+            <div style="color: white;">${lotteryData.last_winner.username || 'Победитель'}</div>
+            <div style="color: #4CAF50; font-weight: bold;">${(lotteryData.last_winner.prize || 0).toFixed(9)} S</div>
             <div style="font-size: 10px; color: #ccc;">${winnerTime}</div>
         `;
-    } else {
+    } else if (lastWinner) {
         lastWinner.style.display = 'none';
     }
 }
@@ -199,25 +256,35 @@ function selectTeam(team) {
 
 async function playTeamLottery() {
     if (!selectedTeam) {
-        showNotification('Выберите команду!', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Выберите команду!', 'error');
+        }
         return;
     }
     
     const betInput = document.getElementById('teamBet');
+    if (!betInput) return;
+    
     const bet = parseFloat(betInput.value);
     
     if (isNaN(bet) || bet <= 0) {
-        showNotification('Введите корректную сумму ставки', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Введите корректную сумму ставки', 'error');
+        }
         return;
     }
     
-    if (bet > userData.balance) {
-        showNotification('Недостаточно средств', 'error');
+    if (userData && bet > userData.balance) {
+        if (typeof showNotification === 'function') {
+            showNotification('Недостаточно средств', 'error');
+        }
         return;
     }
     
     if (bet < 0.000000001) {
-        showNotification('Минимальная ставка 0.000000001 S', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Минимальная ставка 0.000000001 S', 'error');
+        }
         return;
     }
     
@@ -228,7 +295,7 @@ async function playTeamLottery() {
             btn.classList.remove('active');
         });
         selectedTeam = null;
-        betInput.value = '0.000000100';
+        if (betInput) betInput.value = '0.000000100';
     }
 }
 
@@ -237,31 +304,43 @@ async function loadClassicLottery() {
     try {
         const data = await apiRequest('/classic-lottery/status');
         
-        if (data.success && data.lottery) {
+        if (data && data.success && data.lottery) {
             classicLotteryData = data.lottery;
+            updateClassicLotteryUI();
+        } else {
+            console.log('⚠️ Нет данных классической лотереи, используем локальные');
             updateClassicLotteryUI();
         }
     } catch (error) {
-        console.warn('Ошибка загрузки классической лотереи:', error);
+        console.warn('⚠️ Ошибка загрузки классической лотереи, используем локальные данные:', error);
+        updateClassicLotteryUI();
     }
 }
 
 async function playClassicLottery() {
     const betInput = document.getElementById('classicBet');
+    if (!betInput) return;
+    
     const bet = parseFloat(betInput.value);
     
     if (isNaN(bet) || bet <= 0) {
-        showNotification('Введите корректную сумму ставки', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Введите корректную сумму ставки', 'error');
+        }
         return;
     }
     
-    if (bet > userData.balance) {
-        showNotification('Недостаточно средств', 'error');
+    if (userData && bet > userData.balance) {
+        if (typeof showNotification === 'function') {
+            showNotification('Недостаточно средств', 'error');
+        }
         return;
     }
     
     if (bet < 0.000000001) {
-        showNotification('Минимальная ставка 0.000000001 S', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Минимальная ставка 0.000000001 S', 'error');
+        }
         return;
     }
     
@@ -269,55 +348,109 @@ async function playClassicLottery() {
         const data = await apiRequest('/classic-lottery/bet', {
             method: 'POST',
             body: JSON.stringify({
-                userId: userData.userId,
+                userId: userData?.userId,
                 amount: bet
             })
         });
         
-        if (data.success) {
-            userData.balance -= bet;
-            userData.totalBet += bet;
-            userData.lastUpdate = Date.now();
+        if (data && data.success) {
+            if (userData) {
+                userData.balance -= bet;
+                userData.totalBet += bet;
+                userData.lastUpdate = Date.now();
+                
+                updateUI();
+                if (typeof saveUserData === 'function') {
+                    saveUserData();
+                }
+            }
             
-            updateUI();
-            saveUserData();
             await loadClassicLottery();
             
-            showNotification(`Ставка ${bet.toFixed(9)} S принята!`, 'success');
+            if (typeof showNotification === 'function') {
+                showNotification(`Ставка ${bet.toFixed(9)} S принята!`, 'success');
+            }
         } else {
-            showNotification(`Ошибка ставки: ${data.error}`, 'error');
+            if (typeof showNotification === 'function') {
+                showNotification(`Ошибка ставки: ${data?.error || 'Неизвестная ошибка'}`, 'error');
+            }
         }
     } catch (error) {
-        showNotification('Ставка принята в резервном режиме', 'warning');
-        userData.balance -= bet;
-        userData.totalBet += bet;
-        userData.lastUpdate = Date.now();
-        updateUI();
-        saveUserData();
+        console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
+        
+        // Локальная обработка ставки
+        if (userData) {
+            if (userData.balance >= bet) {
+                userData.balance -= bet;
+                userData.totalBet += bet;
+                userData.lastUpdate = Date.now();
+                
+                // Добавляем ставку локально
+                const betData = {
+                    userId: userData.userId,
+                    username: userData.username,
+                    amount: bet,
+                    timestamp: new Date().toISOString()
+                };
+                
+                classicLotteryData.bets.push(betData);
+                classicLotteryData.total_pot += bet;
+                classicLotteryData.participants_count = classicLotteryData.bets.length;
+                
+                updateUI();
+                updateClassicLotteryUI();
+                
+                if (typeof saveUserData === 'function') {
+                    saveUserData();
+                }
+                
+                if (typeof showNotification === 'function') {
+                    showNotification(`Ставка ${bet.toFixed(9)} S принята в локальном режиме!`, 'warning');
+                }
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Недостаточно средств', 'error');
+                }
+            }
+        }
     }
 }
 
 function updateClassicLotteryUI() {
-    document.getElementById('classicTimer').textContent = classicLotteryData.timer;
-    document.getElementById('lotteryPot').textContent = classicLotteryData.total_pot.toFixed(9);
-    document.getElementById('lotteryParticipants').textContent = classicLotteryData.participants_count;
-    
+    const classicTimer = document.getElementById('classicTimer');
+    const lotteryPot = document.getElementById('lotteryPot');
+    const lotteryParticipants = document.getElementById('lotteryParticipants');
     const historyElement = document.getElementById('classicHistory');
-    historyElement.innerHTML = '';
     
-    classicLotteryData.history.forEach(item => {
-        const historyItem = document.createElement('div');
-        const isWinner = item.winner === userData.username;
-        historyItem.className = `history-item ${isWinner ? '' : 'lost'}`;
-        historyItem.innerHTML = `
-            <div style="font-weight: bold;">${item.winner}</div>
-            <div style="color: ${isWinner ? '#4CAF50' : '#f44336'};">
-                ${isWinner ? 'Выиграл' : 'Проиграл'} ${item.prize.toFixed(9)} S
-            </div>
-            <div style="font-size: 10px; color: #ccc;">Участников: ${item.participants}</div>
-        `;
-        historyElement.appendChild(historyItem);
-    });
+    if (classicTimer) classicTimer.textContent = classicLotteryData.timer || 120;
+    if (lotteryPot) lotteryPot.textContent = (classicLotteryData.total_pot || 0).toFixed(9);
+    if (lotteryParticipants) lotteryParticipants.textContent = classicLotteryData.participants_count || 0;
+    
+    if (historyElement) {
+        historyElement.innerHTML = '';
+        
+        // ИСПРАВЛЕНИЕ: проверяем что history существует и является массивом
+        if (classicLotteryData.history && Array.isArray(classicLotteryData.history)) {
+            classicLotteryData.history.forEach(item => {
+                if (!item) return;
+                
+                const historyItem = document.createElement('div');
+                const isWinner = item.winner === (userData?.username);
+                historyItem.className = `history-item ${isWinner ? '' : 'lost'}`;
+                historyItem.innerHTML = `
+                    <div style="font-weight: bold;">${item.winner || 'Победитель'}</div>
+                    <div style="color: ${isWinner ? '#4CAF50' : '#f44336'};">
+                        ${isWinner ? 'Выиграл' : 'Проиграл'} ${(item.prize || 0).toFixed(9)} S
+                    </div>
+                    <div style="font-size: 10px; color: #ccc;">Участников: ${item.participants || 0}</div>
+                `;
+                historyElement.appendChild(historyItem);
+            });
+        } else {
+            // Если истории нет, показываем заглушку
+            historyElement.innerHTML = '<div style="text-align: center; color: #666; padding: 20px; font-size: 12px;">История розыгрышей пуста</div>';
+        }
+    }
 }
 
 function startClassicLotteryUpdate() {
@@ -339,33 +472,44 @@ let referralData = {
 
 async function loadReferralStats() {
     try {
+        if (!userData || !userData.userId) {
+            console.log('⚠️ Нет данных пользователя для загрузки рефералов');
+            updateReferralUI();
+            return;
+        }
+        
         const data = await apiRequest(`/referral/stats/${userData.userId}`);
         
-        if (data.success) {
+        if (data && data.success) {
             referralData = {
-                referralsCount: data.stats.referralsCount || 0,
-                totalEarnings: data.stats.totalEarnings || 0,
-                referralCode: data.referralCode || userData.referralCode || 'API-' + userData.userId.slice(-8)
+                referralsCount: data.stats?.referralsCount || 0,
+                totalEarnings: data.stats?.totalEarnings || 0,
+                referralCode: data.referralCode || 'REF-' + (userData.userId.slice(-8) || 'DEFAULT')
             };
+            updateReferralUI();
+        } else {
+            console.log('⚠️ Нет данных рефералов, используем локальные');
             updateReferralUI();
         }
     } catch (error) {
-        console.warn('Ошибка загрузки реферальной статистики:', error);
+        console.warn('⚠️ Ошибка загрузки реферальной статистики, используем локальные данные:', error);
         referralData = {
             referralsCount: 0,
             totalEarnings: 0,
-            referralCode: userData.referralCode || 'RETRY-' + userData.userId.slice(-8)
+            referralCode: userData ? 'REF-' + userData.userId.slice(-8) : 'REF-DEFAULT'
         };
         updateReferralUI();
     }
 }
 
 function updateReferralUI() {
-    document.getElementById('referralsCount').textContent = referralData.referralsCount;
-    document.getElementById('referralEarnings').textContent = referralData.totalEarnings.toFixed(9) + ' S';
-    
+    const referralsCountElement = document.getElementById('referralsCount');
+    const referralEarningsElement = document.getElementById('referralEarnings');
     const referralLinkElement = document.getElementById('referralLink');
-    referralLinkElement.textContent = referralData.referralCode;
+    
+    if (referralsCountElement) referralsCountElement.textContent = referralData.referralsCount;
+    if (referralEarningsElement) referralEarningsElement.textContent = referralData.totalEarnings.toFixed(9) + ' S';
+    if (referralLinkElement) referralLinkElement.textContent = referralData.referralCode;
 }
 
 function shareReferral() {
@@ -376,12 +520,34 @@ function shareReferral() {
             title: 'Sparkcoin',
             text: shareText,
             url: window.location.href
+        }).catch(error => {
+            console.log('Ошибка sharing API:', error);
+            copyToClipboard(shareText);
         });
     } else {
-        navigator.clipboard.writeText(shareText).then(() => {
-            showNotification('Ссылка скопирована в буфер обмена!', 'success');
-        });
+        copyToClipboard(shareText);
     }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        if (typeof showNotification === 'function') {
+            showNotification('Ссылка скопирована в буфер обмена!', 'success');
+        }
+    }).catch(error => {
+        console.error('Ошибка копирования:', error);
+        // Резервный метод
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (typeof showNotification === 'function') {
+            showNotification('Ссылка скопирована!', 'success');
+        }
+    });
 }
 
 // Топ победителей
@@ -389,24 +555,42 @@ async function updateTopWinners() {
     try {
         const data = await apiRequest('/top/winners?limit=50');
         
-        if (data.success) {
+        if (data && data.success) {
             const topWinnersElement = document.getElementById('topWinners');
-            topWinnersElement.innerHTML = '';
-            
-            data.winners.forEach((winner, index) => {
-                const winnerItem = document.createElement('div');
-                winnerItem.className = 'winner-item';
-                winnerItem.innerHTML = `
-                    <div class="winner-rank">${index + 1}</div>
-                    <div class="winner-name">${winner.username}</div>
-                    <div class="winner-amount">${winner.netWinnings.toFixed(9)} S</div>
-                `;
-                topWinnersElement.appendChild(winnerItem);
-            });
+            if (topWinnersElement) {
+                topWinnersElement.innerHTML = '';
+                
+                if (data.winners && Array.isArray(data.winners)) {
+                    data.winners.forEach((winner, index) => {
+                        if (!winner) return;
+                        
+                        const winnerItem = document.createElement('div');
+                        winnerItem.className = 'winner-item';
+                        winnerItem.innerHTML = `
+                            <div class="winner-rank">${index + 1}</div>
+                            <div class="winner-name">${winner.username || 'Игрок'}</div>
+                            <div class="winner-amount">${(winner.netWinnings || 0).toFixed(9)} S</div>
+                        `;
+                        topWinnersElement.appendChild(winnerItem);
+                    });
+                } else {
+                    topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Победителей пока нет</div></div>';
+                }
+            }
+        } else {
+            console.log('⚠️ Нет данных топа победителей');
+            const topWinnersElement = document.getElementById('topWinners');
+            if (topWinnersElement) {
+                topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Данные временно недоступны</div></div>';
+            }
         }
     } catch (error) {
-        console.warn('Ошибка обновления топа победителей:', error);
+        console.warn('⚠️ Ошибка обновления топа победителей:', error);
         const topWinnersElement = document.getElementById('topWinners');
-        topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Данные временно недоступны</div></div>';
+        if (topWinnersElement) {
+            topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Ошибка загрузки</div></div>';
+        }
     }
 }
+
+console.log('🎰 Модуль лотереи загружен!');
