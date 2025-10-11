@@ -15,6 +15,7 @@ window.antiCheatTimeout = null;
 window.userData = null;
 window.upgrades = {};
 window.allPlayers = [];
+window.isDataLoaded = false; // ✅ НОВАЯ ПЕРЕМЕННАЯ ДЛЯ ОТСЛЕЖИВАНИЯ ЗАГРУЗКИ
 
 // Функция для обновления статуса API
 window.updateApiStatus = function(status, message) {
@@ -270,6 +271,9 @@ function loadUserData() {
     if (typeof window.loadAllPlayers === 'function') {
         window.loadAllPlayers();
     }
+
+    // ✅ ПОМЕЧАЕМ ЧТО ДАННЫЕ ЗАГРУЖЕНЫ
+    window.isDataLoaded = true;
 
     // Обновление интерфейса
     setTimeout(() => {
@@ -557,6 +561,20 @@ function addPopupAnimation() {
     }
 }
 
+// Безопасное обновление UI
+function safeUpdateUI() {
+    if (!window.isDataLoaded || !window.userData) {
+        console.log('⏳ Данные еще загружаются, пропускаем updateUI');
+        return;
+    }
+    
+    if (typeof updateUI === 'function') {
+        updateUI();
+    } else {
+        updateFallbackUI();
+    }
+}
+
 // Автоматическое восстановление подключения
 function startConnectionMonitor() {
     setInterval(async () => {
@@ -602,18 +620,14 @@ function initializeApp() {
     // Запускаем монитор подключения
     startConnectionMonitor();
     
-    // Запускаем обновление интерфейса
+    // ✅ ИСПРАВЛЕННЫЙ ИНТЕРВАЛ ОБНОВЛЕНИЯ
     const uiInterval = setInterval(() => {
-        if (typeof updateUI === 'function') {
-            updateUI();
-        } else {
-            updateFallbackUI();
-        }
+        safeUpdateUI(); // ✅ Используем безопасную версию
     }, 100);
     
     // Автосохранение
     const saveInterval = setInterval(() => {
-        if (window.userData) {
+        if (window.userData && window.isDataLoaded) {
             if (typeof saveUserData === 'function') {
                 saveUserData();
             } else {
@@ -624,7 +638,7 @@ function initializeApp() {
     
     // Пассивный майнинг
     const miningInterval = setInterval(() => {
-        if (window.userData && typeof calculateMiningSpeed === 'function') {
+        if (window.userData && window.isDataLoaded && typeof calculateMiningSpeed === 'function') {
             try {
                 const miningSpeed = calculateMiningSpeed();
                 if (miningSpeed > 0) {
@@ -632,9 +646,7 @@ function initializeApp() {
                     window.userData.totalEarned += miningSpeed;
                     window.userData.lastUpdate = Date.now();
                     
-                    if (typeof updateUI === 'function') {
-                        updateUI();
-                    }
+                    safeUpdateUI(); // ✅ Используем безопасную версию
                 }
             } catch (error) {
                 console.error('❌ Ошибка майнинга:', error);
