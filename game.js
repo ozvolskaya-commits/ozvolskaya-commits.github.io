@@ -263,16 +263,26 @@ function updateShopUI() {
 
 function updateUI() {
     try {
+        // Проверяем наличие userData
+        if (!window.userData) {
+            console.warn('⚠️ userData не определен в updateUI');
+            updateElement('balanceValue', '0.000000100 S');
+            updateElement('clickValue', '0.000000001');
+            updateElement('clickSpeed', '0.000000001 S/сек');
+            updateElement('mineSpeed', '0.000000000 S/сек');
+            return;
+        }
+
         // Вычисляем прошедшее время
         const currentTime = Date.now();
-        const elapsedSeconds = (currentTime - window.lastUpdateTime) / 1000;
+        const elapsedSeconds = (currentTime - (window.lastUpdateTime || currentTime)) / 1000;
         
         // Пассивный доход от майнинга
         const miningSpeed = calculateMiningSpeed();
-        window.accumulatedIncome += miningSpeed * elapsedSeconds;
+        window.accumulatedIncome = (window.accumulatedIncome || 0) + miningSpeed * elapsedSeconds;
         
         // Начисляем накопленный доход если достаточно
-        if (window.accumulatedIncome >= 0.000000001 && window.userData) {
+        if (window.accumulatedIncome >= 0.000000001) {
             window.userData.balance += window.accumulatedIncome;
             window.userData.totalEarned += window.accumulatedIncome;
             window.userData.lastUpdate = currentTime;
@@ -287,7 +297,7 @@ function updateUI() {
         const clickPower = calculateClickPower();
         
         // БЕЗОПАСНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
-        updateElement('balanceValue', (window.userData?.balance || 0.000000100).toFixed(9) + ' S');
+        updateElement('balanceValue', (window.userData.balance || 0.000000100).toFixed(9) + ' S');
         updateElement('clickValue', clickPower.toFixed(9));
         updateElement('clickSpeed', clickPower.toFixed(9) + ' S/сек');
         updateElement('mineSpeed', miningSpeed.toFixed(9) + ' S/сек');
