@@ -1,4 +1,5 @@
-// ==================== ФУНКЦИИ ИНТЕРФЕЙСА ====================
+// ui.js - функции интерфейса
+console.log('🖥️ Загружаем ui.js...');
 
 let allPlayers = [];
 let selectedTransferUser = null;
@@ -26,6 +27,9 @@ function showSection(sectionName) {
                 break;
             case 'games':
                 showGameTab('team-lottery');
+                startLotteryAutoUpdate();
+                startClassicLotteryUpdate();
+                loadReferralStats();
                 break;
         }
     }
@@ -33,8 +37,6 @@ function showSection(sectionName) {
 
 function showGamesSection() {
     showSection('games');
-    startLotteryAutoUpdate();
-    startClassicLotteryUpdate();
 }
 
 function showGameTab(tabName) {
@@ -93,11 +95,11 @@ async function updateUsersList() {
     usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
     
     try {
-        const data = await apiRequest('/all_players');
+        const data = await apiRequest('/api/all_players');
         const apiPlayers = data.players || [];
         
         const filteredUsers = apiPlayers.filter(player => 
-            player.userId !== userData.userId && 
+            player.userId !== window.userData.userId && 
             player.username.toLowerCase().includes(searchTerm)
         );
         
@@ -139,6 +141,12 @@ function selectUserForTransfer(user) {
     document.getElementById('selectedUserBalance').textContent = `Баланс: ${user.balance.toFixed(9)} S`;
     document.getElementById('transferAmount').value = '';
     document.getElementById('transferButton').disabled = true;
+    
+    // Включаем кнопку когда вводится сумма
+    document.getElementById('transferAmount').addEventListener('input', function() {
+        const amount = parseFloat(this.value);
+        document.getElementById('transferButton').disabled = !amount || amount <= 0;
+    });
 }
 
 async function makeTransfer() {
@@ -154,7 +162,7 @@ async function makeTransfer() {
         return;
     }
     
-    if (amount > userData.balance) {
+    if (amount > window.userData.balance) {
         showNotification('Недостаточно средств', 'error');
         return;
     }
@@ -165,19 +173,19 @@ async function makeTransfer() {
     }
     
     try {
-        const data = await apiRequest('/transfer', {
+        const data = await apiRequest('/api/transfer', {
             method: 'POST',
             body: JSON.stringify({
-                fromUserId: userData.userId,
+                fromUserId: window.userData.userId,
                 toUserId: selectedTransferUser.userId,
                 amount: amount
             })
         });
         
         if (data.success) {
-            userData.balance -= amount;
-            userData.transfers.sent += amount;
-            userData.lastUpdate = Date.now();
+            window.userData.balance -= amount;
+            window.userData.transfers.sent += amount;
+            window.userData.lastUpdate = Date.now();
             
             updateUI();
             saveUserData();
@@ -202,7 +210,7 @@ function searchUsers() {
 // Таблицы лидеров
 async function updateLeaderboard() {
     try {
-        const data = await apiRequest(`/leaderboard?type=balance&limit=20&current_user=${userData.userId}`);
+        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20&current_user=${window.userData.userId}`);
         
         const leaderboard = document.getElementById('leaderboard');
         
@@ -221,7 +229,7 @@ async function updateLeaderboard() {
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
             const balance = typeof player.balance === 'number' ? player.balance : 0;
-            const isCurrent = player.userId === userData.userId;
+            const isCurrent = player.userId === window.userData.userId;
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
@@ -244,12 +252,12 @@ async function updateLeaderboard() {
 
 async function updateSpeedLeaderboard() {
     try {
-        const data = await apiRequest(`/leaderboard?type=speed&limit=20&current_user=${userData.userId}`);
+        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20&current_user=${window.userData.userId}`);
         
         const leaderboard = document.getElementById('speedLeaderboard');
         
         if (!data || !data.success || !data.leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге скорости!</div>';
             return;
         }
         
@@ -263,14 +271,16 @@ async function updateSpeedLeaderboard() {
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
             const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
-            const isCurrent = player.userId === userData.userId;
+            const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000000;
+            const totalSpeed = mineSpeed + clickSpeed;
+            const isCurrent = player.userId === window.userData.userId;
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
                 <div class="leader-item ${currentClass}">
                     <div class="leader-rank">${rank} место</div>
                     <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="leader-speed">${mineSpeed.toFixed(9)} S/сек</div>
+                    <div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>
                 </div>
             `;
         });
@@ -330,3 +340,25 @@ function showResultPopup(isWin, amount, emoji) {
 function closeResultPopup() {
     document.getElementById('resultPopup').style.display = 'none';
 }
+
+// Инициализация интерфейса при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация полей ввода
+    const betInputs = document.querySelectorAll('.bet-input, .transfer-amount-input');
+    betInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            // Ограничение минимального значения
+            if (this.value < 0.000000001) {
+                this.value = 0.000000001;
+            }
+        });
+    });
+    
+    // Инициализация поиска
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', searchUsers);
+    }
+});
+
+console.log('✅ ui.js загружен!');
