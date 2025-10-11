@@ -180,13 +180,22 @@ function updateUI() {
 function saveUserData() {
     userData.lastUpdate = Date.now();
     
+    // Сохраняем в localStorage
     localStorage.setItem('sparkcoin_user_data', JSON.stringify(userData));
     
+    // Сохраняем улучшения
     const upgradesData = {};
     for (const key in upgrades) {
         upgradesData[key] = upgrades[key].level;
     }
     localStorage.setItem('sparkcoin_upgrades_' + userData.userId, JSON.stringify(upgradesData));
     
-    saveUserDataToAPI();
+    // Безопасный вызов saveUserDataToAPI
+    try {
+        if (typeof saveUserDataToAPI === 'function') {
+            saveUserDataToAPI();
+        }
+    } catch (error) {
+        console.log('⚠️ saveUserDataToAPI не доступна');
+    }
 }
