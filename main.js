@@ -1,8 +1,14 @@
-// ==================== ОСНОВНАЯ ИНИЦИАЛИЗАЦИЯ ====================
+// main.js - полностью исправленная версия
+console.log('🎮 Загружаем исправленный main.js...');
 
 const tg = window.Telegram.WebApp;
 
+// Базовые функции
 function getTelegramUserId() {
+    if (typeof tg === 'undefined') {
+        return 'web_' + Math.random().toString(36).substr(2, 9);
+    }
+    
     const user = tg.initDataUnsafe?.user;
     if (user && user.username) {
         return 'tg_' + user.username.toLowerCase();
@@ -13,6 +19,10 @@ function getTelegramUserId() {
 }
 
 function getTelegramUsername() {
+    if (typeof tg === 'undefined') {
+        return 'Веб-Игрок';
+    }
+    
     const user = tg.initDataUnsafe?.user;
     if (user) {
         if (user.username) {
@@ -35,7 +45,7 @@ function createNewUserData(userId, username) {
         joinedDate: new Date().toISOString(),
         lotteryWins: 0,
         totalBet: 0,
-        telegramId: tg.initDataUnsafe?.user?.id || null,
+        telegramId: tg?.initDataUnsafe?.user?.id || null,
         transfers: {
             sent: 0,
             received: 0
@@ -57,44 +67,12 @@ function showSessionError() {
     `;
 }
 
-// НОВАЯ ФУНКЦИЯ ДЛЯ МОБИЛЬНОЙ ПОДДЕРЖКИ
-function initializeMobileSupport() {
-    const coin = document.getElementById('clickCoin');
-    
-    if (!coin) {
-        console.error('Элемент монетки не найден');
-        return;
-    }
-    
-    // Обработчик для мыши
-    coin.addEventListener('click', function(event) {
-        event.preventDefault();
-        clickCoin(event);
-    });
-    
-    // Обработчик для тач-устройств
-    coin.addEventListener('touchstart', function(event) {
-        event.preventDefault();
-        clickCoin(event);
-    }, { passive: false });
-    
-    coin.addEventListener('touchend', function(event) {
-        event.preventDefault();
-    }, { passive: false });
-    
-    // Убираем стандартное выделение на мобильных
-    coin.style.webkitTapHighlightColor = 'transparent';
-    coin.style.webkitTouchCallout = 'none';
-    coin.style.webkitUserSelect = 'none';
-    coin.style.touchAction = 'manipulation';
-    
-    console.log('✅ Мобильная поддержка активирована');
-}
-
+// Загрузка данных пользователя
 function loadUserData() {
     const userId = getTelegramUserId();
     const username = getTelegramUsername();
 
+    // Проверка сессии
     const currentSession = localStorage.getItem('sparkcoin_current_session');
     if (currentSession && currentSession !== userId) {
         showSessionError();
@@ -103,136 +81,307 @@ function loadUserData() {
 
     localStorage.setItem('sparkcoin_current_session', userId);
 
-    const savedData = localStorage.getItem('sparkcoin_user_data');
-    if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        if (parsedData.userId === userId) {
-            userData = parsedData;
-            lastUpdateTime = userData.lastUpdate || Date.now();
-        } else {
-            userData = createNewUserData(userId, username);
-        }
-    } else {
-        userData = createNewUserData(userId, username);
-    }
-    
-    const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
-    if (savedUpgrades) {
-        const upgradesData = JSON.parse(savedUpgrades);
-        for (const key in upgradesData) {
-            if (upgrades[key]) {
-                upgrades[key].level = upgradesData[key];
+    // Загрузка данных из localStorage
+    try {
+        const savedData = localStorage.getItem('sparkcoin_user_data');
+        if (savedData) {
+            const parsedData = JSON.parse(savedData);
+            if (parsedData.userId === userId) {
+                window.userData = parsedData;
+                if (window.lastUpdateTime !== undefined) {
+                    window.lastUpdateTime = window.userData.lastUpdate || Date.now();
+                }
+                console.log('✅ Данные пользователя загружены из localStorage');
+            } else {
+                window.userData = createNewUserData(userId, username);
+                console.log('🆕 Созданы новые данные пользователя');
             }
+        } else {
+            window.userData = createNewUserData(userId, username);
+            console.log('🆕 Созданы начальные данные пользователя');
         }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных:', error);
+        window.userData = createNewUserData(userId, username);
     }
-    
-    loadAllPlayers();
-    updateUI();
-    updateShopUI();
-    
-    checkApiConnection();
-    
-    setTimeout(syncPlayerDataWithAPI, 1000);
-    startLotteryAutoUpdate();
-    startClassicLotteryUpdate();
-    loadReferralStats();
+
+    // Загрузка улучшений
+    try {
+        const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
+        if (savedUpgrades && window.upgrades) {
+            const upgradesData = JSON.parse(savedUpgrades);
+            for (const key in upgradesData) {
+                if (window.upgrades[key]) {
+                    window.upgrades[key].level = upgradesData[key];
+                }
+            }
+            console.log('✅ Улучшения загружены');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки улучшений:', error);
+    }
+
+    // Обновление интерфейса
+    setTimeout(() => {
+        if (typeof updateUI === 'function') {
+            updateUI();
+        }
+        if (typeof updateShopUI === 'function') {
+            updateShopUI();
+        }
+    }, 100);
+
+    console.log('👤 Пользователь:', window.userData.username, 'Баланс:', window.userData.balance);
 }
 
-function loadAllPlayers() {
-    const savedPlayers = localStorage.getItem('sparkcoin_all_players');
-    if (savedPlayers) {
-        allPlayers = JSON.parse(savedPlayers);
-    } else {
-        allPlayers = [];
+// Инициализация монетки
+function initializeCoin() {
+    console.log('🎯 Инициализация монетки...');
+    
+    const coin = document.getElementById('clickCoin');
+    
+    if (!coin) {
+        console.log('⏳ Монетка не найдена, повтор через 1 секунду...');
+        setTimeout(initializeCoin, 1000);
+        return;
     }
     
-    const currentPlayerIndex = allPlayers.findIndex(p => p.userId === userData.userId);
-    const currentPlayerData = {
-        userId: userData.userId,
-        username: userData.username,
-        balance: userData.balance,
-        totalEarned: userData.totalEarned,
-        totalClicks: userData.totalClicks,
-        clickSpeed: calculateClickPower(),
-        mineSpeed: calculateMiningSpeed(),
-        totalSpeed: calculateClickPower() + calculateMiningSpeed(),
-        lastUpdate: userData.lastUpdate,
-        joinedDate: userData.joinedDate,
-        lotteryWins: userData.lotteryWins,
-        totalBet: userData.totalBet,
-        telegramId: userData.telegramId,
-        transfers: userData.transfers,
-        isCurrent: true
-    };
+    console.log('✅ Монетка найдена');
     
-    if (currentPlayerIndex !== -1) {
-        allPlayers[currentPlayerIndex] = currentPlayerData;
-    } else {
-        allPlayers.push(currentPlayerData);
-    }
+    // Очистка старых обработчиков
+    coin.onclick = null;
+    coin.ontouchstart = null;
     
-    saveAllPlayers();
-}
-
-function saveAllPlayers() {
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    allPlayers = allPlayers.filter(player => {
-        return new Date(player.joinedDate).getTime() > thirtyDaysAgo || 
-               player.lastUpdate > thirtyDaysAgo;
+    // Добавление новых обработчиков
+    coin.addEventListener('click', function(event) {
+        handleCoinEvent(event);
     });
     
-    localStorage.setItem('sparkcoin_all_players', JSON.stringify(allPlayers));
+    coin.addEventListener('touchstart', function(event) {
+        handleCoinEvent(event);
+    }, { passive: false });
+    
+    // Стили для мобильных
+    coin.style.cursor = 'pointer';
+    coin.style.webkitTapHighlightColor = 'transparent';
+    coin.style.touchAction = 'manipulation';
+    
+    console.log('✅ Обработчики монетки установлены');
 }
 
+// Обработчик кликов по монетке
+function handleCoinEvent(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('💰 Клик по монетке:', event.type);
+    
+    // Проверяем наличие userData
+    if (!window.userData) {
+        console.error('❌ userData не определен');
+        return false;
+    }
+    
+    // Проверяем античит
+    if (window.antiCheatBlocked) {
+        console.log('⏸️ Античит заблокирован');
+        return false;
+    }
+    
+    // Проверяем кулдаун
+    const now = Date.now();
+    if (window.lastClickTime && (now - window.lastClickTime < 25)) {
+        console.log('⏳ Кулдаун');
+        return false;
+    }
+    
+    window.lastClickTime = now;
+    
+    // Вычисляем силу клика
+    let clickPower = 0.000000001;
+    if (typeof calculateClickPower === 'function') {
+        try {
+            clickPower = calculateClickPower();
+        } catch (error) {
+            console.error('❌ Ошибка calculateClickPower:', error);
+        }
+    }
+    
+    // Обновляем баланс
+    window.userData.balance += clickPower;
+    window.userData.totalEarned += clickPower;
+    window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
+    window.userData.lastUpdate = Date.now();
+    
+    console.log('💵 Баланс обновлен:', window.userData.balance.toFixed(9));
+    
+    // Обновляем интерфейс
+    if (typeof updateUI === 'function') {
+        updateUI();
+    } else {
+        // Аварийное обновление
+        const balanceElement = document.getElementById('balanceValue');
+        if (balanceElement) {
+            balanceElement.textContent = window.userData.balance.toFixed(9) + ' S';
+        }
+    }
+    
+    // Сохраняем данные
+    if (typeof saveUserData === 'function') {
+        saveUserData();
+    } else {
+        // Аварийное сохранение
+        try {
+            localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
+        } catch (error) {
+            console.error('❌ Ошибка сохранения:', error);
+        }
+    }
+    
+    // Создаем попап
+    createClickPopup(event, clickPower);
+    
+    // Анимация монетки
+    const coin = event.currentTarget;
+    coin.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        coin.style.transform = 'scale(1)';
+    }, 100);
+    
+    return false;
+}
+
+// Создание попапа
+function createClickPopup(event, amount) {
+    let x, y;
+    
+    if (event.touches && event.touches[0]) {
+        x = event.touches[0].clientX;
+        y = event.touches[0].clientY;
+    } else {
+        x = event.clientX;
+        y = event.clientY;
+    }
+    
+    const popup = document.createElement('div');
+    popup.textContent = '+' + amount.toFixed(9);
+    popup.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        color: #4CAF50;
+        font-weight: bold;
+        font-size: 18px;
+        font-family: 'Courier New', monospace;
+        z-index: 10000;
+        pointer-events: none;
+        animation: floatUp 1s ease-out forwards;
+        transform: translate(-50%, -50%);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    `;
+    
+    document.body.appendChild(popup);
+    
+    setTimeout(() => {
+        if (popup.parentNode) {
+            popup.parentNode.removeChild(popup);
+        }
+    }, 1000);
+}
+
+// Добавление CSS анимации
+function addPopupAnimation() {
+    if (!document.querySelector('#popup-animation')) {
+        const style = document.createElement('style');
+        style.id = 'popup-animation';
+        style.textContent = `
+            @keyframes floatUp {
+                0% {
+                    transform: translate(-50%, -50%) scale(1);
+                    opacity: 1;
+                }
+                50% {
+                    transform: translate(-50%, -100%) scale(1.1);
+                    opacity: 0.8;
+                }
+                100% {
+                    transform: translate(-50%, -150%) scale(1.2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Основная функция инициализации
 function initializeApp() {
-    tg.expand();
-    tg.enableClosingConfirmation();
+    console.log('🚀 Инициализация приложения...');
     
-    // ЗАМЕНА: вместо прямого добавления обработчика
-    // document.getElementById('clickCoin').addEventListener('click', clickCoin);
+    // Инициализация Telegram Web App
+    if (typeof tg !== 'undefined') {
+        try {
+            tg.expand();
+            tg.enableClosingConfirmation();
+            console.log('✅ Telegram Web App инициализирован');
+        } catch (error) {
+            console.log('⚠️ Ошибка инициализации Telegram:', error);
+        }
+    } else {
+        console.log('🌐 Режим веб-браузера');
+    }
     
-    // ИСПРАВЛЕНИЕ: используем мобильную поддержку
-    initializeMobileSupport();
+    // Добавляем анимацию
+    addPopupAnimation();
     
+    // Загружаем данные пользователя
     loadUserData();
-    setInterval(updateUI, 100);
-    setInterval(saveUserData, 5000);
     
-    showSection('main');
+    // Инициализируем монетку
+    initializeCoin();
     
-    // Автоматическое восстановление подключения
-    setInterval(async () => {
-        if (!apiConnected) {
+    // Запускаем обновление интерфейса
+    const uiInterval = setInterval(() => {
+        if (typeof updateUI === 'function') {
+            updateUI();
+        }
+    }, 100);
+    
+    // Автосохранение
+    const saveInterval = setInterval(() => {
+        if (window.userData && typeof saveUserData === 'function') {
+            saveUserData();
+        }
+    }, 5000);
+    
+    // Показываем главный экран
+    setTimeout(() => {
+        if (typeof showSection === 'function') {
+            showSection('main');
+        }
+    }, 500);
+    
+    console.log('✅ Приложение успешно инициализировано');
+    
+    // Очистка при закрытии
+    window.addEventListener('beforeunload', () => {
+        clearInterval(uiInterval);
+        clearInterval(saveInterval);
+        if (window.userData) {
             try {
-                await apiRequest('/health');
-                showNotification('✅ Подключение восстановлено!', 'success', 2000);
+                localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
             } catch (error) {
-                // Тихий повтор при ошибке
+                console.error('❌ Ошибка финального сохранения:', error);
             }
         }
-    }, 30000);
+    });
 }
 
-// Обработчики событий
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-window.addEventListener('beforeunload', function() {
-    localStorage.removeItem('sparkcoin_current_session');
-});
-
-document.addEventListener('input', function(e) {
-    if (e.target.id === 'transferAmount') {
-        const amount = parseFloat(e.target.value);
-        const button = document.getElementById('transferButton');
-        button.disabled = !amount || amount <= 0 || amount > userData.balance;
-    }
-});
-
-// Полифилл для AbortSignal.timeout
-if (!AbortSignal.timeout) {
-    AbortSignal.timeout = function(ms) {
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), ms);
-        return controller.signal;
-    };
+// Запуск приложения
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
 }
+
+console.log('🎮 Исправленный main.js загружен и готов к работе!');
