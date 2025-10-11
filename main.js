@@ -57,6 +57,40 @@ function showSessionError() {
     `;
 }
 
+// НОВАЯ ФУНКЦИЯ ДЛЯ МОБИЛЬНОЙ ПОДДЕРЖКИ
+function initializeMobileSupport() {
+    const coin = document.getElementById('clickCoin');
+    
+    if (!coin) {
+        console.error('Элемент монетки не найден');
+        return;
+    }
+    
+    // Обработчик для мыши
+    coin.addEventListener('click', function(event) {
+        event.preventDefault();
+        clickCoin(event);
+    });
+    
+    // Обработчик для тач-устройств
+    coin.addEventListener('touchstart', function(event) {
+        event.preventDefault();
+        clickCoin(event);
+    }, { passive: false });
+    
+    coin.addEventListener('touchend', function(event) {
+        event.preventDefault();
+    }, { passive: false });
+    
+    // Убираем стандартное выделение на мобильных
+    coin.style.webkitTapHighlightColor = 'transparent';
+    coin.style.webkitTouchCallout = 'none';
+    coin.style.webkitUserSelect = 'none';
+    coin.style.touchAction = 'manipulation';
+    
+    console.log('✅ Мобильная поддержка активирована');
+}
+
 function loadUserData() {
     const userId = getTelegramUserId();
     const username = getTelegramUsername();
@@ -154,7 +188,12 @@ function initializeApp() {
     tg.expand();
     tg.enableClosingConfirmation();
     
-    document.getElementById('clickCoin').addEventListener('click', clickCoin);
+    // ЗАМЕНА: вместо прямого добавления обработчика
+    // document.getElementById('clickCoin').addEventListener('click', clickCoin);
+    
+    // ИСПРАВЛЕНИЕ: используем мобильную поддержку
+    initializeMobileSupport();
+    
     loadUserData();
     setInterval(updateUI, 100);
     setInterval(saveUserData, 5000);
