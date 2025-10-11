@@ -1,16 +1,10 @@
-// config.js
 const CONFIG = {
-    API_BASE_URL:
-        "https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev",
-    MAX_RETRIES: 3,
-    RETRY_DELAY: 1000,
     CLICK_COOLDOWN: 25,
     ANTI_CHEAT_CLICKS: 15,
-    ANTI_CHEAT_WINDOW: 2000,
-    ANTI_CHEAT_BLOCK_TIME: 30000,
+    ANTI_CHEAT_WINDOW: 2000, 
+    ANTI_CHEAT_BLOCK_TIME: 30000
 };
 
-// БАЗА УЛУЧШЕНИЙ
 const UPGRADES = {
     gpu1: {
         name: "Интегрированная видеокарта",
