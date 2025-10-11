@@ -1,49 +1,83 @@
-// api.js - упрощенная версия для GitHub Pages
+// api.js - для домена sparkcoin.ru
+console.log('🌐 API для sparkcoin.ru');
 
-// Проверяем, не объявлен ли уже CONFIG
-if (typeof window.CONFIG === 'undefined') {
-    window.CONFIG = {
-        API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev'
-    };
-}
+window.CONFIG = {
+    API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev/'
+};
 
-// Проверяем, не объявлена ли уже функция apiRequest
-if (typeof window.apiRequest === 'undefined') {
-    window.apiRequest = async function(endpoint, options = {}) {
-        console.log(`🔄 API запрос: ${endpoint}`);
+window.apiRequest = async function(endpoint, options = {}) {
+    console.log(`🔄 API запрос: ${endpoint}`);
+    
+    const url = `${window.CONFIG.API_BASE_URL}${endpoint}`;
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            },
+            mode: 'cors',
+            credentials: 'omit'
+        });
         
-        try {
-            const response = await fetch(`${window.CONFIG.API_BASE_URL}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                }
-            });
-            
-            if (response.ok) {
-                return await response.json();
-            }
-        } catch (error) {
-            console.log('📴 API недоступно, используем офлайн режим');
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`✅ API ответ: ${endpoint}`, data);
+            return data;
+        } else {
+            console.warn(`⚠️ API ошибка: ${response.status} ${endpoint}`);
+            throw new Error(`HTTP ${response.status}`);
         }
-        
-        // Офлайн заглушки
+    } catch (error) {
+        console.log('📴 API недоступно, используем офлайн режим:', error.message);
         return getOfflineResponse(endpoint);
-    };
-}
+    }
+};
 
-// Функция для офлайн ответов
 function getOfflineResponse(endpoint) {
     const offlineResponses = {
-        '/health': { status: 'healthy', offline: true },
-        '/player/:userId': { success: true, player: getDefaultPlayerData() },
-        '/all_players': { success: true, players: [] },
-        '/leaderboard': { success: true, leaderboard: getOfflineLeaderboard() },
-        '/lottery/status': getOfflineLottery(),
-        '/classic-lottery/status': getOfflineClassicLottery(),
-        '/referral/stats/:userId': getOfflineReferral(),
-        '/top/winners': { success: true, winners: [] }
+        '/api/health': { 
+            status: 'healthy', 
+            offline: true,
+            timestamp: new Date().toISOString()
+        },
+        '/api/player/': { 
+            success: true, 
+            player: getDefaultPlayerData(),
+            offline: true
+        },
+        '/api/all_players': { 
+            success: true, 
+            players: getOfflinePlayers(),
+            offline: true
+        },
+        '/api/leaderboard': { 
+            success: true, 
+            leaderboard: getOfflineLeaderboard(),
+            offline: true
+        },
+        '/api/lottery/status': {
+            success: true,
+            lottery: getOfflineLottery(),
+            offline: true
+        },
+        '/api/classic-lottery/status': {
+            success: true,
+            lottery: getOfflineClassicLottery(),
+            offline: true
+        },
+        '/api/referral/stats/': {
+            success: true,
+            stats: { referralsCount: 0, totalEarnings: 0 },
+            referralCode: 'SPARK-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+            offline: true
+        },
+        '/api/top/winners': {
+            success: true,
+            winners: getOfflineWinners(),
+            offline: true
+        }
     };
     
     for (const [key, value] of Object.entries(offlineResponses)) {
@@ -52,54 +86,182 @@ function getOfflineResponse(endpoint) {
         }
     }
     
-    return { success: true, offline: true };
-}
-
-function getDefaultPlayerData() {
-    return {
-        userId: 'github_user',
-        username: 'GitHub Игрок', 
-        balance: 0.000000100,
-        totalEarned: 0.000000100,
-        totalClicks: 0,
-        lastUpdate: new Date().toISOString()
+    return { 
+        success: true, 
+        offline: true,
+        message: 'Офлайн режим'
     };
 }
 
-function getOfflineLeaderboard() {
-    return [{
-        rank: 1,
-        username: '👑 Вы',
+function getDefaultPlayerData() {
+    const userId = 'spark_user_' + Math.random().toString(36).substr(2, 8);
+    return {
+        userId: userId,
+        username: 'Игрок Sparkcoin',
         balance: 0.000000100,
-        mineSpeed: 0.000000000,
-        clickSpeed: 0.000000001
-    }];
+        totalEarned: 0.000000100,
+        totalClicks: 0,
+        lastUpdate: new Date().toISOString(),
+        upgrades: {},
+        lotteryWins: 0,
+        totalBet: 0,
+        transfers: { sent: 0, received: 0 },
+        referralEarnings: 0,
+        referralsCount: 0,
+        totalWinnings: 0,
+        totalLosses: 0
+    };
+}
+
+function getOfflinePlayers() {
+    return [
+        {
+            userId: 'demo1',
+            username: 'Демо Игрок 1',
+            balance: 0.000000500
+        },
+        {
+            userId: 'demo2', 
+            username: 'Демо Игрок 2',
+            balance: 0.000000300
+        },
+        {
+            userId: 'demo3',
+            username: 'Демо Игрок 3', 
+            balance: 0.000000200
+        }
+    ];
+}
+
+function getOfflineLeaderboard() {
+    return [
+        {
+            rank: 1,
+            username: '👑 Топ Игрок',
+            balance: 0.000001000,
+            mineSpeed: 0.000000010,
+            clickSpeed: 0.000000005,
+            totalEarned: 0.000002000,
+            totalClicks: 150
+        },
+        {
+            rank: 2,
+            username: '🥈 Второй Игрок',
+            balance: 0.000000800,
+            mineSpeed: 0.000000008,
+            clickSpeed: 0.000000004,
+            totalEarned: 0.000001500,
+            totalClicks: 120
+        },
+        {
+            rank: 3,
+            username: '🥉 Третий Игрок',
+            balance: 0.000000600,
+            mineSpeed: 0.000000006,
+            clickSpeed: 0.000000003,
+            totalEarned: 0.000001200,
+            totalClicks: 100
+        }
+    ];
 }
 
 function getOfflineLottery() {
     return {
-        success: true,
-        lottery: {
-            eagle: [], tails: [], timer: 60, total_eagle: 0, total_tails: 0
-        }
+        eagle: [
+            {
+                userId: 'player1',
+                username: 'Игрок Орлов',
+                amount: 0.000000100,
+                timestamp: new Date().toISOString()
+            }
+        ],
+        tails: [
+            {
+                userId: 'player2', 
+                username: 'Игрок Решек',
+                amount: 0.000000150,
+                timestamp: new Date().toISOString()
+            }
+        ],
+        last_winner: {
+            team: 'eagle',
+            username: 'Победитель',
+            prize: 0.000000250,
+            timestamp: new Date(Date.now() - 3600000).toISOString()
+        },
+        timer: 45,
+        total_eagle: 0.000000100,
+        total_tails: 0.000000150,
+        participants_count: 2
     };
 }
 
 function getOfflineClassicLottery() {
     return {
-        success: true, 
-        lottery: {
-            bets: [], total_pot: 0, timer: 120, participants_count: 0
+        bets: [
+            {
+                userId: 'classic1',
+                username: 'Участник 1',
+                amount: 0.000000100,
+                timestamp: new Date().toISOString()
+            }
+        ],
+        total_pot: 0.000000100,
+        timer: 90,
+        participants_count: 1,
+        history: [
+            {
+                winner: 'Победитель',
+                prize: 0.000000500,
+                participants: 5,
+                timestamp: new Date(Date.now() - 7200000).toISOString()
+            }
+        ]
+    };
+}
+
+function getOfflineWinners() {
+    return [
+        {
+            username: 'Чемпион',
+            totalWinnings: 0.000001500,
+            totalLosses: 0.000000300,
+            netWinnings: 0.000001200
+        },
+        {
+            username: 'Удачник',
+            totalWinnings: 0.000001000,
+            totalLosses: 0.000000200,
+            netWinnings: 0.000000800
+        },
+        {
+            username: 'Счастливчик',
+            totalWinnings: 0.000000800,
+            totalLosses: 0.000000100,
+            netWinnings: 0.000000700
         }
-    };
+    ];
 }
 
-function getOfflineReferral() {
-    return {
-        success: true,
-        stats: { referralsCount: 0, totalEarnings: 0 },
-        referralCode: 'GH-' + Math.random().toString(36).substr(2, 6).toUpperCase()
-    };
-}
+// Проверка соединения при загрузке
+window.checkApiConnection = async function() {
+    try {
+        const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/health`, {
+            method: 'GET',
+            timeout: 5000
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ API подключено:', data);
+            window.updateApiStatus('connected', 'Sparkcoin.ru');
+            return true;
+        }
+    } catch (error) {
+        console.log('📴 API недоступно, работаем в офлайн режиме');
+        window.updateApiStatus('disconnected', 'Офлайн режим');
+    }
+    return false;
+};
 
-console.log('✅ API.js загружен с проверками на дублирование');
+console.log('✅ API для sparkcoin.ru загружен!');
