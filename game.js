@@ -1,5 +1,5 @@
-// main.js - полностью исправленная версия
-console.log('🎮 Загружаем исправленный main.js...');
+// game.js - основная игровая логика
+console.log('🎮 Загружаем game.js...');
 
 const tg = window.Telegram.WebApp;
 
@@ -359,22 +359,150 @@ function createClickPopup(event, amount) {
     }, 1000);
 }
 
-// Безопасное обновление UI
-function safeUpdateUI() {
-    if (!window.isDataLoaded || !window.userData) {
-        return;
+// Расчет силы клика
+function calculateClickPower() {
+    let power = 0.000000001;
+    
+    // Бонус от мышек
+    for (const key in window.upgrades) {
+        if (key.startsWith('mouse') && window.upgrades[key] > 0) {
+            const level = window.upgrades[key];
+            const upgrade = UPGRADES[key];
+            if (upgrade) {
+                power += level * upgrade.baseBonus;
+            }
+        }
     }
     
-    if (typeof updateUI === 'function') {
-        updateUI();
-    } else {
-        updateFallbackUI();
+    return power;
+}
+
+// Расчет скорости майнинга
+function calculateMiningSpeed() {
+    let speed = 0.000000000;
+    
+    // Бонус от видеокарт и процессоров
+    for (const key in window.upgrades) {
+        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key] > 0) {
+            const level = window.upgrades[key];
+            const upgrade = UPGRADES[key];
+            if (upgrade) {
+                speed += level * upgrade.baseBonus;
+            }
+        }
+    }
+    
+    return speed;
+}
+
+// Обновление интерфейса
+function updateUI() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    const clickValueElement = document.getElementById('clickValue');
+    const clickSpeedElement = document.getElementById('clickSpeed');
+    const mineSpeedElement = document.getElementById('mineSpeed');
+    
+    if (balanceElement) {
+        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+    }
+    
+    if (clickValueElement) {
+        clickValueElement.textContent = calculateClickPower().toFixed(9);
+    }
+    
+    if (clickSpeedElement) {
+        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
+    }
+    
+    if (mineSpeedElement) {
+        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
     }
 }
 
+// Покупка улучшений
+function buyUpgrade(upgradeId) {
+    if (!window.userData || !UPGRADES[upgradeId]) return;
+    
+    const upgrade = UPGRADES[upgradeId];
+    const currentLevel = window.upgrades[upgradeId] || 0;
+    const price = upgrade.basePrice * Math.pow(2, currentLevel);
+    
+    if (window.userData.balance >= price) {
+        window.userData.balance -= price;
+        window.upgrades[upgradeId] = currentLevel + 1;
+        
+        updateUI();
+        updateShopUI();
+        saveUserData();
+        
+        showNotification(`Улучшение "${upgrade.name}" куплено!`, 'success');
+    } else {
+        showNotification('Недостаточно средств', 'error');
+    }
+}
+
+// Обновление магазина
+function updateShopUI() {
+    for (const upgradeId in UPGRADES) {
+        const upgrade = UPGRADES[upgradeId];
+        const currentLevel = window.upgrades[upgradeId] || 0;
+        const price = upgrade.basePrice * Math.pow(2, currentLevel);
+        
+        const ownedElement = document.getElementById(upgradeId + '-owned');
+        const priceElement = document.getElementById(upgradeId + '-price');
+        
+        if (ownedElement) ownedElement.textContent = currentLevel;
+        if (priceElement) priceElement.textContent = price.toFixed(9);
+        
+        // Обновляем кнопку покупки
+        const buyButton = document.querySelector(`[onclick="buyUpgrade('${upgradeId}')"]`);
+        if (buyButton) {
+            if (window.userData && window.userData.balance >= price) {
+                buyButton.disabled = false;
+                buyButton.textContent = 'Купить';
+            } else {
+                buyButton.disabled = true;
+                buyButton.textContent = 'Недостаточно средств';
+            }
+        }
+    }
+}
+
+// Уведомления
+function showNotification(message, type = 'info') {
+    console.log('🔔 ' + type + ': ' + message);
+    
+    // Создаем простое уведомление
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
 // Основная функция инициализации
-function initializeApp() {
-    console.log('🚀 Инициализация приложения...');
+async function initializeApp() {
+    console.log('🚀 Инициализация приложения для sparkcoin.ru...');
     
     // Инициализация Telegram Web App
     if (typeof tg !== 'undefined') {
@@ -395,13 +523,31 @@ function initializeApp() {
     
     // Обновляем интерфейс
     setTimeout(() => {
-        safeUpdateUI();
+        updateUI();
+        updateShopUI();
     }, 100);
     
-    // Обновляем статус API
-    window.updateApiStatus('connected', 'Локальный режим');
+    // Показываем главный экран
+    setTimeout(() => {
+        if (typeof showSection === 'function') {
+            showSection('main');
+        }
+    }, 500);
     
-    console.log('✅ Приложение успешно инициализировано');
+    // Проверяем API соединение
+    setTimeout(async () => {
+        try {
+            const isConnected = await window.checkApiConnection();
+            if (isConnected && window.userData) {
+                // Синхронизируем данные с сервером
+                await window.syncPlayerDataWithAPI();
+            }
+        } catch (error) {
+            console.log('⚠️ Ошибка синхронизации с API:', error);
+        }
+    }, 2000);
+    
+    console.log('✅ Приложение инициализировано для sparkcoin.ru');
 }
 
 // Запуск приложения
@@ -411,4 +557,4 @@ if (document.readyState === 'loading') {
     initializeApp();
 }
 
-console.log('🎮 Исправленный main.js загружен и готов к работе!');
+console.log('🎮 game.js загружен и готов к работе!');
