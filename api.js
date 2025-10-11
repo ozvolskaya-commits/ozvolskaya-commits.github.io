@@ -1,10 +1,11 @@
-// api.js - исправленная версия для работающего API
+// api.js - исправленная версия с работающими функциями
 console.log('🌐 API для Sparkcoin');
 
 window.CONFIG = {
     API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev'
 };
 
+// Основная функция API запросов
 window.apiRequest = async function(endpoint, options = {}) {
     const url = `${window.CONFIG.API_BASE_URL}${endpoint}`;
     console.log(`🔄 API запрос: ${url}`);
@@ -40,6 +41,7 @@ window.apiRequest = async function(endpoint, options = {}) {
     }
 };
 
+// Офлайн ответы
 function getOfflineResponse(endpoint) {
     const offlineResponses = {
         '/api/top/winners': {
@@ -105,6 +107,39 @@ function getOfflineResponse(endpoint) {
                 }
             ],
             offline: true
+        },
+        '/api/lottery/status': {
+            success: true,
+            lottery: {
+                eagle: [],
+                tails: [],
+                last_winner: null,
+                timer: 60,
+                total_eagle: 0,
+                total_tails: 0,
+                participants_count: 0
+            },
+            offline: true
+        },
+        '/api/classic-lottery/status': {
+            success: true,
+            lottery: {
+                bets: [],
+                total_pot: 0,
+                timer: 120,
+                participants_count: 0,
+                history: []
+            },
+            offline: true
+        },
+        '/api/referral/stats/': {
+            success: true,
+            stats: {
+                referralsCount: 0,
+                totalEarnings: 0
+            },
+            referralCode: 'OFFLINE-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+            offline: true
         }
     };
     
@@ -121,18 +156,22 @@ function getOfflineResponse(endpoint) {
     };
 }
 
-// Проверка соединения
+// Функция проверки соединения
 window.checkApiConnection = async function() {
     try {
         const response = await window.apiRequest('/api/health');
         if (response && response.status === 'healthy') {
             console.log('✅ API подключено!');
-            window.updateApiStatus('connected', 'Sparkcoin API');
+            if (typeof window.updateApiStatus === 'function') {
+                window.updateApiStatus('connected', 'Sparkcoin API');
+            }
             return true;
         }
     } catch (error) {
         console.log('📴 API недоступно');
-        window.updateApiStatus('disconnected', 'Офлайн режим');
+        if (typeof window.updateApiStatus === 'function') {
+            window.updateApiStatus('disconnected', 'Офлайн режим');
+        }
     }
     return false;
 };
@@ -146,6 +185,69 @@ window.updateApiStatus = function(status, message) {
     }
     window.apiConnected = status === 'connected';
     console.log(`📡 Статус API: ${status} - ${message}`);
+};
+
+// Функция синхронизации данных с API
+window.syncPlayerDataWithAPI = async function() {
+    console.log('🔄 Синхронизация с API...');
+    
+    if (!window.userData || !window.isDataLoaded) {
+        console.log('❌ Данные пользователя не загружены');
+        return false;
+    }
+    
+    try {
+        const response = await window.apiRequest(`/api/player/${window.userData.userId}`, {
+            method: 'POST',
+            body: JSON.stringify(window.userData)
+        });
+        
+        if (response && response.success) {
+            console.log('✅ Данные синхронизированы с API');
+            return true;
+        }
+    } catch (error) {
+        console.log('📴 Ошибка синхронизации, работаем локально');
+    }
+    
+    return false;
+};
+
+// Функция загрузки всех игроков
+window.loadAllPlayers = async function() {
+    console.log('👥 Загрузка списка игроков...');
+    try {
+        const data = await window.apiRequest('/api/all_players');
+        if (data && data.success) {
+            window.allPlayers = data.players || [];
+            console.log(`✅ Загружено ${window.allPlayers.length} игроков`);
+        }
+    } catch (error) {
+        console.log('📴 Ошибка загрузки игроков');
+        window.allPlayers = [];
+    }
+};
+
+// Заглушки для функций лотереи
+window.startLotteryAutoUpdate = function() {
+    console.log('🎰 Запуск автообновления лотереи...');
+    if (typeof startLotteryAutoUpdate === 'function') {
+        startLotteryAutoUpdate();
+    }
+};
+
+window.startClassicLotteryUpdate = function() {
+    console.log('🎲 Запуск автообновления классической лотереи...');
+    if (typeof startClassicLotteryUpdate === 'function') {
+        startClassicLotteryUpdate();
+    }
+};
+
+window.loadReferralStats = function() {
+    console.log('👥 Загрузка реферальной статистики...');
+    if (typeof loadReferralStats === 'function') {
+        loadReferralStats();
+    }
 };
 
 console.log('✅ API для Sparkcoin загружен!');
