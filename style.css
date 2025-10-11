@@ -12,6 +12,9 @@ body {
     min-height: 100vh;
     color: white;
     padding: 0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .container {
@@ -74,6 +77,13 @@ body {
     transition: all 0.1s ease;
     position: relative;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .click-coin:active {
@@ -151,6 +161,9 @@ body {
     transition: all 0.3s ease;
     outline: none;
     border: 2px solid rgba(76, 201, 240, 0.3);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
 }
 
 .menu-button:hover {
@@ -258,6 +271,9 @@ body {
     font-size: 13px;
     width: 100%;
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
 }
 
 .buy-button:hover {
@@ -277,6 +293,8 @@ body {
 .tab-content {
     max-height: 500px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
 }
 
 .back-button {
@@ -300,6 +318,8 @@ body {
 .leaderboard {
     max-height: 500px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
 }
 
 .rating-tabs {
@@ -407,6 +427,9 @@ body {
     cursor: pointer;
     font-size: 16px;
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
 }
 
 .team-button.active {
@@ -440,6 +463,9 @@ body {
     width: 100%;
     margin-bottom: 10px;
     outline: none;
+    -webkit-appearance: none;
+    border-radius: 8px;
+    font-size: 16px;
 }
 
 .play-button {
@@ -452,6 +478,9 @@ body {
     font-size: 14px;
     width: 100%;
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
 }
 
 .lottery-timer {
@@ -501,6 +530,8 @@ body {
     max-height: 200px;
     overflow-y: auto;
     margin: 10px 0;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
 }
 
 .participant-item {
@@ -557,13 +588,18 @@ body {
 }
 
 .click-popup {
-    position: absolute;
+    position: fixed !important;
     color: #4CAF50;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 18px;
     pointer-events: none;
     animation: floatUp 1s ease-out forwards;
     font-family: 'Courier New', monospace;
+    z-index: 10000;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    -webkit-user-select: none;
+    user-select: none;
+    transform: translate(-50%, -50%);
 }
 
 .transfer-section {
@@ -583,12 +619,17 @@ body {
     width: 100%;
     margin-bottom: 15px;
     outline: none;
+    -webkit-appearance: none;
+    border-radius: 8px;
+    font-size: 16px;
 }
 
 .users-list {
     max-height: 300px;
     overflow-y: auto;
     margin-bottom: 15px;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
 }
 
 .user-item {
@@ -634,6 +675,8 @@ body {
     margin-bottom: 15px;
     outline: none;
     text-align: center;
+    -webkit-appearance: none;
+    border-radius: 8px;
 }
 
 .transfer-button {
@@ -647,6 +690,9 @@ body {
     width: 100%;
     transition: all 0.3s ease;
     font-weight: bold;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
 }
 
 .transfer-button:hover {
@@ -661,11 +707,15 @@ body {
 
 @keyframes floatUp {
     0% {
-        transform: translateY(0);
+        transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
+    50% {
+        transform: translate(-50%, -100%) scale(1.1);
+        opacity: 0.8;
+    }
     100% {
-        transform: translateY(-50px);
+        transform: translate(-50%, -150%) scale(1.2);
         opacity: 0;
     }
 }
@@ -790,6 +840,8 @@ body {
     max-height: 300px;
     overflow-y: auto;
     margin: 15px 0;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
 }
 
 .history-item {
@@ -884,11 +936,16 @@ body {
     font-size: 14px;
     width: 100%;
     transition: all 0.3s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
 }
 
 .top-winners {
     max-height: 400px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
 }
 
 .winner-item {
@@ -992,34 +1049,69 @@ body {
     opacity: 0.9;
 }
 
-/* ==================== ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ==================== */
-/* Прогресс-бар для лотереи */
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    margin: 12px 0;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+/* АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .click-coin {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .coin-letter {
+        font-size: 64px;
+    }
+    
+    .balance-amount {
+        font-size: 24px;
+    }
+    
+    .main-menu {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .menu-button {
+        padding: 12px;
+        font-size: 16px;
+    }
+    
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        transform: translateY(-100px);
+    }
+    
+    .notification.show {
+        transform: translateY(0);
+    }
 }
 
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4CAF50, #8BC34A);
-    border-radius: 4px;
-    transition: width 0.5s ease;
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-}
-
-.progress-fill.eagle {
-    background: linear-gradient(90deg, #FF5722, #FF9800);
-    box-shadow: 0 0 10px rgba(255, 87, 34, 0.3);
-}
-
-.progress-fill.tails {
-    background: linear-gradient(90deg, #4CAF50, #8BC34A);
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+@media (max-width: 360px) {
+    .container {
+        padding: 8px;
+    }
+    
+    .click-coin {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .coin-letter {
+        font-size: 56px;
+    }
+    
+    .header h1 {
+        font-size: 20px;
+    }
+    
+    .balance-amount {
+        font-size: 22px;
+    }
 }
 
 /* Улучшенные стили для участников лотереи */
@@ -1199,28 +1291,8 @@ body {
     font-family: 'Courier New', monospace;
 }
 
-/* Анимации для новых ставок */
-@keyframes newBet {
-    0% {
-        background: rgba(76, 201, 240, 0.5);
-        transform: scale(0.95);
-    }
-    50% {
-        background: rgba(76, 201, 240, 0.8);
-        transform: scale(1.02);
-    }
-    100% {
-        background: rgba(255, 255, 255, 0.08);
-        transform: scale(1);
-    }
-}
-
-.new-bet {
-    animation: newBet 1s ease;
-}
-
 /* Улучшенные поля ввода */
-.bet-input, .transfer-amount-input {
+.bet-input, .transfer-amount-input, .search-input {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(33, 150, 243, 0.5);
     color: white;
@@ -1234,7 +1306,7 @@ body {
     backdrop-filter: blur(10px);
 }
 
-.bet-input:focus, .transfer-amount-input:focus {
+.bet-input:focus, .transfer-amount-input:focus, .search-input:focus {
     border-color: #2196F3;
     background: rgba(255, 255, 255, 0.15);
     box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
@@ -1270,35 +1342,6 @@ body {
     box-shadow: none;
 }
 
-/* Адаптивность для мобильных устройств */
-@media (max-width: 480px) {
-    .notification {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-        transform: translateY(-100px);
-    }
-    
-    .notification.show {
-        transform: translateY(0);
-    }
-    
-    .participant-item {
-        padding: 10px;
-        font-size: 12px;
-    }
-    
-    .team-button {
-        padding: 12px;
-        font-size: 14px;
-    }
-    
-    .lottery-stat {
-        padding: 12px;
-    }
-}
-
 /* Специальные эффекты для победителя */
 .winner-glow {
     animation: winnerGlow 2s ease-in-out infinite;
@@ -1311,23 +1354,6 @@ body {
     50% {
         box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
     }
-}
-
-/* Прогресс-бар для таймера лотереи */
-.timer-progress {
-    width: 100%;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-
-.timer-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #FF9800, #FF5722);
-    border-radius: 3px;
-    transition: width 1s linear;
 }
 
 /* Улучшенные заголовки секций */
