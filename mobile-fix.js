@@ -1,10 +1,17 @@
 // mobile-fix.js - исправление для мобильных устройств
-console.log('📱 Инициализация мобильного фикса...');
+console.log('📱 Загружаем мобильный фикс...');
+
+// Создаем отсутствующую функцию
+if (typeof window.saveUserDataToAPI === 'undefined') {
+    window.saveUserDataToAPI = function() {
+        console.log('💾 saveUserDataToAPI вызвана (заглушка)');
+        return Promise.resolve(true);
+    };
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM загружен, настраиваем монетку...');
     
-    // Ждем немного чтобы все элементы точно были доступны
     setTimeout(function() {
         const coin = document.getElementById('clickCoin');
         
@@ -15,59 +22,43 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('✅ Монетка найдена:', coin);
         
-        // Полностью очищаем все старые обработчики
-        coin.replaceWith(coin.cloneNode(true));
-        const newCoin = document.getElementById('clickCoin');
+        // Убираем ВСЕ старые обработчики
+        coin.onclick = null;
+        coin.ontouchstart = null;
+        coin.ontouchend = null;
         
-        // Простой обработчик - работает на всех устройствах
-        newCoin.addEventListener('click', handleCoinClick);
-        newCoin.addEventListener('touchstart', handleCoinClick);
+        // Очищаем все event listeners
+        const newCoin = coin.cloneNode(true);
+        coin.parentNode.replaceChild(newCoin, coin);
         
-        console.log('🎯 Обработчики установлены!');
-    }, 500);
+        // Получаем новую монетку
+        const freshCoin = document.getElementById('clickCoin');
+        
+        // Добавляем новые обработчики
+        freshCoin.addEventListener('click', handleCoinClick);
+        freshCoin.addEventListener('touchstart', handleCoinClick, { passive: false });
+        
+        // Стили для мобильных
+        freshCoin.style.cursor = 'pointer';
+        freshCoin.style.webkitTapHighlightColor = 'transparent';
+        freshCoin.style.touchAction = 'manipulation';
+        
+        console.log('🎯 Новые обработчики установлены!');
+        
+    }, 1000);
 });
 
 function handleCoinClick(event) {
     event.preventDefault();
     event.stopPropagation();
-    event.stopImmediatePropagation();
     
     console.log('💰 Клик по монетке!', event.type);
     
-    // Немедленное обновление баланса
-    if (window.userData) {
-        const clickPower = window.calculateClickPower ? window.calculateClickPower() : 0.000000001;
-        
-        window.userData.balance += clickPower;
-        window.userData.totalEarned += clickPower;
-        window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
-        window.userData.lastUpdate = Date.now();
-        
-        console.log('💵 Баланс обновлен:', window.userData.balance);
-        
-        // Обновляем интерфейс
-        if (window.updateUI) {
-            window.updateUI();
-        } else {
-            // Аварийное обновление
-            const balanceElement = document.getElementById('balanceValue');
-            if (balanceElement) {
-                balanceElement.textContent = window.userData.balance.toFixed(9) + ' S';
-            }
-        }
-        
-        // Сохраняем данные
-        if (window.saveUserData) {
-            window.saveUserData();
-        }
-        
-        // Создаем попап
-        createSimplePopup(event, clickPower);
-        
-    } else {
-        console.error('❌ userData не определен!');
-        // Создаем userData если его нет
+    // Проверяем и создаем userData если нужно
+    if (!window.userData) {
         window.userData = {
+            userId: 'mobile_user',
+            username: 'Мобильный Игрок',
             balance: 0.000000100,
             totalEarned: 0.000000100,
             totalClicks: 0,
@@ -76,10 +67,67 @@ function handleCoinClick(event) {
         console.log('📝 Создан новый userData');
     }
     
+    // Вычисляем силу клика
+    let clickPower = 0.000000001;
+    if (window.calculateClickPower && typeof window.calculateClickPower === 'function') {
+        clickPower = window.calculateClickPower();
+    }
+    
+    // Обновляем баланс
+    window.userData.balance += clickPower;
+    window.userData.totalEarned += clickPower;
+    window.userData.totalClicks++;
+    window.userData.lastUpdate = Date.now();
+    
+    console.log('💵 Баланс обновлен:', window.userData.balance.toFixed(9));
+    
+    // Обновляем интерфейс
+    updateMobileUI();
+    
+    // Сохраняем данные (без вызова saveUserDataToAPI)
+    saveMobileData();
+    
+    // Создаем попап
+    createMobilePopup(event, clickPower);
+    
     return false;
 }
 
-function createSimplePopup(event, amount) {
+function updateMobileUI() {
+    // Обновляем баланс
+    const balanceElement = document.getElementById('balanceValue');
+    if (balanceElement) {
+        balanceElement.textContent = window.userData.balance.toFixed(9) + ' S';
+    }
+    
+    // Обновляем скорость клика если есть элемент
+    const clickValueElement = document.getElementById('clickValue');
+    if (clickValueElement) {
+        let clickPower = 0.000000001;
+        if (window.calculateClickPower) {
+            clickPower = window.calculateClickPower();
+        }
+        clickValueElement.textContent = clickPower.toFixed(9);
+    }
+}
+
+function saveMobileData() {
+    try {
+        // Сохраняем в localStorage
+        localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
+        
+        // Сохраняем улучшения если они есть
+        if (window.upgrades) {
+            localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(window.upgrades));
+        }
+        
+        console.log('💾 Данные сохранены в localStorage');
+    } catch (error) {
+        console.error('❌ Ошибка сохранения:', error);
+    }
+}
+
+function createMobilePopup(event, amount) {
     let x, y;
     
     if (event.touches && event.touches[0]) {
@@ -102,21 +150,26 @@ function createSimplePopup(event, amount) {
         font-family: 'Courier New', monospace;
         z-index: 10000;
         pointer-events: none;
-        animation: floatUp 1s ease-out forwards;
+        animation: mobileFloatUp 1s ease-out forwards;
         transform: translate(-50%, -50%);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     `;
     
     document.body.appendChild(popup);
     
-    setTimeout(() => popup.remove(), 1000);
+    setTimeout(() => {
+        if (popup.parentNode) {
+            popup.parentNode.removeChild(popup);
+        }
+    }, 1000);
 }
 
-// Добавляем CSS анимацию если её нет
+// Добавляем CSS анимацию
 if (!document.querySelector('#mobile-fix-style')) {
     const style = document.createElement('style');
     style.id = 'mobile-fix-style';
     style.textContent = `
-        @keyframes floatUp {
+        @keyframes mobileFloatUp {
             0% {
                 transform: translate(-50%, -50%) scale(1);
                 opacity: 1;
@@ -130,8 +183,18 @@ if (!document.querySelector('#mobile-fix-style')) {
                 opacity: 0;
             }
         }
+        
+        .click-coin {
+            cursor: pointer !important;
+            -webkit-tap-highlight-color: transparent !important;
+            touch-action: manipulation !important;
+        }
+        
+        .click-coin:active {
+            transform: scale(0.95) !important;
+        }
     `;
     document.head.appendChild(style);
 }
 
-console.log('📱 Мобильный фикс загружен!');
+console.log('✅ Мобильный фикс загружен!');
