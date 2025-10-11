@@ -108,7 +108,7 @@ function updateMobileUI() {
     // Баланс
     const balanceElement = document.getElementById('balanceValue');
     if (balanceElement) {
-        balanceElement.textContent = window.mobileUserData.balance.toFixed(9) + ' S';
+        balanceElement.textContent = (window.mobileUserData.balance || 0.000000100).toFixed(9) + ' S';
     }
     
     // Сила клика
@@ -222,13 +222,23 @@ function initMobileCoin() {
     const newCoin = document.getElementById('clickCoin');
     
     // Добавляем ТОЛЬКО наши обработчики
-    newCoin.addEventListener('click', handleMobileCoinClick);
-    newCoin.addEventListener('touchstart', handleMobileCoinClick, { passive: false });
+    newCoin.addEventListener('click', handleMobileCoinClick, true);
+    newCoin.addEventListener('touchstart', handleMobileCoinClick, { 
+        passive: false, 
+        capture: true 
+    });
     
     // Стили для мобильных
     newCoin.style.cursor = 'pointer';
     newCoin.style.webkitTapHighlightColor = 'transparent';
     newCoin.style.touchAction = 'manipulation';
+    newCoin.style.userSelect = 'none';
+    newCoin.style.webkitUserSelect = 'none';
+    
+    // Убираем атрибуты
+    newCoin.removeAttribute('href');
+    newCoin.removeAttribute('onclick');
+    newCoin.onclick = null;
     
     console.log('🎯 Мобильная монетка готова!');
 }
@@ -258,6 +268,8 @@ if (!document.querySelector('#mobile-fix-style')) {
             -webkit-tap-highlight-color: transparent !important;
             touch-action: manipulation !important;
             transition: transform 0.1s ease !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
         }
         
         .mobile-click-popup {
