@@ -1,158 +1,261 @@
-// game.js - полностью исправленная версия
-console.log('🎮 Загружаем исправленный game.js...');
+// main.js - полностью исправленная версия
+console.log('🎮 Загружаем исправленный main.js...');
 
-// ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+const tg = window.Telegram.WebApp;
 
-// Проверяем и инициализируем глобальные переменные
-if (typeof window.userData === 'undefined') {
-    window.userData = {
-        userId: 'default_user',
-        username: 'Игрок',
+// Глобальные переменные
+window.apiConnected = false;
+window.isOnline = navigator.onLine;
+window.lastUpdateTime = Date.now();
+window.accumulatedIncome = 0;
+window.lastClickTime = 0;
+window.antiCheatBlocked = false;
+window.clickTimes = [];
+window.antiCheatTimeout = null;
+window.userData = null;
+window.upgrades = {};
+window.allPlayers = [];
+window.isDataLoaded = false;
+
+// Функция для обновления статуса API
+window.updateApiStatus = function(status, message) {
+    const apiStatus = document.getElementById('apiStatus');
+    if (apiStatus) {
+        apiStatus.className = `api-status ${status}`;
+        apiStatus.textContent = `API: ${message}`;
+    }
+    window.apiConnected = status === 'connected';
+    console.log(`📡 Статус API: ${status} - ${message}`);
+};
+
+// Базовые функции
+function getTelegramUserId() {
+    if (typeof tg === 'undefined') {
+        return 'web_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    const user = tg.initDataUnsafe?.user;
+    if (user && user.username) {
+        return 'tg_' + user.username.toLowerCase();
+    } else if (user && user.id) {
+        return 'tg_' + user.id;
+    }
+    return 'test_' + Math.random().toString(36).substr(2, 9);
+}
+
+function getTelegramUsername() {
+    if (typeof tg === 'undefined') {
+        return 'Веб-Игрок';
+    }
+    
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+        if (user.username) {
+            return '@' + user.username;
+        } else if (user.first_name) {
+            return user.first_name;
+        }
+    }
+    return 'Игрок';
+}
+
+function createNewUserData(userId, username) {
+    return {
+        userId: userId,
+        username: username,
         balance: 0.000000100,
         totalEarned: 0.000000100,
         totalClicks: 0,
         lastUpdate: Date.now(),
+        joinedDate: new Date().toISOString(),
         lotteryWins: 0,
         totalBet: 0,
-        transfers: { sent: 0, received: 0 }
+        telegramId: tg?.initDataUnsafe?.user?.id || null,
+        transfers: {
+            sent: 0,
+            received: 0
+        },
+        referralEarnings: 0,
+        referralsCount: 0,
+        totalWinnings: 0,
+        totalLosses: 0
     };
 }
 
-if (typeof window.upgrades === 'undefined') {
-    window.upgrades = {};
-}
+// Загрузка данных пользователя
+function loadUserData() {
+    const userId = getTelegramUserId();
+    const username = getTelegramUsername();
 
-if (typeof window.lastUpdateTime === 'undefined') {
-    window.lastUpdateTime = Date.now();
-}
-
-if (typeof window.accumulatedIncome === 'undefined') {
-    window.accumulatedIncome = 0;
-}
-
-if (typeof window.lastClickTime === 'undefined') {
-    window.lastClickTime = 0;
-}
-
-if (typeof window.antiCheatBlocked === 'undefined') {
-    window.antiCheatBlocked = false;
-}
-
-if (typeof window.clickTimes === 'undefined') {
-    window.clickTimes = [];
-}
-
-if (typeof window.antiCheatTimeout === 'undefined') {
-    window.antiCheatTimeout = null;
-}
-
-// ==================== ОСНОВНЫЕ ФУНКЦИИ ИГРЫ ====================
-
-function calculateClickPower() {
-    let power = 0.000000001;
-    
-    // Безопасный расчет силы клика
-    if (window.upgrades) {
-        for (const upgrade in window.upgrades) {
-            const upgradeData = window.upgrades[upgrade];
-            if (upgradeData && upgradeData.type === 'click') {
-                const level = upgradeData.level || 0;
-                const bonus = upgradeData.baseBonus || 0;
-                power += level * bonus;
+    // Загрузка данных из localStorage
+    try {
+        const savedData = localStorage.getItem('sparkcoin_user_data');
+        if (savedData) {
+            const parsedData = JSON.parse(savedData);
+            if (parsedData.userId === userId) {
+                window.userData = createNewUserData(userId, username);
+                Object.assign(window.userData, parsedData);
+                window.lastUpdateTime = window.userData.lastUpdate || Date.now();
+                console.log('✅ Данные пользователя загружены из localStorage');
+            } else {
+                window.userData = createNewUserData(userId, username);
+                console.log('🆕 Созданы новые данные пользователя');
             }
+        } else {
+            window.userData = createNewUserData(userId, username);
+            console.log('🆕 Созданы начальные данные пользователя');
         }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных:', error);
+        window.userData = createNewUserData(userId, username);
+    }
+
+    // Загрузка улучшений
+    try {
+        const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
+        if (savedUpgrades) {
+            const upgradesData = JSON.parse(savedUpgrades);
+            if (typeof window.upgrades === 'undefined') {
+                window.upgrades = {};
+            }
+            for (const key in upgradesData) {
+                window.upgrades[key] = window.upgrades[key] || {};
+                window.upgrades[key].level = upgradesData[key];
+            }
+            console.log('✅ Улучшения загружены');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки улучшений:', error);
+    }
+
+    window.isDataLoaded = true;
+    console.log('👤 Пользователь:', window.userData.username, 'Баланс:', window.userData.balance);
+}
+
+// Аварийное обновление UI
+function updateFallbackUI() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    const clickValueElement = document.getElementById('clickValue');
+    const clickSpeedElement = document.getElementById('clickSpeed');
+    const mineSpeedElement = document.getElementById('mineSpeed');
+    
+    if (balanceElement) {
+        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
     }
     
-    return power;
-}
-
-function calculateMiningSpeed() {
-    let speed = 0;
-    
-    // Безопасный расчет скорости майнинга
-    if (window.upgrades) {
-        for (const upgrade in window.upgrades) {
-            const upgradeData = window.upgrades[upgrade];
-            if (upgradeData && upgradeData.type === 'mining') {
-                const level = upgradeData.level || 0;
-                const bonus = upgradeData.baseBonus || 0;
-                speed += level * bonus;
-            }
-        }
+    if (clickValueElement) {
+        clickValueElement.textContent = '0.000000001';
     }
     
-    return speed;
+    if (clickSpeedElement) {
+        clickSpeedElement.textContent = '0.000000001 S/сек';
+    }
+    
+    if (mineSpeedElement) {
+        mineSpeedElement.textContent = '0.000000000 S/сек';
+    }
 }
 
-function checkAutoClick() {
-    const now = Date.now();
-    window.clickTimes.push(now);
+// УЛУЧШЕННАЯ инициализация монетки
+function initializeCoin() {
+    console.log('🎯 Инициализация монетки...');
     
-    // Фильтруем клики по временному окну
-    window.clickTimes = window.clickTimes.filter(time => {
-        return now - time < (CONFIG?.ANTI_CHEAT_WINDOW || 2000);
+    const coin = document.getElementById('clickCoin');
+    
+    if (!coin) {
+        console.log('⏳ Монетка не найдена, повтор через 1 секунду...');
+        setTimeout(initializeCoin, 1000);
+        return;
+    }
+    
+    console.log('✅ Монетка найдена');
+    
+    // ПОЛНАЯ ОЧИСТКА ВСЕХ ОБРАБОТЧИКОВ
+    const newCoin = coin.cloneNode(true);
+    coin.parentNode.replaceChild(newCoin, coin);
+    
+    const freshCoin = document.getElementById('clickCoin');
+    
+    // ДОБАВЛЯЕМ ТОЛЬКО НАШИ ОБРАБОТЧИКИ
+    freshCoin.addEventListener('click', handleCoinClick, true);
+    freshCoin.addEventListener('touchstart', handleCoinClick, { 
+        passive: false, 
+        capture: true 
     });
     
-    const maxClicks = CONFIG?.ANTI_CHEAT_CLICKS || 15;
-    const blockTime = CONFIG?.ANTI_CHEAT_BLOCK_TIME || 30000;
+    // Стили для предотвращения навигации
+    freshCoin.style.cursor = 'pointer';
+    freshCoin.style.webkitTapHighlightColor = 'transparent';
+    freshCoin.style.touchAction = 'manipulation';
+    freshCoin.style.userSelect = 'none';
+    freshCoin.style.webkitUserSelect = 'none';
     
-    if (window.clickTimes.length > maxClicks && !window.antiCheatBlocked) {
-        window.antiCheatBlocked = true;
-        
-        // Показываем сообщение о блокировке
-        const antiCheatElement = document.getElementById('antiCheat');
-        if (antiCheatElement) {
-            antiCheatElement.style.display = 'flex';
-        }
-        
-        // Снимаем блокировку через время
-        window.antiCheatTimeout = setTimeout(() => {
-            window.antiCheatBlocked = false;
-            const antiCheatElement = document.getElementById('antiCheat');
-            if (antiCheatElement) {
-                antiCheatElement.style.display = 'none';
-            }
-            window.clickTimes = [];
-        }, blockTime);
-        
-        return true;
-    }
+    // Убираем любые возможные href и onclick
+    freshCoin.removeAttribute('href');
+    freshCoin.removeAttribute('onclick');
+    freshCoin.onclick = null;
     
-    return false;
+    console.log('✅ Обработчики монетки установлены (полная очистка)');
 }
 
-function clickCoin(event) {
-    // Проверяем блокировку античитом
+// УЛУЧШЕННЫЙ обработчик кликов
+function handleCoinClick(event) {
+    // ПОЛНАЯ БЛОКИРОВКА ПОВЕДЕНИЯ ПО УМОЛЧАНИЮ
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    
+    // Дополнительная блокировка для touch событий
+    if (event.type === 'touchstart') {
+        event.preventDefault();
+    }
+    
+    console.log('💰 Клик по монетке:', event.type);
+    
+    // Проверяем наличие userData
+    if (!window.userData || !window.isDataLoaded) {
+        console.error('❌ userData не загружен');
+        return false;
+    }
+    
+    // Проверяем античит
     if (window.antiCheatBlocked) {
         console.log('⏸️ Античит заблокирован');
-        return;
+        return false;
     }
     
     // Проверяем кулдаун
     const now = Date.now();
-    const cooldown = CONFIG?.CLICK_COOLDOWN || 25;
-    if (now - window.lastClickTime < cooldown) {
+    const cooldown = 25; // 25ms кулдаун
+    if (window.lastClickTime && (now - window.lastClickTime < cooldown)) {
         console.log('⏳ Кулдаун');
-        return;
-    }
-    
-    // Проверяем автокликер
-    if (checkAutoClick()) {
-        return;
+        return false;
     }
     
     window.lastClickTime = now;
     
     // Вычисляем силу клика
-    const clickPower = calculateClickPower();
-    
-    // Обновляем данные пользователя
-    if (window.userData) {
-        window.userData.balance = (window.userData.balance || 0) + clickPower;
-        window.userData.totalEarned = (window.userData.totalEarned || 0) + clickPower;
-        window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
-        window.userData.lastUpdate = Date.now();
+    let clickPower = 0.000000001;
+    if (typeof calculateClickPower === 'function') {
+        try {
+            clickPower = calculateClickPower();
+        } catch (error) {
+            console.error('❌ Ошибка calculateClickPower:', error);
+        }
     }
+    
+    // НЕМЕДЛЕННОЕ обновление баланса
+    window.userData.balance = (window.userData.balance || 0) + clickPower;
+    window.userData.totalEarned = (window.userData.totalEarned || 0) + clickPower;
+    window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
+    window.userData.lastUpdate = Date.now();
+    
+    console.log('💵 Баланс обновлен:', window.userData.balance.toFixed(9));
+    
+    // НЕМЕДЛЕННОЕ обновление интерфейса
+    updateBalanceImmediately();
     
     // Создаем попап
     createClickPopup(event, clickPower);
@@ -160,37 +263,95 @@ function clickCoin(event) {
     // Анимация монетки
     const coin = document.getElementById('clickCoin');
     if (coin) {
-        coin.classList.add('cooldown');
+        coin.style.transform = 'scale(0.95)';
         setTimeout(() => {
-            coin.classList.remove('cooldown');
-        }, cooldown);
+            coin.style.transform = 'scale(1)';
+        }, 100);
     }
     
-    // Обновляем интерфейс и сохраняем
-    updateUI();
-    saveUserData();
+    // Быстрое сохранение (без блокировки интерфейса)
+    setTimeout(() => {
+        saveUserData();
+    }, 0);
+    
+    return false;
 }
 
-function createClickPopup(event, amount) {
-    const popup = document.createElement('div');
-    popup.className = 'click-popup';
-    popup.textContent = '+' + amount.toFixed(9);
+// Быстрое обновление только баланса
+function updateBalanceImmediately() {
+    if (!window.userData) return;
     
-    // Позиционируем попап
-    const rect = event.target.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    popup.style.left = x + 'px';
-    popup.style.top = y + 'px';
-    
-    // Добавляем в монетку
-    const coin = document.getElementById('clickCoin');
-    if (coin) {
-        coin.appendChild(popup);
+    const balanceElement = document.getElementById('balanceValue');
+    if (balanceElement) {
+        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
     }
     
-    // Удаляем через секунду
+    const clickValueElement = document.getElementById('clickValue');
+    if (clickValueElement) {
+        let clickPower = 0.000000001;
+        if (typeof calculateClickPower === 'function') {
+            try {
+                clickPower = calculateClickPower();
+            } catch (e) {}
+        }
+        clickValueElement.textContent = clickPower.toFixed(9);
+    }
+}
+
+// Сохранение данных
+function saveUserData() {
+    try {
+        if (!window.userData) return;
+        
+        window.userData.lastUpdate = Date.now();
+        localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
+        
+        if (window.upgrades) {
+            const upgradesData = {};
+            for (const key in window.upgrades) {
+                if (window.upgrades[key] && typeof window.upgrades[key].level !== 'undefined') {
+                    upgradesData[key] = window.upgrades[key].level;
+                }
+            }
+            localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(upgradesData));
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка сохранения:', error);
+    }
+}
+
+// Создание попапа
+function createClickPopup(event, amount) {
+    let x, y;
+    
+    if (event.touches && event.touches[0]) {
+        x = event.touches[0].clientX;
+        y = event.touches[0].clientY;
+    } else {
+        x = event.clientX;
+        y = event.clientY;
+    }
+    
+    const popup = document.createElement('div');
+    popup.textContent = '+' + amount.toFixed(9);
+    popup.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        color: #4CAF50;
+        font-weight: bold;
+        font-size: 18px;
+        font-family: 'Courier New', monospace;
+        z-index: 10000;
+        pointer-events: none;
+        animation: floatUp 1s ease-out forwards;
+        transform: translate(-50%, -50%);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    `;
+    
+    document.body.appendChild(popup);
+    
     setTimeout(() => {
         if (popup.parentNode) {
             popup.parentNode.removeChild(popup);
@@ -198,337 +359,56 @@ function createClickPopup(event, amount) {
     }, 1000);
 }
 
-function buyUpgrade(upgradeType) {
-    // Проверяем наличие данных
-    if (!window.upgrades || !window.upgrades[upgradeType] || !window.userData) {
-        showGameNotification('Ошибка покупки улучшения', 'error');
+// Безопасное обновление UI
+function safeUpdateUI() {
+    if (!window.isDataLoaded || !window.userData) {
         return;
     }
     
-    const upgrade = window.upgrades[upgradeType];
-    const currentLevel = upgrade.level || 0;
-    const currentPrice = upgrade.basePrice * Math.pow(1.59375, currentLevel);
+    if (typeof updateUI === 'function') {
+        updateUI();
+    } else {
+        updateFallbackUI();
+    }
+}
+
+// Основная функция инициализации
+function initializeApp() {
+    console.log('🚀 Инициализация приложения...');
     
-    // Проверяем баланс
-    if (window.userData.balance < currentPrice) {
-        showGameNotification('Недостаточно средств', 'error');
-        return;
+    // Инициализация Telegram Web App
+    if (typeof tg !== 'undefined') {
+        try {
+            tg.expand();
+            tg.enableClosingConfirmation();
+            console.log('✅ Telegram Web App инициализирован');
+        } catch (error) {
+            console.log('⚠️ Ошибка инициализации Telegram:', error);
+        }
     }
     
-    // Покупаем улучшение
-    window.userData.balance -= currentPrice;
-    upgrade.level = currentLevel + 1;
-    window.userData.lastUpdate = Date.now();
+    // Загружаем данные пользователя
+    loadUserData();
+    
+    // Инициализируем монетку
+    initializeCoin();
     
     // Обновляем интерфейс
-    updateUI();
-    updateShopUI();
-    saveUserData();
+    setTimeout(() => {
+        safeUpdateUI();
+    }, 100);
     
-    showGameNotification(`${upgrade.name} куплено! Уровень ${upgrade.level}`, 'success');
-}
-
-function updateShopUI() {
-    // Проверяем наличие улучшений
-    if (!window.upgrades) return;
+    // Обновляем статус API
+    window.updateApiStatus('connected', 'Локальный режим');
     
-    // Обновляем каждый элемент улучшения
-    for (const upgradeKey in window.upgrades) {
-        const upgrade = window.upgrades[upgradeKey];
-        if (!upgrade) continue;
-        
-        const currentLevel = upgrade.level || 0;
-        const currentPrice = upgrade.basePrice * Math.pow(1.59375, currentLevel);
-        
-        // Обновляем отображение количества
-        const ownedElement = document.getElementById(upgradeKey + '-owned');
-        if (ownedElement) {
-            ownedElement.textContent = currentLevel;
-        }
-        
-        // Обновляем цену
-        const priceElement = document.getElementById(upgradeKey + '-price');
-        if (priceElement) {
-            priceElement.textContent = currentPrice.toFixed(9);
-        }
-        
-        // Обновляем кнопку покупки
-        const button = document.querySelector(`button[onclick="buyUpgrade('${upgradeKey}')"]`);
-        if (button) {
-            const canAfford = window.userData && window.userData.balance >= currentPrice;
-            button.disabled = !canAfford;
-        }
-    }
+    console.log('✅ Приложение успешно инициализировано');
 }
 
-function updateUI() {
-    try {
-        // Проверяем наличие userData
-        if (!window.userData) {
-            console.warn('⚠️ userData не определен в updateUI');
-            updateElement('balanceValue', '0.000000100 S');
-            updateElement('clickValue', '0.000000001');
-            updateElement('clickSpeed', '0.000000001 S/сек');
-            updateElement('mineSpeed', '0.000000000 S/сек');
-            return;
-        }
-
-        // Вычисляем прошедшее время
-        const currentTime = Date.now();
-        const elapsedSeconds = (currentTime - (window.lastUpdateTime || currentTime)) / 1000;
-        
-        // Пассивный доход от майнинга
-        const miningSpeed = calculateMiningSpeed();
-        window.accumulatedIncome = (window.accumulatedIncome || 0) + miningSpeed * elapsedSeconds;
-        
-        // Начисляем накопленный доход если достаточно
-        if (window.accumulatedIncome >= 0.000000001) {
-            window.userData.balance += window.accumulatedIncome;
-            window.userData.totalEarned += window.accumulatedIncome;
-            window.userData.lastUpdate = currentTime;
-            window.accumulatedIncome = 0;
-            
-            saveUserData();
-        }
-        
-        window.lastUpdateTime = currentTime;
-        
-        // Вычисляем текущие значения
-        const clickPower = calculateClickPower();
-        
-        // БЕЗОПАСНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
-        updateElement('balanceValue', (window.userData.balance || 0.000000100).toFixed(9) + ' S');
-        updateElement('clickValue', clickPower.toFixed(9));
-        updateElement('clickSpeed', clickPower.toFixed(9) + ' S/сек');
-        updateElement('mineSpeed', miningSpeed.toFixed(9) + ' S/сек');
-        
-    } catch (error) {
-        console.error('❌ Ошибка в updateUI:', error);
-        // Аварийное обновление
-        updateElement('balanceValue', '0.000000100 S');
-        updateElement('clickValue', '0.000000001');
-        updateElement('clickSpeed', '0.000000001 S/сек');
-        updateElement('mineSpeed', '0.000000000 S/сек');
-    }
-}
-
-// Вспомогательная функция для безопасного обновления элементов
-function updateElement(elementId, text) {
-    try {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.textContent = text;
-        }
-    } catch (error) {
-        console.error(`❌ Ошибка обновления элемента ${elementId}:`, error);
-    }
-}
-
-function saveUserData() {
-    try {
-        // Проверяем наличие данных для сохранения
-        if (!window.userData) {
-            console.log('⚠️ Нет данных для сохранения');
-            return;
-        }
-        
-        window.userData.lastUpdate = Date.now();
-        
-        // Сохраняем в localStorage
-        localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
-        
-        // Сохраняем улучшения
-        if (window.upgrades) {
-            const upgradesData = {};
-            for (const key in window.upgrades) {
-                if (window.upgrades[key]) {
-                    upgradesData[key] = window.upgrades[key].level || 0;
-                }
-            }
-            localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(upgradesData));
-        }
-        
-        console.log('💾 Данные сохранены');
-        
-        // Пытаемся сохранить на API если функция доступна
-        if (typeof saveUserDataToAPI === 'function') {
-            try {
-                saveUserDataToAPI();
-            } catch (apiError) {
-                console.log('⚠️ Ошибка сохранения на API:', apiError);
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Критическая ошибка сохранения:', error);
-    }
-}
-
-// Функция для показа уведомлений в игре
-function showGameNotification(message, type = 'info') {
-    if (typeof showNotification === 'function') {
-        showNotification(message, type);
-    } else {
-        // Простая реализация если основной функции нет
-        console.log(`🔔 ${type}: ${message}`);
-        
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#FF9800' : '#2196F3'};
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            z-index: 10000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease;
-        `;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 3000);
-    }
-}
-
-// ==================== ИНИЦИАЛИЗАЦИЯ УЛУЧШЕНИЙ ====================
-
-function initializeUpgrades() {
-    try {
-        // Используем UPGRADES из config.js или создаем базовые
-        if (typeof UPGRADES !== 'undefined') {
-            window.upgrades = JSON.parse(JSON.stringify(UPGRADES));
-            console.log('✅ Улучшения загружены из config.js');
-        } else {
-            // Создаем базовые улучшения если UPGRADES не определен
-            window.upgrades = {
-                gpu1: { 
-                    name: "Интегрированная видеокарта", 
-                    basePrice: 0.000000016, 
-                    baseBonus: 0.000000001, 
-                    level: 0, 
-                    type: 'mining' 
-                },
-                gpu2: { 
-                    name: "Видеокарта-затычка", 
-                    basePrice: 0.000000256, 
-                    baseBonus: 0.000000008, 
-                    level: 0, 
-                    type: 'mining' 
-                },
-                cpu1: { 
-                    name: "Обычный процессор", 
-                    basePrice: 0.000000032, 
-                    baseBonus: 0.000000001, 
-                    level: 0, 
-                    type: 'mining' 
-                },
-                mouse1: { 
-                    name: "Обычная мышка", 
-                    basePrice: 0.000000064, 
-                    baseBonus: 0.000000004, 
-                    level: 0, 
-                    type: 'click' 
-                },
-                mouse2: { 
-                    name: "Мышка с автокликером", 
-                    basePrice: 0.000001024, 
-                    baseBonus: 0.000000008, 
-                    level: 0, 
-                    type: 'click' 
-                }
-            };
-            console.log('✅ Созданы базовые улучшения');
-        }
-        
-        // Загружаем сохраненные уровни улучшений
-        loadUpgradeLevels();
-        
-    } catch (error) {
-        console.error('❌ Ошибка инициализации улучшений:', error);
-    }
-}
-
-function loadUpgradeLevels() {
-    try {
-        if (!window.userData || !window.userData.userId) return;
-        
-        const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + window.userData.userId);
-        if (savedUpgrades) {
-            const upgradesData = JSON.parse(savedUpgrades);
-            for (const key in upgradesData) {
-                if (window.upgrades[key]) {
-                    window.upgrades[key].level = upgradesData[key] || 0;
-                }
-            }
-            console.log('✅ Уровни улучшений загружены');
-        }
-    } catch (error) {
-        console.error('❌ Ошибка загрузки уровней улучшений:', error);
-    }
-}
-
-// ==================== ЗАГРУЗКА ДАННЫХ ====================
-
-function loadGameData() {
-    try {
-        // Загружаем данные пользователя
-        const savedData = localStorage.getItem('sparkcoin_user_data');
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            window.userData = { ...window.userData, ...parsedData };
-            console.log('✅ Данные игры загружены');
-        }
-        
-        // Инициализируем улучшения
-        initializeUpgrades();
-        
-        // Обновляем интерфейс
-        setTimeout(() => {
-            updateUI();
-            updateShopUI();
-        }, 100);
-        
-    } catch (error) {
-        console.error('❌ Ошибка загрузки данных игры:', error);
-    }
-}
-
-// ==================== АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ ====================
-
-// Запускаем когда DOM готов
+// Запуск приложения
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 DOM загружен, инициализируем игру...');
-        setTimeout(loadGameData, 500);
-    });
+    document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
-    console.log('⚡ Страница уже загружена, инициализируем игру...');
-    setTimeout(loadGameData, 500);
+    initializeApp();
 }
 
-// Добавляем CSS для анимаций если нужно
-if (!document.querySelector('#game-styles')) {
-    const style = document.createElement('style');
-    style.id = 'game-styles';
-    style.textContent = `
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-console.log('🎮 Game.js полностью загружен и готов к работе!');
+console.log('🎮 Исправленный main.js загружен и готов к работе!');
