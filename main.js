@@ -212,7 +212,25 @@ function loadUserData() {
         if (savedData) {
             const parsedData = JSON.parse(savedData);
             if (parsedData.userId === userId) {
-                window.userData = parsedData;
+                // ГАРАНТИРУЕМ что userData всегда будет объектом
+                window.userData = {
+                    userId: userId,
+                    username: username,
+                    balance: 0.000000100,
+                    totalEarned: 0.000000100,
+                    totalClicks: 0,
+                    lastUpdate: Date.now(),
+                    lotteryWins: 0,
+                    totalBet: 0,
+                    transfers: { sent: 0, received: 0 },
+                    referralEarnings: 0,
+                    referralsCount: 0,
+                    totalWinnings: 0,
+                    totalLosses: 0
+                };
+                
+                // Обновляем только существующие поля
+                Object.assign(window.userData, parsedData);
                 window.lastUpdateTime = window.userData.lastUpdate || Date.now();
                 console.log('✅ Данные пользователя загружены из localStorage');
             } else {
@@ -225,6 +243,7 @@ function loadUserData() {
         }
     } catch (error) {
         console.error('❌ Ошибка загрузки данных:', error);
+        // ГАРАНТИРУЕМ создание userData даже при ошибке
         window.userData = createNewUserData(userId, username);
     }
 
@@ -300,7 +319,7 @@ function updateFallbackUI() {
     const mineSpeedElement = document.getElementById('mineSpeed');
     
     if (balanceElement) {
-        balanceElement.textContent = window.userData.balance.toFixed(9) + ' S';
+        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
     }
     
     if (clickValueElement) {
@@ -389,27 +408,25 @@ function handleCoinEvent(event) {
         }
     }
     
-    // Обновляем баланс
-    window.userData.balance += clickPower;
-    window.userData.totalEarned += clickPower;
+    // НЕМЕДЛЕННОЕ обновление баланса
+    window.userData.balance = (window.userData.balance || 0) + clickPower;
+    window.userData.totalEarned = (window.userData.totalEarned || 0) + clickPower;
     window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
     window.userData.lastUpdate = Date.now();
     
     console.log('💵 Баланс обновлен:', window.userData.balance.toFixed(9));
     
-    // Обновляем интерфейс
-    if (typeof updateUI === 'function') {
-        updateUI();
-    } else {
-        updateFallbackUI();
-    }
+    // НЕМЕДЛЕННОЕ обновление интерфейса
+    updateBalanceImmediately();
     
-    // Сохраняем данные
-    if (typeof saveUserData === 'function') {
-        saveUserData();
-    } else {
-        saveFallbackData();
-    }
+    // Сохраняем данные (асинхронно, чтобы не блокировать интерфейс)
+    setTimeout(() => {
+        if (typeof saveUserData === 'function') {
+            saveUserData();
+        } else {
+            saveFallbackData();
+        }
+    }, 0);
     
     // Создаем попап
     createClickPopup(event, clickPower);
@@ -422,6 +439,27 @@ function handleCoinEvent(event) {
     }, 100);
     
     return false;
+}
+
+// Быстрое обновление только баланса
+function updateBalanceImmediately() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    if (balanceElement) {
+        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+    }
+    
+    const clickValueElement = document.getElementById('clickValue');
+    if (clickValueElement) {
+        let clickPower = 0.000000001;
+        if (typeof calculateClickPower === 'function') {
+            try {
+                clickPower = calculateClickPower();
+            } catch (e) {}
+        }
+        clickValueElement.textContent = clickPower.toFixed(9);
+    }
 }
 
 // Аварийное сохранение данных
