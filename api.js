@@ -1,14 +1,19 @@
-// api.js - для домена sparkcoin.ru
+// api.js - для домена sparkcoin.ru с исправленным URL
 console.log('🌐 API для sparkcoin.ru');
 
 window.CONFIG = {
-    API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev/'
+    API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev'
 };
 
 window.apiRequest = async function(endpoint, options = {}) {
-    console.log(`🔄 API запрос: ${endpoint}`);
+    // УБИРАЕМ ДВОЙНОЙ СЛЕШ - исправляем endpoint
+    let cleanEndpoint = endpoint;
+    if (cleanEndpoint.startsWith('/')) {
+        cleanEndpoint = cleanEndpoint.substring(1);
+    }
     
-    const url = `${window.CONFIG.API_BASE_URL}${endpoint}`;
+    const url = `${window.CONFIG.API_BASE_URL}/${cleanEndpoint}`;
+    console.log(`🔄 API запрос: ${url}`);
     
     try {
         const response = await fetch(url, {
@@ -23,57 +28,57 @@ window.apiRequest = async function(endpoint, options = {}) {
         
         if (response.ok) {
             const data = await response.json();
-            console.log(`✅ API ответ: ${endpoint}`, data);
+            console.log(`✅ API ответ: ${cleanEndpoint}`, data);
             return data;
         } else {
-            console.warn(`⚠️ API ошибка: ${response.status} ${endpoint}`);
+            console.warn(`⚠️ API ошибка: ${response.status} ${cleanEndpoint}`);
             throw new Error(`HTTP ${response.status}`);
         }
     } catch (error) {
         console.log('📴 API недоступно, используем офлайн режим:', error.message);
-        return getOfflineResponse(endpoint);
+        return getOfflineResponse(cleanEndpoint);
     }
 };
 
 function getOfflineResponse(endpoint) {
     const offlineResponses = {
-        '/api/health': { 
+        'api/health': { 
             status: 'healthy', 
             offline: true,
             timestamp: new Date().toISOString()
         },
-        '/api/player/': { 
+        'api/player/': { 
             success: true, 
             player: getDefaultPlayerData(),
             offline: true
         },
-        '/api/all_players': { 
+        'api/all_players': { 
             success: true, 
             players: getOfflinePlayers(),
             offline: true
         },
-        '/api/leaderboard': { 
+        'api/leaderboard': { 
             success: true, 
             leaderboard: getOfflineLeaderboard(),
             offline: true
         },
-        '/api/lottery/status': {
+        'api/lottery/status': {
             success: true,
             lottery: getOfflineLottery(),
             offline: true
         },
-        '/api/classic-lottery/status': {
+        'api/classic-lottery/status': {
             success: true,
             lottery: getOfflineClassicLottery(),
             offline: true
         },
-        '/api/referral/stats/': {
+        'api/referral/stats/': {
             success: true,
             stats: { referralsCount: 0, totalEarnings: 0 },
             referralCode: 'SPARK-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
             offline: true
         },
-        '/api/top/winners': {
+        'api/top/winners': {
             success: true,
             winners: getOfflineWinners(),
             offline: true
@@ -248,7 +253,7 @@ window.checkApiConnection = async function() {
     try {
         const response = await fetch(`${window.CONFIG.API_BASE_URL}/api/health`, {
             method: 'GET',
-            timeout: 5000
+            mode: 'cors'
         });
         
         if (response.ok) {
