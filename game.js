@@ -30,21 +30,25 @@ window.updateApiStatus = function(status, message) {
 // Базовые функции
 function getTelegramUserId() {
     if (typeof tg === 'undefined') {
-        let webId = localStorage.getItem('web_user_id');
+        // Для веб-версии используем фиксированный ID для тестирования
+        let webId = localStorage.getItem('web_telegram_id');
         if (!webId) {
-            webId = 'web_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('web_user_id', webId);
+            webId = 'web_tg_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('web_telegram_id', webId);
         }
         return webId;
     }
     
     const user = tg.initDataUnsafe?.user;
+    
+    // ВАЖНО: Всегда используем Telegram ID как основной идентификатор
     if (user && user.id) {
-        return 'tg_' + user.id;
+        return user.id.toString(); // Просто ID, без префикса
     } else if (user && user.username) {
-        return 'tg_' + user.username.toLowerCase();
+        return user.username.toLowerCase();
     }
-    return 'test_' + Math.random().toString(36).substr(2, 9);
+    
+    return 'unknown_user';
 }
 
 function getTelegramUsername() {
