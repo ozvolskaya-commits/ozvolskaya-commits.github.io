@@ -1,4 +1,4 @@
-// game.js - исправленная игровая логика
+// game.js - исправленная игровая логика с синхронизацией
 console.log('🎮 Загружаем исправленный game.js...');
 
 const tg = window.Telegram.WebApp;
@@ -16,39 +16,20 @@ window.upgrades = {};
 window.allPlayers = [];
 window.isDataLoaded = false;
 
-// Функция для обновления статуса API
-window.updateApiStatus = function(status, message) {
-    const apiStatus = document.getElementById('apiStatus');
-    if (apiStatus) {
-        apiStatus.className = `api-status ${status}`;
-        apiStatus.textContent = `API: ${message}`;
-    }
-    window.apiConnected = status === 'connected';
-    console.log(`📡 Статус API: ${status} - ${message}`);
-};
-
-// Базовые функции
-function getTelegramUserId() {
-    if (typeof tg === 'undefined') {
-        // Для веб-версии используем фиксированный ID для тестирования
-        let webId = localStorage.getItem('web_telegram_id');
-        if (!webId) {
-            webId = 'web_tg_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('web_telegram_id', webId);
-        }
-        return webId;
+// ЕДИНАЯ функция получения userID для всех устройств
+function getUnifiedUserId() {
+    // Для Telegram Web App всегда используем telegram.id
+    if (typeof tg !== 'undefined' && tg.initDataUnsafe?.user?.id) {
+        return `tg_${tg.initDataUnsafe.user.id}`;
     }
     
-    const user = tg.initDataUnsafe?.user;
-    
-    // ВАЖНО: Всегда используем Telegram ID как основной идентификатор
-    if (user && user.id) {
-        return user.id.toString(); // Просто ID, без префикса
-    } else if (user && user.username) {
-        return user.username.toLowerCase();
+    // Для веб-версии используем сохраненный единый ID
+    let unifiedId = localStorage.getItem('sparkcoin_unified_user_id');
+    if (!unifiedId) {
+        unifiedId = 'web_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('sparkcoin_unified_user_id', unifiedId);
     }
-    
-    return 'unknown_user';
+    return unifiedId;
 }
 
 function getTelegramUsername() {
@@ -67,7 +48,10 @@ function getTelegramUsername() {
     return 'Игрок';
 }
 
-function createNewUserData(userId, username) {
+function createNewUserData() {
+    const userId = getUnifiedUserId();
+    const username = getTelegramUsername();
+
     return {
         userId: userId,
         username: username,
@@ -90,33 +74,46 @@ function createNewUserData(userId, username) {
     };
 }
 
-// Загрузка данных пользователя
-function loadUserData() {
-    const userId = getTelegramUserId();
+// Загрузка данных пользователя с приоритетом серверных данных
+async function loadUserData() {
+    const userId = getUnifiedUserId();
     const username = getTelegramUsername();
 
     try {
-        const savedData = localStorage.getItem('sparkcoin_user_data');
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            if (parsedData.userId === userId) {
-                window.userData = createNewUserData(userId, username);
-                Object.assign(window.userData, parsedData);
-                window.lastUpdateTime = window.userData.lastUpdate || Date.now();
-                console.log('✅ Данные пользователя загружены из localStorage');
-            } else {
-                window.userData = createNewUserData(userId, username);
-                console.log('🆕 Созданы новые данные пользователя');
-            }
+        // ПЕРВОЕ: пытаемся загрузить с сервера
+        console.log('📥 Загрузка данных с сервера...');
+        const serverData = await loadFromServer(userId);
+        
+        if (serverData) {
+            window.userData = serverData;
+            console.log('✅ Данные загружены с сервера:', window.userData.balance);
         } else {
-            window.userData = createNewUserData(userId, username);
-            console.log('🆕 Созданы начальные данные пользователя');
+            // ВТОРОЕ: загружаем из localStorage
+            const savedData = localStorage.getItem('sparkcoin_user_data');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                if (parsedData.userId === userId) {
+                    window.userData = createNewUserData();
+                    Object.assign(window.userData, parsedData);
+                    console.log('✅ Данные загружены из localStorage');
+                } else {
+                    window.userData = createNewUserData();
+                    console.log('🆕 Созданы новые данные пользователя');
+                }
+            } else {
+                window.userData = createNewUserData();
+                console.log('🆕 Созданы начальные данные пользователя');
+            }
+            
+            // Синхронизируем локальные данные на сервер
+            setTimeout(() => syncToServer(), 1000);
         }
     } catch (error) {
         console.error('❌ Ошибка загрузки данных:', error);
-        window.userData = createNewUserData(userId, username);
+        window.userData = createNewUserData();
     }
 
+    // Загрузка улучшений
     try {
         const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
         if (savedUpgrades) {
@@ -138,33 +135,51 @@ function loadUserData() {
     console.log('👤 Пользователь:', window.userData.username, 'Баланс:', window.userData.balance);
 }
 
-// Аварийное обновление UI
-function updateFallbackUI() {
-    if (!window.userData) return;
-    
-    const balanceElement = document.getElementById('balanceValue');
-    const clickValueElement = document.getElementById('clickValue');
-    const clickSpeedElement = document.getElementById('clickSpeed');
-    const mineSpeedElement = document.getElementById('mineSpeed');
-    
-    if (balanceElement) {
-        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+// Загрузка данных с сервера
+async function loadFromServer(userId) {
+    try {
+        const response = await window.apiRequest(`/api/sync/unified/${userId}`);
+        if (response && response.success && response.userData) {
+            return response.userData;
+        }
+    } catch (error) {
+        console.log('📴 Сервер недоступен, используем локальные данные');
     }
-    
-    if (clickValueElement) {
-        clickValueElement.textContent = '0.000000001';
-    }
-    
-    if (clickSpeedElement) {
-        clickSpeedElement.textContent = '0.000000001 S/сек';
-    }
-    
-    if (mineSpeedElement) {
-        mineSpeedElement.textContent = '0.000000000 S/сек';
-    }
+    return null;
 }
 
-// Инициализация монетки
+// Синхронизация на сервер
+async function syncToServer() {
+    if (!window.userData) return false;
+    
+    try {
+        const syncData = {
+            userId: window.userData.userId,
+            username: window.userData.username,
+            balance: window.userData.balance,
+            totalEarned: window.userData.totalEarned,
+            totalClicks: window.userData.totalClicks,
+            upgrades: window.upgrades,
+            lastUpdate: Date.now(),
+            telegramId: tg?.initDataUnsafe?.user?.id || null
+        };
+        
+        const response = await window.apiRequest('/api/sync/unified', {
+            method: 'POST',
+            body: JSON.stringify(syncData)
+        });
+        
+        if (response && response.success) {
+            console.log('✅ Данные синхронизированы на сервер');
+            return true;
+        }
+    } catch (error) {
+        console.log('📴 Ошибка синхронизации с сервером');
+    }
+    return false;
+}
+
+// Остальные функции остаются без изменений...
 function initializeCoin() {
     console.log('🎯 Инициализация монетки...');
     
@@ -202,7 +217,6 @@ function initializeCoin() {
     console.log('✅ Обработчики монетки установлены');
 }
 
-// Обработчик кликов
 function handleCoinClick(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -267,7 +281,6 @@ function handleCoinClick(event) {
     return false;
 }
 
-// Быстрое обновление баланса
 function updateBalanceImmediately() {
     if (!window.userData) return;
     
@@ -288,7 +301,6 @@ function updateBalanceImmediately() {
     }
 }
 
-// Сохранение данных
 function saveUserData() {
     try {
         if (!window.userData) return;
@@ -306,12 +318,14 @@ function saveUserData() {
             localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(upgradesData));
         }
         
+        // Автосинхронизация с сервером
+        setTimeout(() => syncToServer(), 500);
+        
     } catch (error) {
         console.error('❌ Ошибка сохранения:', error);
     }
 }
 
-// Создание попапа
 function createClickPopup(event, amount) {
     let x, y;
     
@@ -349,7 +363,6 @@ function createClickPopup(event, amount) {
     }, 1000);
 }
 
-// Расчет скорости майнинга
 function calculateMiningSpeed() {
     let speed = 0.000000000;
     
@@ -366,7 +379,6 @@ function calculateMiningSpeed() {
     return speed;
 }
 
-// Обновление интерфейса
 function updateUI() {
     if (!window.userData) return;
     
@@ -392,7 +404,6 @@ function updateUI() {
     }
 }
 
-// Покупка улучшений
 function buyUpgrade(upgradeId) {
     if (!window.userData || !UPGRADES[upgradeId]) return;
     
@@ -414,7 +425,6 @@ function buyUpgrade(upgradeId) {
     }
 }
 
-// Обновление магазина
 function updateShopUI() {
     for (const upgradeId in UPGRADES) {
         const upgrade = UPGRADES[upgradeId];
@@ -440,7 +450,6 @@ function updateShopUI() {
     }
 }
 
-// Уведомления
 function showNotification(message, type = 'info') {
     console.log('🔔 ' + type + ': ' + message);
     
@@ -483,7 +492,7 @@ async function initializeApp() {
         }
     }
     
-    loadUserData();
+    await loadUserData();
     initializeCoin();
     
     setTimeout(() => {
@@ -496,17 +505,6 @@ async function initializeApp() {
             showSection('main');
         }
     }, 500);
-    
-    setTimeout(async () => {
-        try {
-            const isConnected = await window.checkApiConnection();
-            if (isConnected && window.userData) {
-                await window.syncPlayerDataWithAPI();
-            }
-        } catch (error) {
-            console.log('⚠️ Ошибка синхронизации с API:', error);
-        }
-    }, 2000);
     
     console.log('✅ Приложение инициализировано');
 }
