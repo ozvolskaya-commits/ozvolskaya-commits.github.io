@@ -1,21 +1,24 @@
-// sync.js - улучшенная синхронизация с пассивным майнингом
-console.log('🔗 Загружаем улучшенную систему синхронизации...');
+// sync.js - исправленная система синхронизации
+console.log('🔗 Загружаем исправленную систему синхронизации...');
 
-// Переменные для майнинга
 let miningInterval = null;
 let lastMiningTime = Date.now();
+let isSyncing = false;
 
 // Основная функция синхронизации
-window.syncUserData = async function() {
+window.syncUserData = async function(force = false) {
+    if (isSyncing && !force) return false;
+    
     console.log('🔄 Синхронизация данных...');
+    isSyncing = true;
     
     if (!window.userData) {
         console.log('❌ Нет данных пользователя');
+        isSyncing = false;
         return false;
     }
     
     try {
-        // Получаем Telegram ID пользователя
         const telegramId = getTelegramUserId();
         const username = getTelegramUsername();
         
@@ -24,7 +27,6 @@ window.syncUserData = async function() {
         // Рассчитываем майнинг перед синхронизацией
         calculateOfflineMining();
         
-        // Сохраняем в API
         const syncData = {
             telegramId: telegramId,
             username: username,
@@ -33,7 +35,8 @@ window.syncUserData = async function() {
             totalClicks: window.userData.totalClicks,
             upgrades: window.upgrades,
             lastUpdate: new Date().toISOString(),
-            mineSpeed: calculateMiningSpeed()
+            mineSpeed: calculateMiningSpeed(),
+            sessionId: generateSessionId()
         };
         
         const response = await window.apiRequest('/api/sync/user', {
@@ -45,6 +48,8 @@ window.syncUserData = async function() {
             console.log('✅ Данные синхронизированы с сервером');
             localStorage.setItem('last_sync_time', Date.now());
             localStorage.setItem('last_mining_time', Date.now());
+            localStorage.setItem('user_session_id', syncData.sessionId);
+            isSyncing = false;
             return true;
         }
         
@@ -52,8 +57,19 @@ window.syncUserData = async function() {
         console.log('📴 Ошибка синхронизации:', error);
     }
     
+    isSyncing = false;
     return false;
 };
+
+// Генерация ID сессии
+function generateSessionId() {
+    let sessionId = localStorage.getItem('user_session_id');
+    if (!sessionId) {
+        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('user_session_id', sessionId);
+    }
+    return sessionId;
+}
 
 // Загрузка данных с сервера
 window.loadSyncedData = async function() {
@@ -61,38 +77,35 @@ window.loadSyncedData = async function() {
     
     try {
         const telegramId = getTelegramUserId();
-        const response = await window.apiRequest(`/api/sync/user/${telegramId}`);
+        const response = await window.apiRequest(`/api/sync/user/${telegramId}?session=${generateSessionId()}`);
         
-        if (response && response.success && response.userData) {
-            console.log('✅ Данные загружены с сервера:', response.userData);
-            
-            // Сохраняем время последней синхронизации
-            const now = Date.now();
-            localStorage.setItem('last_sync_time', now);
-            localStorage.setItem('last_mining_time', now);
-            
-            // Восстанавливаем данные
-            window.userData = {
-                ...window.userData,
-                ...response.userData,
-                userId: getTelegramUserId(),
-                username: getTelegramUsername()
-            };
-            
-            // Восстанавливаем улучшения
-            if (response.userData.upgrades) {
-                window.upgrades = response.userData.upgrades;
+        if (response && response.success) {
+            if (response.userData) {
+                console.log('✅ Данные загружены с сервера');
+                
+                const now = Date.now();
+                localStorage.setItem('last_sync_time', now);
+                localStorage.setItem('last_mining_time', now);
+                
+                const mergedData = mergeUserData(window.userData, response.userData);
+                
+                window.userData = {
+                    ...mergedData,
+                    userId: getTelegramUserId(),
+                    username: getTelegramUsername()
+                };
+                
+                if (response.userData.upgrades) {
+                    window.upgrades = response.userData.upgrades;
+                }
+                
+                saveUserData();
+                updateUI();
+                updateShopUI();
+                
+                showNotification('Данные синхронизированы!', 'success');
+                return true;
             }
-            
-            // Сохраняем локально
-            saveUserData();
-            
-            // Обновляем интерфейс
-            updateUI();
-            updateShopUI();
-            
-            showNotification('Данные синхронизированы!', 'success');
-            return true;
         }
         
     } catch (error) {
@@ -102,12 +115,32 @@ window.loadSyncedData = async function() {
     return false;
 };
 
+// Объединение данных пользователя
+function mergeUserData(localData, serverData) {
+    return {
+        balance: Math.max(localData.balance || 0, serverData.balance || 0),
+        totalEarned: Math.max(localData.totalEarned || 0, serverData.totalEarned || 0),
+        totalClicks: Math.max(localData.totalClicks || 0, serverData.totalClicks || 0),
+        lastUpdate: serverData.lastUpdate || localData.lastUpdate,
+        lotteryWins: Math.max(localData.lotteryWins || 0, serverData.lotteryWins || 0),
+        totalBet: Math.max(localData.totalBet || 0, serverData.totalBet || 0),
+        referralEarnings: Math.max(localData.referralEarnings || 0, serverData.referralEarnings || 0),
+        referralsCount: Math.max(localData.referralsCount || 0, serverData.referralsCount || 0),
+        totalWinnings: Math.max(localData.totalWinnings || 0, serverData.totalWinnings || 0),
+        totalLosses: Math.max(localData.totalLosses || 0, serverData.totalLosses || 0),
+        transfers: {
+            sent: Math.max(localData.transfers?.sent || 0, serverData.transfers?.sent || 0),
+            received: Math.max(localData.transfers?.received || 0, serverData.transfers?.received || 0)
+        }
+    };
+}
+
 // Расчет офлайн майнинга
 function calculateOfflineMining() {
     const lastMining = parseInt(localStorage.getItem('last_mining_time')) || Date.now();
     const now = Date.now();
-    const timeDiff = (now - lastMining) / 1000; // разница в секундах
-    
+    const timeDiff = (now - lastMining) / 1000;
+
     if (timeDiff > 1 && window.userData) {
         const miningSpeed = calculateMiningSpeed();
         const minedAmount = miningSpeed * timeDiff;
@@ -118,10 +151,7 @@ function calculateOfflineMining() {
             
             console.log(`⛏️ Начислен офлайн майнинг: ${minedAmount.toFixed(9)} S за ${timeDiff.toFixed(0)} сек`);
             
-            // Обновляем время майнинга
             localStorage.setItem('last_mining_time', now);
-            
-            // Сохраняем и обновляем UI
             saveUserData();
             updateUI();
         }
@@ -132,12 +162,10 @@ function calculateOfflineMining() {
 function startMiningSystem() {
     console.log('⛏️ Запуск системы майнинга...');
     
-    // Останавливаем предыдущий интервал
     if (miningInterval) {
         clearInterval(miningInterval);
     }
     
-    // Запускаем майнинг каждую секунду
     miningInterval = setInterval(() => {
         if (window.userData && window.isDataLoaded) {
             const miningSpeed = calculateMiningSpeed();
@@ -146,47 +174,26 @@ function startMiningSystem() {
                 window.userData.balance += miningSpeed;
                 window.userData.totalEarned += miningSpeed;
                 
-                // Обновляем баланс каждые 10 секунд
-                if (Date.now() - lastMiningTime > 10000) {
+                updateBalanceImmediately();
+                
+                if (Date.now() - lastMiningTime > 5000) {
                     updateUI();
                     saveUserData();
                     lastMiningTime = Date.now();
                 }
-                
-                // Быстрое обновление баланса
-                updateBalanceImmediately();
             }
         }
-    }, 1000); // Каждую секунду
-    
-    // Синхронизация каждые 30 секунд
-    setInterval(() => {
-        if (window.userData) {
-            window.syncUserData();
-        }
-    }, 30000);
+    }, 1000);
 }
 
-// Улучшенная функция скорости майнинга
+// Функция скорости майнинга
 function calculateMiningSpeed() {
     let speed = 0.000000000;
     
     if (!window.upgrades) return speed;
     
-    // Бонус от видеокарт
     for (const key in window.upgrades) {
-        if (key.startsWith('gpu') && window.upgrades[key]) {
-            const level = window.upgrades[key].level || 0;
-            const upgrade = UPGRADES[key];
-            if (upgrade) {
-                speed += level * upgrade.baseBonus;
-            }
-        }
-    }
-    
-    // Бонус от процессоров
-    for (const key in window.upgrades) {
-        if (key.startsWith('cpu') && window.upgrades[key]) {
+        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
             const level = window.upgrades[key].level || 0;
             const upgrade = UPGRADES[key];
             if (upgrade) {
@@ -198,114 +205,60 @@ function calculateMiningSpeed() {
     return speed;
 }
 
-// Автоматическая синхронизация при изменении данных
+// Автоматическая синхронизация
 function setupAutoSync() {
     console.log('⚡ Настройка автосинхронизации...');
     
-    // Перехватываем сохранение данных
     const originalSaveUserData = window.saveUserData;
     window.saveUserData = function() {
         originalSaveUserData();
-        
-        // Синхронизируем с сервером каждые 10 секунд
-        const lastSync = localStorage.getItem('last_sync_time');
-        const now = Date.now();
-        
-        if (!lastSync || (now - lastSync) > 10000) {
-            setTimeout(() => window.syncUserData(), 2000);
-        }
+        setTimeout(() => window.syncUserData(), 2000);
     };
     
-    // Синхронизация при загрузке страницы
     setTimeout(() => {
-        calculateOfflineMining(); // Сначала начисляем офлайн майнинг
-        window.loadSyncedData();  // Потом загружаем данные
-    }, 2000);
+        calculateOfflineMining();
+        window.loadSyncedData();
+    }, 1500);
     
-    // Синхронизация при видимости страницы
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
             calculateOfflineMining();
-            window.loadSyncedData();
+            setTimeout(() => window.loadSyncedData(), 1000);
         }
     });
-}
-
-// Обновляем функцию получения Telegram ID
-function getTelegramUserId() {
-    if (typeof tg === 'undefined') {
-        // Для веб-версии используем localStorage
-        let webId = localStorage.getItem('web_user_id');
-        if (!webId) {
-            webId = 'web_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('web_user_id', webId);
+    
+    setInterval(() => {
+        if (window.userData) {
+            window.syncUserData();
         }
-        return webId;
-    }
-    
-    const user = tg.initDataUnsafe?.user;
-    
-    // ВАЖНО: Используем Telegram ID как основной идентификатор
-    if (user && user.id) {
-        return 'tg_' + user.id;
-    } else if (user && user.username) {
-        return 'tg_' + user.username.toLowerCase();
-    }
-    
-    return 'unknown_user';
+    }, 15000);
 }
 
-// Добавляем информацию о майнинге в интерфейс
-function addMiningInfo() {
-    const balanceSection = document.querySelector('.balance-section');
-    if (balanceSection && !document.getElementById('miningInfo')) {
-        const miningInfo = document.createElement('div');
-        miningInfo.id = 'miningInfo';
-        miningInfo.innerHTML = `
-            <div style="margin-top: 10px; padding: 10px; background: rgba(76, 175, 80, 0.1); border-radius: 8px; border: 1px solid #4CAF50;">
-                <div style="font-size: 12px; color: #4CAF50;">⛏️ Пассивный майнинг: <span id="currentMiningSpeed">0.000000000</span> S/сек</div>
-                <div style="font-size: 10px; color: #888;">Баланс обновляется в реальном времени</div>
-            </div>
-        `;
-        balanceSection.appendChild(miningInfo);
+// Убираем дублирующую плашку
+function removeDuplicateMiningInfo() {
+    const duplicateMining = document.getElementById('miningInfo');
+    if (duplicateMining) {
+        duplicateMining.remove();
+        console.log('✅ Убрана дублирующая плашка майнинга');
     }
 }
 
-// Обновляем информацию о майнинге
-function updateMiningInfo() {
-    const miningSpeedElement = document.getElementById('currentMiningSpeed');
-    if (miningSpeedElement) {
-        const miningSpeed = calculateMiningSpeed();
-        miningSpeedElement.textContent = miningSpeed.toFixed(9);
-    }
-}
-
-// Инициализация системы синхронизации и майнинга
+// Инициализация системы
 function initializeSyncAndMiningSystem() {
-    console.log('🚀 Инициализация системы синхронизации и майнинга...');
+    console.log('🚀 Инициализация исправленной системы...');
     
-    // Добавляем информацию о майнинге
-    addMiningInfo();
-    
-    // Настраиваем автосинхронизацию
+    removeDuplicateMiningInfo();
     setupAutoSync();
-    
-    // Запускаем систему майнинга
     startMiningSystem();
     
-    // Обновляем информацию о майнинге каждые 5 секунд
-    setInterval(updateMiningInfo, 5000);
-    
-    console.log('✅ Система синхронизации и майнинга готова!');
+    console.log('✅ Исправленная система готова!');
 }
 
-// Переопределяем обновление UI для отображения майнинга
+// Переопределяем обновление UI
 const originalUpdateUI = window.updateUI;
 window.updateUI = function() {
     if (originalUpdateUI) originalUpdateUI();
-    updateMiningInfo();
     
-    // Обновляем скорость майнинга в статистике
     const mineSpeedElement = document.getElementById('mineSpeed');
     if (mineSpeedElement) {
         mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
@@ -317,4 +270,4 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initializeSyncAndMiningSystem, 1000);
 });
 
-console.log('🔗 Улучшенная система синхронизации загружена!');
+console.log('🔗 Исправленная система синхронизации загружена!');
