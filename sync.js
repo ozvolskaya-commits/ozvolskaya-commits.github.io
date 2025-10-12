@@ -4,6 +4,7 @@ console.log('🔗 Загружаем исправленную систему с�
 let miningInterval = null;
 let lastMiningTime = Date.now();
 let isSyncing = false;
+let currentSessionId = generateSessionId();
 
 // Основная функция синхронизации
 window.syncUserData = async function(force = false) {
@@ -34,9 +35,9 @@ window.syncUserData = async function(force = false) {
             totalEarned: window.userData.totalEarned,
             totalClicks: window.userData.totalClicks,
             upgrades: window.upgrades,
-            lastUpdate: new Date().toISOString(),
+            lastUpdate: Date.now(),
             mineSpeed: calculateMiningSpeed(),
-            sessionId: generateSessionId()
+            sessionId: currentSessionId
         };
         
         const response = await window.apiRequest('/api/sync/user', {
@@ -46,9 +47,16 @@ window.syncUserData = async function(force = false) {
         
         if (response && response.success) {
             console.log('✅ Данные синхронизированы с сервером');
+            
+            // ОБНОВЛЯЕМ userId если сервер вернул другой
+            if (response.userId && response.userId !== window.userData.userId) {
+                console.log(`🆔 Смена userId: ${window.userData.userId} -> ${response.userId}`);
+                window.userData.userId = response.userId;
+                saveUserData();
+            }
+            
             localStorage.setItem('last_sync_time', Date.now());
             localStorage.setItem('last_mining_time', Date.now());
-            localStorage.setItem('user_session_id', syncData.sessionId);
             isSyncing = false;
             return true;
         }
@@ -77,35 +85,39 @@ window.loadSyncedData = async function() {
     
     try {
         const telegramId = getTelegramUserId();
-        const response = await window.apiRequest(`/api/sync/user/${telegramId}?session=${generateSessionId()}`);
+        const response = await window.apiRequest(`/api/sync/user/${telegramId}?session=${currentSessionId}`);
         
-        if (response && response.success) {
-            if (response.userData) {
-                console.log('✅ Данные загружены с сервера');
-                
-                const now = Date.now();
-                localStorage.setItem('last_sync_time', now);
-                localStorage.setItem('last_mining_time', now);
-                
-                const mergedData = mergeUserData(window.userData, response.userData);
-                
-                window.userData = {
-                    ...mergedData,
-                    userId: getTelegramUserId(),
-                    username: getTelegramUsername()
-                };
-                
-                if (response.userData.upgrades) {
-                    window.upgrades = response.userData.upgrades;
-                }
-                
-                saveUserData();
-                updateUI();
-                updateShopUI();
-                
-                showNotification('Данные синхронизированы!', 'success');
-                return true;
+        if (response && response.success && response.userData) {
+            console.log('✅ Данные загружены с сервера');
+            
+            const now = Date.now();
+            localStorage.setItem('last_sync_time', now);
+            localStorage.setItem('last_mining_time', now);
+            
+            // ВАЖНО: Объединяем данные, сохраняя локальный прогресс
+            const mergedData = mergeUserData(window.userData, response.userData);
+            
+            window.userData = {
+                ...mergedData,
+                userId: response.userData.userId, // Используем userId с сервера
+                username: getTelegramUsername()
+            };
+            
+            // Восстанавливаем улучшения
+            if (response.userData.upgrades) {
+                window.upgrades = response.userData.upgrades;
             }
+            
+            saveUserData();
+            updateUI();
+            updateShopUI();
+            
+            showNotification('Данные синхронизированы!', 'success');
+            return true;
+        } else if (response && !response.success) {
+            console.log('📱 Пользователь не найден на сервере, создаем новую запись');
+            // Принудительно синхронизируем чтобы создать запись
+            await window.syncUserData(true);
         }
         
     } catch (error) {
@@ -115,23 +127,43 @@ window.loadSyncedData = async function() {
     return false;
 };
 
-// Объединение данных пользователя
+// Умное объединение данных
 function mergeUserData(localData, serverData) {
+    console.log('🔄 Объединение данных:', {
+        localBalance: localData.balance,
+        serverBalance: serverData.balance,
+        localClicks: localData.totalClicks,
+        serverClicks: serverData.totalClicks
+    });
+    
     return {
+        // Баланс - берем максимальный
         balance: Math.max(localData.balance || 0, serverData.balance || 0),
+        
+        // Общий заработок - берем максимальный
         totalEarned: Math.max(localData.totalEarned || 0, serverData.totalEarned || 0),
+        
+        // Клики - берем максимальные
         totalClicks: Math.max(localData.totalClicks || 0, serverData.totalClicks || 0),
-        lastUpdate: serverData.lastUpdate || localData.lastUpdate,
+        
+        // Остальные данные
+        lastUpdate: Math.max(localData.lastUpdate || 0, new Date(serverData.lastUpdate).getTime() || 0),
         lotteryWins: Math.max(localData.lotteryWins || 0, serverData.lotteryWins || 0),
         totalBet: Math.max(localData.totalBet || 0, serverData.totalBet || 0),
         referralEarnings: Math.max(localData.referralEarnings || 0, serverData.referralEarnings || 0),
         referralsCount: Math.max(localData.referralsCount || 0, serverData.referralsCount || 0),
         totalWinnings: Math.max(localData.totalWinnings || 0, serverData.totalWinnings || 0),
         totalLosses: Math.max(localData.totalLosses || 0, serverData.totalLosses || 0),
+        
+        // Сохраняем трансферы
         transfers: {
             sent: Math.max(localData.transfers?.sent || 0, serverData.transfers?.sent || 0),
             received: Math.max(localData.transfers?.received || 0, serverData.transfers?.received || 0)
-        }
+        },
+        
+        // Сохраняем Telegram данные
+        telegramId: serverData.telegramId || localData.telegramId,
+        telegramUsername: serverData.telegramUsername || localData.telegramUsername
     };
 }
 
