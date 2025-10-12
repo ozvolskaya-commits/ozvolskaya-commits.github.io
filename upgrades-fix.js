@@ -1,5 +1,5 @@
-// upgrades-fix.js - исправление системы улучшений с майнингом
-console.log('🔧 Исправляем систему улучшений с майнингом...');
+// upgrades-fix.js - исправление системы улучшений
+console.log('🔧 Исправляем систему улучшений...');
 
 // Исправляем структуру upgrades
 function initializeUpgrades() {
@@ -7,7 +7,6 @@ function initializeUpgrades() {
         window.upgrades = {};
     }
     
-    // Инициализируем все улучшения с правильной структурой
     for (const upgradeId in UPGRADES) {
         if (UPGRADES.hasOwnProperty(upgradeId)) {
             if (!window.upgrades[upgradeId] || typeof window.upgrades[upgradeId] !== 'object') {
@@ -30,7 +29,6 @@ function buyUpgradeFixed(upgradeId) {
         return;
     }
     
-    // Убеждаемся, что улучшение инициализировано
     if (!window.upgrades[upgradeId]) {
         window.upgrades[upgradeId] = {
             level: 0,
@@ -53,7 +51,6 @@ function buyUpgradeFixed(upgradeId) {
         updateShopUIFixed();
         saveUserData();
         
-        // Синхронизируем после покупки
         setTimeout(() => window.syncUserData(), 1000);
         
         showNotification(`Улучшение "${upgrade.name}" куплено! Уровень: ${currentLevel + 1}`, 'success');
@@ -78,14 +75,12 @@ function updateShopUIFixed() {
         const currentLevel = window.upgrades[upgradeId].level || 0;
         const price = upgrade.basePrice * Math.pow(2, currentLevel);
         
-        // Обновляем элементы интерфейса
         const ownedElement = document.getElementById(upgradeId + '-owned');
         const priceElement = document.getElementById(upgradeId + '-price');
         
         if (ownedElement) ownedElement.textContent = currentLevel;
         if (priceElement) priceElement.textContent = price.toFixed(9);
         
-        // Обновляем кнопку покупки
         const buyButton = document.querySelector(`[onclick="buyUpgrade('${upgradeId}')"]`);
         if (buyButton) {
             if (window.userData && window.userData.balance >= price) {
@@ -100,10 +95,6 @@ function updateShopUIFixed() {
         }
     }
 }
-
-// Переопределяем старые функции
-window.buyUpgrade = buyUpgradeFixed;
-window.updateShopUI = updateShopUIFixed;
 
 // Исправленная функция расчета силы клика
 function calculateClickPowerFixed() {
@@ -122,6 +113,11 @@ function calculateClickPowerFixed() {
     return power;
 }
 
+// Переопределяем старые функции
+window.buyUpgrade = buyUpgradeFixed;
+window.updateShopUI = updateShopUIFixed;
+window.calculateClickPower = calculateClickPowerFixed;
+
 // Запускаем инициализацию при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
@@ -130,4 +126,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 });
 
-console.log('✅ Система улучшений с майнингом исправлена!');
+console.log('✅ Система улучшений исправлена!');
