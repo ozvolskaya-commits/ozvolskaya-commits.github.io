@@ -1,5 +1,5 @@
-// upgrades-fix.js - исправление системы улучшений
-console.log('🔧 Исправляем систему улучшений...');
+// upgrades-fix.js - исправление системы улучшений с майнингом
+console.log('🔧 Исправляем систему улучшений с майнингом...');
 
 // Исправляем структуру upgrades
 function initializeUpgrades() {
@@ -10,22 +10,7 @@ function initializeUpgrades() {
     // Инициализируем все улучшения с правильной структурой
     for (const upgradeId in UPGRADES) {
         if (UPGRADES.hasOwnProperty(upgradeId)) {
-            // Если улучшение уже есть, но неправильной структуры
-            if (window.upgrades[upgradeId] && typeof window.upgrades[upgradeId] === 'object') {
-                // Уже правильная структура
-                continue;
-            }
-            
-            // Если есть число уровня, преобразуем в объект
-            if (typeof window.upgrades[upgradeId] === 'number') {
-                const level = window.upgrades[upgradeId];
-                window.upgrades[upgradeId] = {
-                    level: level,
-                    basePrice: UPGRADES[upgradeId].basePrice,
-                    baseBonus: UPGRADES[upgradeId].baseBonus
-                };
-            } else {
-                // Создаем новое улучшение
+            if (!window.upgrades[upgradeId] || typeof window.upgrades[upgradeId] !== 'object') {
                 window.upgrades[upgradeId] = {
                     level: 0,
                     basePrice: UPGRADES[upgradeId].basePrice,
@@ -68,6 +53,9 @@ function buyUpgradeFixed(upgradeId) {
         updateShopUIFixed();
         saveUserData();
         
+        // Синхронизируем после покупки
+        setTimeout(() => window.syncUserData(), 1000);
+        
         showNotification(`Улучшение "${upgrade.name}" куплено! Уровень: ${currentLevel + 1}`, 'success');
     } else {
         showNotification('Недостаточно средств', 'error');
@@ -76,12 +64,9 @@ function buyUpgradeFixed(upgradeId) {
 
 // Исправленное обновление магазина
 function updateShopUIFixed() {
-    console.log('🛍️ Обновление интерфейса магазина...');
-    
     for (const upgradeId in UPGRADES) {
         const upgrade = UPGRADES[upgradeId];
         
-        // Убеждаемся, что данные улучшения существуют
         if (!window.upgrades[upgradeId]) {
             window.upgrades[upgradeId] = {
                 level: 0,
@@ -93,21 +78,12 @@ function updateShopUIFixed() {
         const currentLevel = window.upgrades[upgradeId].level || 0;
         const price = upgrade.basePrice * Math.pow(2, currentLevel);
         
-        console.log(`📊 ${upgradeId}: уровень ${currentLevel}, цена ${price}`);
-        
         // Обновляем элементы интерфейса
         const ownedElement = document.getElementById(upgradeId + '-owned');
         const priceElement = document.getElementById(upgradeId + '-price');
         
-        if (ownedElement) {
-            ownedElement.textContent = currentLevel;
-            console.log(`✅ Обновлен ${upgradeId}-owned: ${currentLevel}`);
-        }
-        
-        if (priceElement) {
-            priceElement.textContent = price.toFixed(9);
-            console.log(`✅ Обновлен ${upgradeId}-price: ${price.toFixed(9)}`);
-        }
+        if (ownedElement) ownedElement.textContent = currentLevel;
+        if (priceElement) priceElement.textContent = price.toFixed(9);
         
         // Обновляем кнопку покупки
         const buyButton = document.querySelector(`[onclick="buyUpgrade('${upgradeId}')"]`);
@@ -146,27 +122,6 @@ function calculateClickPowerFixed() {
     return power;
 }
 
-// Исправленная функция скорости майнинга
-function calculateMiningSpeedFixed() {
-    let speed = 0.000000000;
-    
-    for (const key in window.upgrades) {
-        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
-            const level = window.upgrades[key].level || 0;
-            const upgrade = UPGRADES[key];
-            if (upgrade) {
-                speed += level * upgrade.baseBonus;
-            }
-        }
-    }
-    
-    return speed;
-}
-
-// Переопределяем функции расчета
-window.calculateClickPower = calculateClickPowerFixed;
-window.calculateMiningSpeed = calculateMiningSpeedFixed;
-
 // Запускаем инициализацию при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
@@ -175,4 +130,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 });
 
-console.log('✅ Система улучшений исправлена!');
+console.log('✅ Система улучшений с майнингом исправлена!');
