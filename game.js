@@ -1,4 +1,4 @@
-// game.js - исправленная игровая логика с синхронизацией
+// game.js - исправленная игровая логика с правильной идентификацией
 console.log('🎮 Загружаем исправленный game.js...');
 
 const tg = window.Telegram.WebApp;
@@ -16,20 +16,38 @@ window.upgrades = {};
 window.allPlayers = [];
 window.isDataLoaded = false;
 
-// ЕДИНАЯ функция получения userID для всех устройств
+// ЕДИНАЯ функция получения userID на основе Telegram ID
 function getUnifiedUserId() {
-    // Для Telegram Web App всегда используем telegram.id
-    if (typeof tg !== 'undefined' && tg.initDataUnsafe?.user?.id) {
-        return `tg_${tg.initDataUnsafe.user.id}`;
+    // Для Telegram Web App ВСЕГДА используем telegram.id как основной идентификатор
+    if (typeof tg !== 'undefined' && tg.initDataUnsafe?.user) {
+        const user = tg.initDataUnsafe.user;
+        
+        // ВАЖНО: Используем ТОЛЬКО telegram.id, он одинаковый на всех устройствах
+        if (user.id) {
+            return `tg_${user.id}`; // Единый формат для всех устройств
+        }
+        
+        // Если нет id, пробуем username (менее надежно)
+        if (user.username) {
+            return `tg_${user.username.toLowerCase()}`;
+        }
     }
     
-    // Для веб-версии используем сохраненный единый ID
-    let unifiedId = localStorage.getItem('sparkcoin_unified_user_id');
-    if (!unifiedId) {
-        unifiedId = 'web_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('sparkcoin_unified_user_id', unifiedId);
+    // Для веб-версии используем сохраненный ID
+    let webId = localStorage.getItem('sparkcoin_unified_user_id');
+    if (!webId) {
+        webId = 'web_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('sparkcoin_unified_user_id', webId);
     }
-    return unifiedId;
+    return webId;
+}
+
+// Получаем Telegram ID для синхронизации
+function getTelegramId() {
+    if (typeof tg !== 'undefined' && tg.initDataUnsafe?.user?.id) {
+        return tg.initDataUnsafe.user.id.toString();
+    }
+    return null;
 }
 
 function getTelegramUsername() {
@@ -43,6 +61,8 @@ function getTelegramUsername() {
             return '@' + user.username;
         } else if (user.first_name) {
             return user.first_name;
+        } else if (user.id) {
+            return `User${user.id}`;
         }
     }
     return 'Игрок';
@@ -51,6 +71,9 @@ function getTelegramUsername() {
 function createNewUserData() {
     const userId = getUnifiedUserId();
     const username = getTelegramUsername();
+    const telegramId = getTelegramId();
+
+    console.log('🆔 Создание данных:', { userId, username, telegramId });
 
     return {
         userId: userId,
@@ -62,7 +85,7 @@ function createNewUserData() {
         joinedDate: new Date().toISOString(),
         lotteryWins: 0,
         totalBet: 0,
-        telegramId: tg?.initDataUnsafe?.user?.id || null,
+        telegramId: telegramId,
         transfers: {
             sent: 0,
             received: 0
@@ -78,27 +101,43 @@ function createNewUserData() {
 async function loadUserData() {
     const userId = getUnifiedUserId();
     const username = getTelegramUsername();
+    const telegramId = getTelegramId();
+
+    console.log('📥 Загрузка данных для:', { userId, username, telegramId });
 
     try {
-        // ПЕРВОЕ: пытаемся загрузить с сервера
-        console.log('📥 Загрузка данных с сервера...');
-        const serverData = await loadFromServer(userId);
+        // ПЕРВОЕ: пытаемся загрузить с сервера по telegramId
+        console.log('🔍 Поиск данных на сервере...');
+        let serverData = null;
         
+        if (telegramId) {
+            serverData = await loadFromServerByTelegramId(telegramId);
+        }
+        
+        // Если не нашли по telegramId, ищем по userId
+        if (!serverData) {
+            serverData = await loadFromServer(userId);
+        }
+
         if (serverData) {
             window.userData = serverData;
-            console.log('✅ Данные загружены с сервера:', window.userData.balance);
+            console.log('✅ Данные загружены с сервера. Баланс:', window.userData.balance);
         } else {
             // ВТОРОЕ: загружаем из localStorage
             const savedData = localStorage.getItem('sparkcoin_user_data');
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
-                if (parsedData.userId === userId) {
+                // Проверяем совпадение по userId ИЛИ telegramId
+                if (parsedData.userId === userId || parsedData.telegramId === telegramId) {
                     window.userData = createNewUserData();
                     Object.assign(window.userData, parsedData);
+                    // Обновляем userId на правильный
+                    window.userData.userId = userId;
+                    window.userData.telegramId = telegramId;
                     console.log('✅ Данные загружены из localStorage');
                 } else {
                     window.userData = createNewUserData();
-                    console.log('🆕 Созданы новые данные пользователя');
+                    console.log('🆕 Созданы новые данные пользователя (несовпадение ID)');
                 }
             } else {
                 window.userData = createNewUserData();
@@ -132,10 +171,10 @@ async function loadUserData() {
     }
 
     window.isDataLoaded = true;
-    console.log('👤 Пользователь:', window.userData.username, 'Баланс:', window.userData.balance);
+    console.log('👤 Пользователь загружен:', window.userData.username, 'Баланс:', window.userData.balance);
 }
 
-// Загрузка данных с сервера
+// Загрузка данных с сервера по userId
 async function loadFromServer(userId) {
     try {
         const response = await window.apiRequest(`/api/sync/unified/${userId}`);
@@ -143,7 +182,21 @@ async function loadFromServer(userId) {
             return response.userData;
         }
     } catch (error) {
-        console.log('📴 Сервер недоступен, используем локальные данные');
+        console.log('📴 Сервер недоступен для userId:', error);
+    }
+    return null;
+}
+
+// Загрузка данных с сервера по telegramId
+async function loadFromServerByTelegramId(telegramId) {
+    try {
+        const response = await window.apiRequest(`/api/sync/telegram/${telegramId}`);
+        if (response && response.success && response.userData) {
+            console.log('✅ Найден пользователь по telegramId:', telegramId);
+            return response.userData;
+        }
+    } catch (error) {
+        console.log('📴 Сервер недоступен для telegramId:', error);
     }
     return null;
 }
@@ -161,8 +214,10 @@ async function syncToServer() {
             totalClicks: window.userData.totalClicks,
             upgrades: window.upgrades,
             lastUpdate: Date.now(),
-            telegramId: tg?.initDataUnsafe?.user?.id || null
+            telegramId: window.userData.telegramId
         };
+        
+        console.log('🔄 Синхронизация на сервер:', syncData.userId, syncData.telegramId);
         
         const response = await window.apiRequest('/api/sync/unified', {
             method: 'POST',
@@ -171,6 +226,14 @@ async function syncToServer() {
         
         if (response && response.success) {
             console.log('✅ Данные синхронизированы на сервер');
+            
+            // Если сервер вернул другой userId (при объединении записей)
+            if (response.userId && response.userId !== window.userData.userId) {
+                console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
+                window.userData.userId = response.userId;
+                saveUserData();
+            }
+            
             return true;
         }
     } catch (error) {
@@ -226,8 +289,6 @@ function handleCoinClick(event) {
         event.preventDefault();
     }
     
-    console.log('💰 Клик по монетке:', event.type);
-    
     if (!window.userData || !window.isDataLoaded) {
         console.error('❌ userData не загружен');
         return false;
@@ -241,7 +302,6 @@ function handleCoinClick(event) {
     const now = Date.now();
     const cooldown = 25;
     if (window.lastClickTime && (now - window.lastClickTime < cooldown)) {
-        console.log('⏳ Кулдаун');
         return false;
     }
     
@@ -260,8 +320,6 @@ function handleCoinClick(event) {
     window.userData.totalEarned = (window.userData.totalEarned || 0) + clickPower;
     window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
     window.userData.lastUpdate = Date.now();
-    
-    console.log('💵 Баланс обновлен:', window.userData.balance.toFixed(9));
     
     updateBalanceImmediately();
     createClickPopup(event, clickPower);
