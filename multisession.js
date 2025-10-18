@@ -1,5 +1,5 @@
-// multisession.js - УСИЛЕННАЯ система обнаружения мультисессий
-console.log('🔍 Загружаем УСИЛЕННУЮ систему мультисессий...');
+// multisession.js - УСИЛЕННАЯ система блокировки мультисессий
+console.log('🔍 Загружаем УСИЛЕННУЮ систему блокировки мультисессий...');
 
 class MultiSessionDetector {
     constructor() {
@@ -7,11 +7,11 @@ class MultiSessionDetector {
         this.syncKey = 'sparkcoin_sync_data';
         this.activityKey = 'sparkcoin_last_activity';
         this.blockedKey = 'sparkcoin_blocked_session';
+        this.telegramKey = 'sparkcoin_telegram_user';
         this.checkInterval = null;
         this.isMonitoring = false;
         this.lastBlockTime = 0;
-        this.warningShown = false;
-        this.lastWarningTime = 0;
+        this.blockTimeout = 30000; // 30 секунд блокировки
     }
     
     // Генерируем уникальный ID устройства
@@ -24,243 +24,172 @@ class MultiSessionDetector {
         return deviceId;
     }
     
-    // ПРОВЕРКА МУЛЬТИСЕССИИ С ПРЕДУПРЕЖДЕНИЕМ
-    checkMultiSession() {
+    // Получаем Telegram username
+    getTelegramUsername() {
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user) {
+            const user = Telegram.WebApp.initDataUnsafe.user;
+            if (user.username) {
+                return '@' + user.username;
+            } else if (user.first_name) {
+                return user.first_name;
+            } else if (user.id) {
+                return 'user_' + user.id;
+            }
+        }
+        
+        // Для веб-версии
+        return localStorage.getItem('sparkcoin_web_username') || 'web_user';
+    }
+    
+    // Получаем Telegram ID
+    getTelegramId() {
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user?.id) {
+            return Telegram.WebApp.initDataUnsafe.user.id.toString();
+        }
+        return null;
+    }
+    
+    // ЖЕСТКАЯ ПРОВЕРКА МУЛЬТИСЕССИИ ПРИ ЗАГРУЗКЕ
+    async checkMultiSessionOnLoad() {
         try {
             const currentDevice = this.generateDeviceId();
-            const currentTime = Date.now();
-            const lastSync = JSON.parse(localStorage.getItem(this.syncKey) || '{}');
+            const telegramId = this.getTelegramId();
+            const username = this.getTelegramUsername();
+            
+            if (!telegramId) {
+                console.log('ℹ️ Telegram ID не найден, пропускаем проверку');
+                return true; // Разрешаем доступ для веб-версии
+            }
+            
+            console.log('🔍 Проверка мультисессии для:', { telegramId, username, currentDevice });
             
             // Проверяем, не заблокирована ли текущая сессия
             const blockedSession = localStorage.getItem(this.blockedKey);
             if (blockedSession === currentDevice) {
                 console.log('🚫 Сессия заблокирована, перенаправляем...');
-                this.redirectToWarning();
-                return true;
+                this.redirectToBlockPage();
+                return false;
             }
             
-            // Если другое устройство активно в последние 5 секунд - ПРЕДУПРЕЖДАЕМ
-            if (lastSync.deviceId && lastSync.deviceId !== currentDevice && 
-                currentTime - lastSync.timestamp < 5000) {
-                
-                console.warn('⚠️ Обнаружена мультисессия! Устройство:', lastSync.deviceId);
-                
-                // Показываем предупреждение не чаще чем раз в 30 секунд
-                if (!this.warningShown && (currentTime - this.lastWarningTime > 30000)) {
-                    this.showWarning();
-                    this.warningShown = true;
-                    this.lastWarningTime = currentTime;
-                }
-                
-                return true; // Возвращаем true, но не блокируем
+            // Проверяем мультисессию через сервер
+            const sessionCheck = await this.checkServerSession(telegramId, currentDevice, username);
+            
+            if (!sessionCheck.allowed) {
+                console.log('🚫 Сервер заблокировал доступ из-за мультисессии');
+                this.blockCurrentSession();
+                this.redirectToBlockPage();
+                return false;
             }
             
-            // Сбрасываем флаг предупреждения если нет мультисессии
-            if (this.warningShown && (!lastSync.deviceId || lastSync.deviceId === currentDevice)) {
-                this.warningShown = false;
+            // Если есть активная сессия на другом устройстве
+            if (sessionCheck.activeSession && sessionCheck.activeSession.deviceId !== currentDevice) {
+                console.log('🚫 Обнаружена активная сессия на другом устройстве');
+                this.blockCurrentSession();
+                this.redirectToBlockPage();
+                return false;
             }
             
-            // Если с момента блокировки прошло больше 30 секунд, разблокируем
-            if (blockedSession && currentTime - this.lastBlockTime > 30000) {
-                localStorage.removeItem(this.blockedKey);
-            }
+            // Обновляем сессию
+            this.updateSession(telegramId, currentDevice, username);
             
-            // Обновляем данные синхронизации
-            this.updateSync();
-            return false;
+            console.log('✅ Доступ разрешен');
+            return true;
             
         } catch (error) {
             console.error('❌ Ошибка проверки мультисессии:', error);
-            return false;
+            return true; // В случае ошибки разрешаем доступ
         }
     }
     
-    // ПЕРЕНАПРАВЛЕНИЕ НА СТРАНИЦУ ПРЕДУПРЕЖДЕНИЯ
-    redirectToWarning() {
+    // Проверка сессии на сервере
+    async checkServerSession(telegramId, deviceId, username) {
+        try {
+            const response = await fetch('https://sparkcoin.ru/api/session/check', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    telegramId: telegramId,
+                    deviceId: deviceId,
+                    username: username
+                })
+            });
+            
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.log('📴 Сервер недоступен, используем локальную проверку');
+        }
+        
+        // Fallback: локальная проверка
+        return this.checkLocalSession(telegramId, deviceId);
+    }
+    
+    // Локальная проверка сессии
+    checkLocalSession(telegramId, deviceId) {
+        const lastSync = JSON.parse(localStorage.getItem(this.syncKey) || '{}');
+        const currentTime = Date.now();
+        
+        // Если есть активная сессия (менее 15 секунд) и устройство другое
+        if (lastSync.telegramId === telegramId && 
+            lastSync.deviceId && 
+            lastSync.deviceId !== deviceId &&
+            currentTime - lastSync.timestamp < 15000) {
+            
+            return {
+                allowed: false,
+                activeSession: {
+                    deviceId: lastSync.deviceId,
+                    username: lastSync.username
+                }
+            };
+        }
+        
+        return { allowed: true };
+    }
+    
+    // Блокировка текущей сессии
+    blockCurrentSession() {
+        const currentDevice = this.generateDeviceId();
+        localStorage.setItem(this.blockedKey, currentDevice);
+        this.lastBlockTime = Date.now();
+        
+        // Авторазблокировка через 30 секунд
+        setTimeout(() => {
+            localStorage.removeItem(this.blockedKey);
+        }, this.blockTimeout);
+    }
+    
+    // ПЕРЕНАПРАВЛЕНИЕ НА СТРАНИЦУ БЛОКИРОВКИ
+    redirectToBlockPage() {
         // Сохраняем текущий URL для возврата
         sessionStorage.setItem('original_url', window.location.href);
         
-        // Перенаправляем на страницу предупреждения
+        // Перенаправляем на страницу блокировки
         setTimeout(() => {
-            window.location.href = 'multisession-warning.html';
+            window.location.href = 'multisession-blocked.html';
         }, 1000);
     }
     
-    // ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ (всплывающее)
-    showWarning() {
-        if (document.getElementById('multisessionWarning')) {
-            return;
-        }
-        
-        const warningHTML = `
-            <div id="multisessionWarning" style="
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.85);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-                backdrop-filter: blur(10px);
-                animation: fadeIn 0.3s ease;
-            ">
-                <div style="
-                    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.1));
-                    border-radius: 20px;
-                    padding: 30px;
-                    text-align: center;
-                    max-width: 400px;
-                    width: 90%;
-                    border: 2px solid rgba(255, 152, 0, 0.5);
-                    box-shadow: 0 20px 40px rgba(255, 152, 0, 0.4);
-                    animation: scaleIn 0.3s ease;
-                ">
-                    <div style="font-size: 28px; margin-bottom: 15px;">⚠️</div>
-                    <div style="font-size: 20px; font-weight: bold; color: #FF9800; margin-bottom: 10px;">
-                        Мультисессия
-                    </div>
-                    <div style="color: white; margin-bottom: 25px; line-height: 1.5; font-size: 14px;">
-                        Обнаружена активность с другого устройства.<br>
-                        Данные будут синхронизированы автоматически.
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="window.multiSessionDetector.closeWarning()" style="
-                            background: linear-gradient(135deg, #2196F3, #1976D2);
-                            color: white;
-                            border: none;
-                            padding: 12px 25px;
-                            border-radius: 10px;
-                            font-weight: bold;
-                            cursor: pointer;
-                            font-size: 14px;
-                            transition: all 0.3s ease;
-                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            Продолжить
-                        </button>
-                        <button onclick="window.multiSessionDetector.handleReload()" style="
-                            background: rgba(255, 255, 255, 0.1);
-                            color: white;
-                            border: 1px solid #666;
-                            padding: 12px 25px;
-                            border-radius: 10px;
-                            font-weight: bold;
-                            cursor: pointer;
-                            font-size: 14px;
-                            transition: all 0.3s ease;
-                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            Перезагрузить
-                        </button>
-                    </div>
-                    <div style="margin-top: 15px; font-size: 11px; color: rgba(255, 255, 255, 0.5);">
-                        Рекомендуется использовать одно устройство
-                    </div>
-                </div>
-            </div>
-            <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes scaleIn {
-                    from { transform: scale(0.9); opacity: 0; }
-                    to { transform: scale(1); opacity: 1; }
-                }
-            </style>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', warningHTML);
-    }
-    
-    // Закрыть предупреждение
-    closeWarning() {
-        const warning = document.getElementById('multisessionWarning');
-        if (warning) {
-            warning.remove();
-        }
-        this.warningShown = false;
-    }
-    
-    // Обработка перезагрузки
-    handleReload() {
-        // Очищаем все данные сессии
-        localStorage.removeItem('sparkcoin_sync_data');
-        localStorage.removeItem('sparkcoin_active_session');
-        localStorage.removeItem('sparkcoin_last_activity');
-        localStorage.removeItem('sparkcoin_blocked_session');
-        
-        // Перезагружаем страницу
-        location.reload();
-    }
-    
-    // Продолжить использование (только для тестирования)
-    continueAnyway() {
-        const warning = document.getElementById('multisessionWarning');
-        if (warning) {
-            warning.remove();
-        }
-        
-        // Разблокируем сессию
-        localStorage.removeItem('sparkcoin_blocked_session');
-        
-        // Обновляем синхронизацию, чтобы это устройство стало основным
-        this.updateSync();
-        
-        this.showContinueNotification();
-    }
-    
-    // Уведомление о продолжении
-    showContinueNotification() {
-        const notification = document.createElement('div');
-        notification.innerHTML = `
-            <div style="
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #FF9800, #F57C00);
-                color: white;
-                padding: 12px 20px;
-                border-radius: 10px;
-                font-weight: bold;
-                z-index: 10001;
-                box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
-                animation: slideInRight 0.3s ease;
-            ">
-                ⚠️ Используется мультисессия
-            </div>
-            <style>
-                @keyframes slideInRight {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            </style>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 3000);
-    }
-    
-    // Обновляем данные синхронизации
-    updateSync() {
+    // Обновляем данные сессии
+    updateSession(telegramId, deviceId, username) {
         try {
-            const syncData = {
-                deviceId: this.generateDeviceId(),
+            const sessionData = {
+                telegramId: telegramId,
+                deviceId: deviceId,
+                username: username,
                 timestamp: Date.now(),
-                userId: window.userData?.userId || 'unknown',
-                userAgent: navigator.userAgent.substring(0, 100),
-                telegramId: window.userData?.telegramId || 'unknown'
+                userAgent: navigator.userAgent.substring(0, 100)
             };
-            localStorage.setItem(this.syncKey, JSON.stringify(syncData));
+            
+            localStorage.setItem(this.syncKey, JSON.stringify(sessionData));
             localStorage.setItem(this.activityKey, Date.now().toString());
+            localStorage.setItem(this.telegramKey, telegramId);
+            
         } catch (error) {
-            console.error('❌ Ошибка обновления синхронизации:', error);
+            console.error('❌ Ошибка обновления сессии:', error);
         }
     }
     
@@ -270,36 +199,50 @@ class MultiSessionDetector {
         
         console.log('🔍 Запуск мониторинга мультисессий...');
         
-        // СРАЗУ проверяем при запуске
-        setTimeout(() => {
-            if (this.checkMultiSession()) {
-                return; // Если мультисессия, останавливаем
-            }
-        }, 1000);
-        
-        // Проверяем каждые 3 секунды
+        // Проверяем каждые 5 секунд
         this.checkInterval = setInterval(() => {
-            this.checkMultiSession();
-        }, 3000);
+            this.checkActiveSession();
+        }, 5000);
         
-        // Обновляем синхронизацию при активности пользователя
+        // Обновляем сессию при активности пользователя
         const activityEvents = ['click', 'keypress', 'mousemove', 'touchstart', 'scroll'];
         activityEvents.forEach(event => {
             document.addEventListener(event, () => {
-                this.updateSync();
+                this.updateActivity();
             }, { passive: true });
         });
         
-        // Обновляем при изменении видимости страницы
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                this.updateSync();
-                // При возвращении на вкладку проверяем мультисессию
-                setTimeout(() => this.checkMultiSession(), 1000);
-            }
-        });
-        
         this.isMonitoring = true;
+    }
+    
+    // Проверка активной сессии
+    async checkActiveSession() {
+        const telegramId = this.getTelegramId();
+        const deviceId = this.generateDeviceId();
+        
+        if (!telegramId) return;
+        
+        try {
+            const sessionCheck = await this.checkServerSession(telegramId, deviceId, this.getTelegramUsername());
+            
+            if (!sessionCheck.allowed) {
+                console.log('🚫 Обнаружена мультисессия во время работы');
+                this.blockCurrentSession();
+                this.redirectToBlockPage();
+                return;
+            }
+            
+            // Обновляем сессию
+            this.updateSession(telegramId, deviceId, this.getTelegramUsername());
+            
+        } catch (error) {
+            console.log('📴 Ошибка проверки сессии');
+        }
+    }
+    
+    // Обновление активности
+    updateActivity() {
+        localStorage.setItem(this.activityKey, Date.now().toString());
     }
     
     // Останавливаем мониторинг
@@ -316,16 +259,14 @@ class MultiSessionDetector {
     getStatus() {
         const lastSync = JSON.parse(localStorage.getItem(this.syncKey) || '{}');
         const currentDevice = this.generateDeviceId();
-        const isMultiSession = lastSync.deviceId && lastSync.deviceId !== currentDevice;
         const isBlocked = localStorage.getItem(this.blockedKey) === currentDevice;
         
         return {
-            isMultiSession: isMultiSession,
             isBlocked: isBlocked,
             currentDevice: currentDevice,
+            telegramId: lastSync.telegramId,
             lastDevice: lastSync.deviceId,
-            lastActivity: lastSync.timestamp ? new Date(lastSync.timestamp) : null,
-            timeSinceLastActivity: lastSync.timestamp ? Date.now() - lastSync.timestamp : null
+            lastActivity: lastSync.timestamp ? new Date(lastSync.timestamp) : null
         };
     }
 }
@@ -333,17 +274,29 @@ class MultiSessionDetector {
 // Инициализация системы мультисессий
 window.multiSessionDetector = new MultiSessionDetector();
 
-// АВТОМАТИЧЕСКИЙ ЗАПУСК ПРОВЕРКИ
+// АВТОМАТИЧЕСКАЯ ПРОВЕРКА ПРИ ЗАГРУЗКЕ
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('🔍 Запуск проверки мультисессии при загрузке...');
+        
+        const allowed = await window.multiSessionDetector.checkMultiSessionOnLoad();
+        
+        if (!allowed) {
+            return; // Доступ запрещен, страница будет перенаправлена
+        }
+        
+        // Если доступ разрешен, запускаем мониторинг
         setTimeout(() => {
             window.multiSessionDetector.startMonitoring();
         }, 2000);
     });
 } else {
-    setTimeout(() => {
-        window.multiSessionDetector.startMonitoring();
+    setTimeout(async () => {
+        const allowed = await window.multiSessionDetector.checkMultiSessionOnLoad();
+        if (allowed) {
+            window.multiSessionDetector.startMonitoring();
+        }
     }, 2000);
 }
 
-console.log('✅ УСИЛЕННАЯ система мультисессий загружена!');
+console.log('✅ УСИЛЕННАЯ система блокировки мультисессий загружена!');
