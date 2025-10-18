@@ -1,4 +1,4 @@
-// sync.js - исправленная система синхронизации
+// sync.js - исправленная система синхронизации с мультисессией
 console.log('🔗 Загружаем исправленную систему синхронизации...');
 
 let miningInterval = null;
@@ -19,6 +19,16 @@ window.syncUserData = async function(force = false) {
         return false;
     }
     
+    // Проверяем мультисессию перед синхронизацией
+    if (window.multiSessionDetector) {
+        const status = window.multiSessionDetector.getStatus();
+        if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
+            console.log('⏸️ Синхронизация приостановлена из-за мультисессии');
+            isSyncing = false;
+            return false;
+        }
+    }
+    
     try {
         const syncData = {
             userId: window.userData.userId,
@@ -28,7 +38,8 @@ window.syncUserData = async function(force = false) {
             totalClicks: window.userData.totalClicks,
             upgrades: window.upgrades,
             lastUpdate: Date.now(),
-            telegramId: window.userData.telegramId
+            telegramId: window.userData.telegramId,
+            deviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown'
         };
         
         const response = await window.apiRequest('/api/sync/unified', {
@@ -125,7 +136,6 @@ window.loadSyncedData = async function() {
     return false;
 };
 
-// Остальной код sync.js остается без изменений...
 function generateSessionId() {
     let sessionId = localStorage.getItem('user_session_id');
     if (!sessionId) {
@@ -229,8 +239,11 @@ function setupAutoSync() {
     
     // Периодическая синхронизация
     setInterval(() => {
-        if (window.userData) {
-            window.syncUserData();
+        if (window.userData && window.multiSessionDetector) {
+            const status = window.multiSessionDetector.getStatus();
+            if (!status.isMultiSession || status.timeSinceLastActivity > 30000) {
+                window.syncUserData();
+            }
         }
     }, 30000); // Каждые 30 секунд
 }
