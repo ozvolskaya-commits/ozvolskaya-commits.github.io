@@ -19,6 +19,154 @@ logger = logging.getLogger(__name__)
 # Инициализация Flask приложения
 flask_app = Flask(__name__)
 
+# СИСТЕМА МУЛЬТИСЕССИИ НА СЕРВЕРЕ - ЖЕСТКАЯ БЛОКИРОВКА
+TELEGRAM_SESSIONS = {}
+SESSION_TIMEOUT = 15  # 15 секунд timeout для сессии
+BLOCK_DURATION = 30   # 30 секунд блокировки при мультисессии
+
+
+class SessionManager:
+
+    @staticmethod
+    def update_session(telegram_id, device_id, username=None):
+        """Обновляет сессию пользователя - ТОЛЬКО ОДНА СЕССИЯ НА USERNAME"""
+        if not telegram_id:
+            return False
+
+        current_time = time.time()
+
+        # Удаляем все старые сессии этого пользователя
+        sessions_to_remove = []
+        for existing_id, session in TELEGRAM_SESSIONS.items():
+            if existing_id == telegram_id:
+                sessions_to_remove.append(existing_id)
+            elif username and session.get('username') == username:
+                sessions_to_remove.append(existing_id)
+
+        for session_id in sessions_to_remove:
+            del TELEGRAM_SESSIONS[session_id]
+
+        # Создаем новую сессию
+        TELEGRAM_SESSIONS[telegram_id] = {
+            'device_id': device_id,
+            'username': username,
+            'last_activity': current_time,
+            'timestamp': current_time,
+            'block_attempts': 0
+        }
+
+        print(f"✅ Сессия обновлена: {username} ({telegram_id}) на устройстве {device_id}")
+        return True
+
+    @staticmethod
+    def check_multi_session(telegram_id, current_device_id, username=None):
+        """Проверяет мультисессию для пользователя - ЖЕСТКАЯ ПРОВЕРКА"""
+        if not telegram_id:
+            return False
+
+        current_time = time.time()
+
+        # Проверяем по telegram_id
+        if telegram_id in TELEGRAM_SESSIONS:
+            session = TELEGRAM_SESSIONS[telegram_id]
+            # Если сессия активна (менее 15 секунд) и устройство другое - БЛОКИРУЕМ
+            if (current_time - session['last_activity'] < SESSION_TIMEOUT
+                    and session['device_id'] != current_device_id):
+                print(f"🚫 Мультисессия по telegram_id: {telegram_id}")
+                return True
+
+        # ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: блокируем по username
+        if username:
+            for session_telegram_id, session in TELEGRAM_SESSIONS.items():
+                if (session.get('username') == username and 
+                    session_telegram_id != telegram_id and
+                    current_time - session['last_activity'] < SESSION_TIMEOUT and
+                    session['device_id'] != current_device_id):
+                    print(f"🚫 Мультисессия по username: {username}")
+                    return True
+
+        return False
+
+    @staticmethod
+    def get_active_session(telegram_id):
+        """Получает активную сессию пользователя"""
+        if telegram_id in TELEGRAM_SESSIONS:
+            session = TELEGRAM_SESSIONS[telegram_id]
+            if time.time() - session['last_activity'] < SESSION_TIMEOUT:
+                return session
+        return None
+
+    @staticmethod
+    def get_active_session_by_username(username):
+        """Получает активную сессию по username"""
+        current_time = time.time()
+        for telegram_id, session in TELEGRAM_SESSIONS.items():
+            if (session.get('username') == username and 
+                current_time - session['last_activity'] < SESSION_TIMEOUT):
+                return session
+        return None
+
+    @staticmethod
+    def block_session(telegram_id):
+        """Блокирует сессию на 30 секунд"""
+        if telegram_id in TELEGRAM_SESSIONS:
+            TELEGRAM_SESSIONS[telegram_id]['block_attempts'] = TELEGRAM_SESSIONS[telegram_id].get('block_attempts', 0) + 1
+            TELEGRAM_SESSIONS[telegram_id]['blocked_until'] = time.time() + BLOCK_DURATION
+            print(f"🔒 Сессия заблокирована: {telegram_id}")
+
+    @staticmethod
+    def is_session_blocked(telegram_id):
+        """Проверяет, заблокирована ли сессия"""
+        if telegram_id in TELEGRAM_SESSIONS:
+            session = TELEGRAM_SESSIONS[telegram_id]
+            blocked_until = session.get('blocked_until', 0)
+            return time.time() < blocked_until
+        return False
+
+    @staticmethod
+    def cleanup_sessions():
+        """Очищает старые сессии"""
+        current_time = time.time()
+        expired_sessions = []
+
+        for telegram_id, session in TELEGRAM_SESSIONS.items():
+            if current_time - session['last_activity'] > SESSION_TIMEOUT * 3:
+                expired_sessions.append(telegram_id)
+
+        for telegram_id in expired_sessions:
+            del TELEGRAM_SESSIONS[telegram_id]
+            print(f"🧹 Удалена expired сессия: {telegram_id}")
+
+    @staticmethod
+    def get_session_stats():
+        """Статистика сессий"""
+        active_sessions = 0
+        blocked_sessions = 0
+        current_time = time.time()
+
+        for session in TELEGRAM_SESSIONS.values():
+            if current_time - session['last_activity'] < SESSION_TIMEOUT:
+                active_sessions += 1
+            if session.get('blocked_until', 0) > current_time:
+                blocked_sessions += 1
+
+        return {
+            'total_sessions': len(TELEGRAM_SESSIONS),
+            'active_sessions': active_sessions,
+            'blocked_sessions': blocked_sessions
+        }
+
+
+# Запуск очистки сессий каждую минуту
+def start_session_cleanup():
+    def cleanup_loop():
+        while True:
+            SessionManager.cleanup_sessions()
+            time.sleep(60)
+
+    cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
+    cleanup_thread.start()
+
 
 # CORS обработчик
 @flask_app.after_request
@@ -152,9 +300,32 @@ def init_db():
                 total_losses REAL DEFAULT 0,
                 telegram_id TEXT,
                 telegram_username TEXT,
-                is_synced BOOLEAN DEFAULT FALSE
+                is_synced BOOLEAN DEFAULT FALSE,
+                last_device_id TEXT,
+                last_session_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        # ДОБАВЛЯЕМ ОТСУТСТВУЮЩИЕ КОЛОНКИ ЕСЛИ НУЖНО
+        try:
+            cursor.execute("ALTER TABLE players ADD COLUMN telegram_id TEXT")
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
+
+        try:
+            cursor.execute("ALTER TABLE players ADD COLUMN telegram_username TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+        try:
+            cursor.execute("ALTER TABLE players ADD COLUMN last_device_id TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+        try:
+            cursor.execute("ALTER TABLE players ADD COLUMN last_session_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        except sqlite3.OperationalError:
+            pass
 
         # Таблица лотерей
         cursor.execute('''
@@ -309,14 +480,102 @@ def sync_telegram_options(telegram_id):
     return add_cors_headers(jsonify({'status': 'preflight'})), 200
 
 
+@flask_app.route('/api/session/check', methods=['OPTIONS'])
+def session_check_options():
+    return add_cors_headers(jsonify({'status': 'preflight'})), 200
+
+
+@flask_app.route('/api/session/stats', methods=['OPTIONS'])
+def session_stats_options():
+    return add_cors_headers(jsonify({'status': 'preflight'})), 200
+
+
 # API ENDPOINTS
 @flask_app.route('/api/health', methods=['GET'])
 def health_check():
+    stats = SessionManager.get_session_stats()
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'service': 'Sparkcoin API',
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'sessions': stats
+    })
+
+
+# ЖЕСТКИЙ ENDPOINT ДЛЯ ПРОВЕРКИ СЕССИИ - БЛОКИРОВКА МУЛЬТИСЕССИИ
+@flask_app.route('/api/session/check', methods=['POST'])
+def check_session():
+    try:
+        data = request.get_json()
+        telegram_id = data.get('telegramId')
+        device_id = data.get('deviceId')
+        username = data.get('username')
+
+        if not telegram_id or not device_id:
+            return jsonify({
+                'success': False,
+                'allowed': False,
+                'error': 'Missing telegramId or deviceId'
+            })
+
+        print(f"🔍 Проверка сессии: {username} ({telegram_id}) на устройстве {device_id}")
+
+        # ПРОВЕРКА БЛОКИРОВКИ
+        if SessionManager.is_session_blocked(telegram_id):
+            print(f"🚫 Сессия заблокирована: {telegram_id}")
+            return jsonify({
+                'success': False,
+                'allowed': False,
+                'error': 'session_blocked',
+                'message': 'Сессия временно заблокирована из-за мультисессии',
+                'block_duration': BLOCK_DURATION
+            })
+
+        # ЖЕСТКАЯ ПРОВЕРКА МУЛЬТИСЕССИИ
+        if SessionManager.check_multi_session(telegram_id, device_id, username):
+            print(f"🚫 МУЛЬТИСЕССИЯ: {username} ({telegram_id})")
+
+            # Блокируем сессию
+            SessionManager.block_session(telegram_id)
+
+            # Получаем информацию об активной сессии
+            active_session = SessionManager.get_active_session(telegram_id)
+            if not active_session:
+                active_session = SessionManager.get_active_session_by_username(username)
+
+            return jsonify({
+                'success': False,
+                'allowed': False,
+                'error': 'multisession_blocked',
+                'message': 'Обнаружена активная сессия на другом устройстве',
+                'active_device': active_session['device_id'] if active_session else 'unknown',
+                'active_username': active_session['username'] if active_session else 'unknown',
+                'block_duration': BLOCK_DURATION
+            })
+
+        # РАЗРЕШАЕМ ДОСТУП И ОБНОВЛЯЕМ СЕССИЮ
+        SessionManager.update_session(telegram_id, device_id, username)
+
+        return jsonify({
+            'success': True,
+            'allowed': True,
+            'message': 'Session access granted'
+        })
+
+    except Exception as e:
+        logger.error(f"Session check error: {e}")
+        return jsonify({'success': False, 'allowed': False, 'error': str(e)})
+
+
+# СТАТИСТИКА СЕССИЙ
+@flask_app.route('/api/session/stats', methods=['GET'])
+def session_stats():
+    stats = SessionManager.get_session_stats()
+    return jsonify({
+        'success': True,
+        'stats': stats,
+        'sessions': TELEGRAM_SESSIONS
     })
 
 
@@ -357,7 +616,8 @@ def get_user_by_telegram_id(telegram_id):
                     'referralsCount': player['referrals_count'],
                     'totalWinnings': player['total_winnings'],
                     'totalLosses': player['total_losses'],
-                    'telegramId': player['telegram_id']
+                    'telegramId': player['telegram_id'],
+                    'telegramUsername': player['telegram_username']
                 }
             })
         else:
@@ -379,6 +639,7 @@ def sync_unified():
         total_earned = float(data.get('totalEarned', 0))
         total_clicks = int(data.get('totalClicks', 0))
         upgrades = data.get('upgrades', {})
+        device_id = data.get('deviceId', 'unknown')
 
         if not user_id and not telegram_id:
             return jsonify({
@@ -386,12 +647,26 @@ def sync_unified():
                 'error': 'No user ID or telegram ID'
             })
 
+        print(f"🔄 Синхронизация: {username} ({telegram_id}), баланс: {balance}")
+
+        # ПРОВЕРКА МУЛЬТИСЕССИИ ПЕРЕД СИНХРОНИЗАЦИЕЙ
+        multisession_detected = False
+        active_device = None
+
+        if telegram_id and username:
+            if SessionManager.check_multi_session(telegram_id, device_id, username):
+                multisession_detected = True
+                active_session = SessionManager.get_active_session(telegram_id)
+                if not active_session:
+                    active_session = SessionManager.get_active_session_by_username(username)
+                active_device = active_session['device_id'] if active_session else 'unknown'
+                print(f"🚨 МУЛЬТИСЕССИЯ ПРИ СИНХРОНИЗАЦИИ: {username}")
+
+            # ВСЕГДА обновляем сессию при синхронизации
+            SessionManager.update_session(telegram_id, device_id, username)
+
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        print(
-            f"🔄 Синхронизация: user_id={user_id}, telegram_id={telegram_id}, username={username}"
-        )
 
         # Ищем ВСЕ возможные записи этого пользователя
         search_params = []
@@ -400,21 +675,21 @@ def sync_unified():
         if telegram_id:
             search_params.append(telegram_id)
             search_params.append(f'tg_{telegram_id}')
-            search_params.append(f'%{telegram_id}%')
 
         placeholders = ','.join(['?'] * len(search_params))
         query = f'''
             SELECT * FROM players 
-            WHERE user_id IN ({placeholders}) OR telegram_id IN ({placeholders})
+            WHERE user_id IN ({placeholders}) OR telegram_id = ?
             ORDER BY balance DESC
         '''
 
-        cursor.execute(query, search_params * 2)
+        cursor.execute(query, search_params + [telegram_id])
         existing_records = cursor.fetchall()
 
         best_balance = balance
         best_total_earned = total_earned
         best_total_clicks = total_clicks
+        best_upgrades = upgrades
         best_user_id = user_id or (f'tg_{telegram_id}' if telegram_id else
                                    f'user_{int(time.time())}')
 
@@ -426,9 +701,18 @@ def sync_unified():
             best_total_clicks = max(total_clicks, best_record['total_clicks'])
             best_user_id = best_record['user_id']
 
-            print(
-                f"🔄 Объединение записей: найдено {len(existing_records)} записей"
-            )
+            # ОБЪЕДИНЯЕМ улучшения
+            if best_record['upgrades']:
+                existing_upgrades = json.loads(best_record['upgrades'])
+                # Берем максимальные уровни улучшений
+                for key, level in existing_upgrades.items():
+                    if key in upgrades:
+                        upgrades[key] = max(upgrades[key], level)
+                    else:
+                        upgrades[key] = level
+                best_upgrades = upgrades
+
+            print(f"🔄 Объединение записей: найдено {len(existing_records)} записей")
             print(f"💰 Лучший баланс: {best_balance}, текущий: {balance}")
             print(f"🆔 Используем userId: {best_user_id}")
 
@@ -439,11 +723,11 @@ def sync_unified():
                     UPDATE players SET 
                     username = ?, balance = ?, total_earned = ?, total_clicks = ?,
                     upgrades = ?, last_update = CURRENT_TIMESTAMP,
-                    telegram_id = ?
+                    telegram_id = ?, telegram_username = ?, last_device_id = ?, last_session_update = CURRENT_TIMESTAMP
                     WHERE user_id = ?
-                ''', (username,
-                      best_balance, best_total_earned, best_total_clicks,
-                      json.dumps(upgrades), telegram_id, record['user_id']))
+                ''', (username, best_balance, best_total_earned,
+                      best_total_clicks, json.dumps(best_upgrades),
+                      telegram_id, username, device_id, record['user_id']))
 
             print(f"✅ Все записи обновлены к балансу: {best_balance}")
         else:
@@ -453,10 +737,10 @@ def sync_unified():
             cursor.execute(
                 '''
                 INSERT INTO players 
-                (user_id, username, balance, total_earned, total_clicks, upgrades, telegram_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (user_id, username, balance, total_earned, total_clicks, upgrades, telegram_id, telegram_username, last_device_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (best_user_id, username, balance, total_earned, total_clicks,
-                  json.dumps(upgrades), telegram_id))
+                  json.dumps(upgrades), telegram_id, username, device_id))
             print(f"🆕 Создана новая запись: {best_user_id}")
 
         conn.commit()
@@ -472,7 +756,11 @@ def sync_unified():
             'bestBalance':
             best_balance,
             'mergedRecords':
-            len(existing_records) if existing_records else 0
+            len(existing_records) if existing_records else 0,
+            'multisessionDetected':
+            multisession_detected,
+            'activeDevice':
+            active_device
         })
 
     except Exception as e:
@@ -516,7 +804,8 @@ def get_unified_user(user_id):
                     'referralsCount': player['referrals_count'],
                     'totalWinnings': player['total_winnings'],
                     'totalLosses': player['total_losses'],
-                    'telegramId': player['telegram_id']
+                    'telegramId': player['telegram_id'],
+                    'telegramUsername': player['telegram_username']
                 }
             })
         else:
@@ -527,7 +816,7 @@ def get_unified_user(user_id):
         return jsonify({'success': False, 'error': str(e)})
 
 
-# СУЩЕСТВУЮЩИЕ ENDPOINTS
+# СУЩЕСТВУЮЩИЕ ENDPOINTS (остаются без изменений)
 @flask_app.route('/api/top/winners', methods=['GET'])
 def top_winners():
     limit = request.args.get('limit', 50, type=int)
@@ -617,7 +906,8 @@ def player_api(user_id):
                         'referralsCount': player['referrals_count'],
                         'totalWinnings': player['total_winnings'],
                         'totalLosses': player['total_losses'],
-                        'telegramId': player['telegram_id']
+                        'telegramId': player['telegram_id'],
+                        'telegramUsername': player['telegram_username']
                     }
                 })
             else:
@@ -625,37 +915,26 @@ def player_api(user_id):
                 return jsonify({
                     'success': True,
                     'player': {
-                        'userId':
-                        user_id,
-                        'username':
-                        f'Игрок {user_id[-8:]}',
-                        'balance':
-                        0.000000100,
-                        'totalEarned':
-                        0.000000100,
-                        'totalClicks':
-                        0,
-                        'lastUpdate':
-                        datetime.now().isoformat(),
+                        'userId': user_id,
+                        'username': f'Игрок {user_id[-8:]}',
+                        'balance': 0.000000100,
+                        'totalEarned': 0.000000100,
+                        'totalClicks': 0,
+                        'lastUpdate': datetime.now().isoformat(),
                         'upgrades': {},
-                        'lotteryWins':
-                        0,
-                        'totalBet':
-                        0,
+                        'lotteryWins': 0,
+                        'totalBet': 0,
                         'transfers': {
                             'sent': 0,
                             'received': 0
                         },
-                        'referralEarnings':
-                        0,
-                        'referralsCount':
-                        0,
-                        'totalWinnings':
-                        0,
-                        'totalLosses':
-                        0,
+                        'referralEarnings': 0,
+                        'referralsCount': 0,
+                        'totalWinnings': 0,
+                        'totalLosses': 0,
                         'telegramId':
-                        user_id if user_id.startswith('tg_') else None
+                        user_id if user_id.startswith('tg_') else None,
+                        'telegramUsername': None
                     }
                 })
 
@@ -680,7 +959,10 @@ def player_api(user_id):
                     'referralEarnings': 0,
                     'referralsCount': 0,
                     'totalWinnings': 0,
-                    'totalLosses': 0
+                    'totalLosses': 0,
+                    'telegramId':
+                    user_id if user_id.startswith('tg_') else None,
+                    'telegramUsername': None
                 }
             })
 
@@ -778,7 +1060,8 @@ def get_synced_user(telegram_id):
                     'referralsCount': player['referrals_count'],
                     'totalWinnings': player['total_winnings'],
                     'totalLosses': player['total_losses'],
-                    'telegramId': player['telegram_id']
+                    'telegramId': player['telegram_id'],
+                    'telegramUsername': player['telegram_username']
                 }
             })
         else:
@@ -795,9 +1078,13 @@ def sync_user():
         data = request.get_json()
         telegram_id = data.get('telegramId')
         username = data.get('username')
+        device_id = data.get('deviceId', 'unknown')
 
         if not telegram_id:
             return jsonify({'success': False, 'error': 'No telegram ID'})
+
+        # ОБНОВЛЯЕМ СЕССИЮ (но не блокируем)
+        SessionManager.update_session(telegram_id, device_id, username)
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -835,7 +1122,7 @@ def sync_user():
                 UPDATE players SET 
                 username = ?, balance = ?, total_earned = ?, total_clicks = ?,
                 upgrades = ?, last_update = CURRENT_TIMESTAMP, is_synced = TRUE,
-                telegram_id = ?
+                telegram_id = ?, telegram_username = ?, last_device_id = ?, last_session_update = CURRENT_TIMESTAMP
                 WHERE user_id = ?
             ''',
                 (
@@ -845,6 +1132,8 @@ def sync_user():
                     final_clicks,
                     json.dumps(data.get('upgrades', {})),
                     telegram_id,
+                    username,
+                    device_id,
                     existing['user_id']  # Обновляем именно эту запись
                 ))
 
@@ -856,12 +1145,13 @@ def sync_user():
             cursor.execute(
                 '''
                 INSERT INTO players 
-                (user_id, username, balance, total_earned, total_clicks, upgrades, telegram_id, is_synced)
-                VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
+                (user_id, username, balance, total_earned, total_clicks, upgrades, telegram_id, telegram_username, last_device_id, is_synced)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)
             ''', (user_id_to_use, username, data.get('balance', 0.000000100),
                   data.get('totalEarned',
                            0.000000100), data.get('totalClicks', 0),
-                  json.dumps(data.get('upgrades', {})), telegram_id))
+                  json.dumps(data.get('upgrades',
+                                      {})), telegram_id, username, device_id))
 
         conn.commit()
         conn.close()
@@ -1427,12 +1717,15 @@ def classic_bet():
 # Стартовая страница
 @flask_app.route('/')
 def index():
+    stats = SessionManager.get_session_stats()
     return jsonify({
         'message': 'Sparkcoin API Server',
         'status': 'running',
         'version': '1.0.0',
         'cors': 'enabled',
-        'sync': 'available'
+        'sync': 'available',
+        'multisession': 'HARD_BLOCK_ENABLED',
+        'sessions': stats
     })
 
 
@@ -1441,6 +1734,10 @@ if __name__ == "__main__":
     logger.info("Initializing database...")
     init_db()
 
+    logger.info("Starting session cleanup service...")
+    start_session_cleanup()
+
     logger.info(
-        f"Starting Sparkcoin API on port {API_PORT} with sync support...")
+        f"Starting Sparkcoin API on port {API_PORT} with HARD multisession blocking..."
+    )
     flask_app.run(host='0.0.0.0', port=API_PORT, debug=False, threaded=True)
