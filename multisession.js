@@ -1,13 +1,15 @@
-// multisession.js - система обнаружения мультисессий
-console.log('🔍 Загружаем систему мультисессий...');
+// multisession.js - УСИЛЕННАЯ система обнаружения мультисессий
+console.log('🔍 Загружаем УСИЛЕННУЮ систему мультисессий...');
 
 class MultiSessionDetector {
     constructor() {
         this.sessionKey = 'sparkcoin_device_session';
         this.syncKey = 'sparkcoin_sync_data';
         this.activityKey = 'sparkcoin_last_activity';
+        this.blockedKey = 'sparkcoin_blocked_session';
         this.checkInterval = null;
         this.isMonitoring = false;
+        this.lastBlockTime = 0;
     }
     
     // Генерируем уникальный ID устройства
@@ -20,20 +22,38 @@ class MultiSessionDetector {
         return deviceId;
     }
     
-    // Проверяем мультисессию
+    // ПРОВЕРКА МУЛЬТИСЕССИИ С БЛОКИРОВКОЙ
     checkMultiSession() {
         try {
             const currentDevice = this.generateDeviceId();
             const currentTime = Date.now();
             const lastSync = JSON.parse(localStorage.getItem(this.syncKey) || '{}');
             
-            // Если другое устройство активно в последние 10 секунд
+            // Проверяем, не заблокирована ли текущая сессия
+            const blockedSession = localStorage.getItem(this.blockedKey);
+            if (blockedSession === currentDevice) {
+                console.log('🚫 Сессия заблокирована, перенаправляем...');
+                this.redirectToWarning();
+                return true;
+            }
+            
+            // Если другое устройство активно в последние 5 секунд
             if (lastSync.deviceId && lastSync.deviceId !== currentDevice && 
-                currentTime - lastSync.timestamp < 10000) {
+                currentTime - lastSync.timestamp < 5000) {
                 
                 console.warn('⚠️ Обнаружена мультисессия! Устройство:', lastSync.deviceId);
-                this.showWarning();
+                
+                // БЛОКИРУЕМ текущую сессию
+                localStorage.setItem(this.blockedKey, currentDevice);
+                this.lastBlockTime = currentTime;
+                
+                this.redirectToWarning();
                 return true;
+            }
+            
+            // Если с момента блокировки прошло больше 30 секунд, разблокируем
+            if (blockedSession && currentTime - this.lastBlockTime > 30000) {
+                localStorage.removeItem(this.blockedKey);
             }
             
             // Обновляем данные синхронизации
@@ -46,9 +66,19 @@ class MultiSessionDetector {
         }
     }
     
-    // Показываем предупреждение
+    // ПЕРЕНАПРАВЛЕНИЕ НА СТРАНИЦУ ПРЕДУПРЕЖДЕНИЯ
+    redirectToWarning() {
+        // Сохраняем текущий URL для возврата
+        sessionStorage.setItem('original_url', window.location.href);
+        
+        // Перенаправляем на страницу предупреждения
+        setTimeout(() => {
+            window.location.href = 'multisession-warning.html';
+        }, 1000);
+    }
+    
+    // ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ (резервный метод)
     showWarning() {
-        // Проверяем, не показано ли уже предупреждение
         if (document.getElementById('multisessionWarning')) {
             return;
         }
@@ -141,22 +171,25 @@ class MultiSessionDetector {
         localStorage.removeItem('sparkcoin_sync_data');
         localStorage.removeItem('sparkcoin_active_session');
         localStorage.removeItem('sparkcoin_last_activity');
+        localStorage.removeItem('sparkcoin_blocked_session');
         
         // Перезагружаем страницу
         location.reload();
     }
     
-    // Продолжить использование
+    // Продолжить использование (только для тестирования)
     continueAnyway() {
         const warning = document.getElementById('multisessionWarning');
         if (warning) {
             warning.remove();
         }
         
+        // Разблокируем сессию
+        localStorage.removeItem('sparkcoin_blocked_session');
+        
         // Обновляем синхронизацию, чтобы это устройство стало основным
         this.updateSync();
         
-        // Показываем уведомление
         this.showContinueNotification();
     }
     
@@ -203,7 +236,8 @@ class MultiSessionDetector {
                 deviceId: this.generateDeviceId(),
                 timestamp: Date.now(),
                 userId: window.userData?.userId || 'unknown',
-                userAgent: navigator.userAgent.substring(0, 100)
+                userAgent: navigator.userAgent.substring(0, 100),
+                telegramId: window.userData?.telegramId || 'unknown'
             };
             localStorage.setItem(this.syncKey, JSON.stringify(syncData));
             localStorage.setItem(this.activityKey, Date.now().toString());
@@ -218,15 +252,17 @@ class MultiSessionDetector {
         
         console.log('🔍 Запуск мониторинга мультисессий...');
         
-        // Проверяем сразу при запуске
+        // СРАЗУ проверяем при запуске
         setTimeout(() => {
-            this.checkMultiSession();
-        }, 2000);
+            if (this.checkMultiSession()) {
+                return; // Если мультисессия, останавливаем
+            }
+        }, 1000);
         
-        // Проверяем каждые 5 секунд
+        // Проверяем каждые 3 секунды
         this.checkInterval = setInterval(() => {
             this.checkMultiSession();
-        }, 5000);
+        }, 3000);
         
         // Обновляем синхронизацию при активности пользователя
         const activityEvents = ['click', 'keypress', 'mousemove', 'touchstart', 'scroll'];
@@ -240,6 +276,8 @@ class MultiSessionDetector {
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 this.updateSync();
+                // При возвращении на вкладку проверяем мультисессию
+                setTimeout(() => this.checkMultiSession(), 1000);
             }
         });
         
@@ -261,9 +299,11 @@ class MultiSessionDetector {
         const lastSync = JSON.parse(localStorage.getItem(this.syncKey) || '{}');
         const currentDevice = this.generateDeviceId();
         const isMultiSession = lastSync.deviceId && lastSync.deviceId !== currentDevice;
+        const isBlocked = localStorage.getItem(this.blockedKey) === currentDevice;
         
         return {
             isMultiSession: isMultiSession,
+            isBlocked: isBlocked,
             currentDevice: currentDevice,
             lastDevice: lastSync.deviceId,
             lastActivity: lastSync.timestamp ? new Date(lastSync.timestamp) : null,
@@ -275,17 +315,17 @@ class MultiSessionDetector {
 // Инициализация системы мультисессий
 window.multiSessionDetector = new MultiSessionDetector();
 
-// Автоматический запуск после загрузки страницы
+// АВТОМАТИЧЕСКИЙ ЗАПУСК ПРОВЕРКИ
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             window.multiSessionDetector.startMonitoring();
-        }, 3000);
+        }, 2000);
     });
 } else {
     setTimeout(() => {
         window.multiSessionDetector.startMonitoring();
-    }, 3000);
+    }, 2000);
 }
 
-console.log('✅ Система мультисессий загружена и готова к работе!');
+console.log('✅ УСИЛЕННАЯ система мультисессий загружена!');
