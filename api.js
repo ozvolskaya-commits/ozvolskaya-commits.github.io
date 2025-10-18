@@ -1,4 +1,4 @@
-// api-new.js - полностью исправленная версия
+// api.js - полностью исправленная версия
 console.log('🌐 API для Sparkcoin - НОВАЯ ВЕРСИЯ');
 
 window.CONFIG = {
@@ -59,18 +59,98 @@ function getOfflineResponse(endpoint) {
         '/api/health': {
             status: 'healthy',
             offline: true
+        },
+        '/api/sync/unified': {
+            success: true,
+            message: 'Синхронизировано в офлайн режиме',
+            offline: true
+        },
+        '/api/sync/telegram': {
+            success: true,
+            message: 'Офлайн режим',
+            offline: true
+        },
+        '/api/all_players': {
+            success: true,
+            players: [
+                {
+                    userId: 'demo1',
+                    username: 'Демо Игрок 1',
+                    balance: 0.000000500,
+                    totalEarned: 0.000001000,
+                    totalClicks: 50
+                },
+                {
+                    userId: 'demo2', 
+                    username: 'Демо Игрок 2',
+                    balance: 0.000000300,
+                    totalEarned: 0.000000800,
+                    totalClicks: 30
+                }
+            ],
+            offline: true
+        },
+        '/api/leaderboard': {
+            success: true,
+            leaderboard: [
+                {
+                    rank: 1,
+                    username: '👑 Топ Игрок',
+                    balance: 0.000001000,
+                    totalEarned: 0.000002000,
+                    totalClicks: 150,
+                    clickSpeed: 0.000000005,
+                    mineSpeed: 0.000000010,
+                    totalSpeed: 0.000000015
+                }
+            ],
+            offline: true
+        },
+        '/api/lottery/status': {
+            success: true,
+            lottery: {
+                eagle: [],
+                tails: [],
+                last_winner: null,
+                timer: 60,
+                total_eagle: 0,
+                total_tails: 0,
+                participants_count: 0
+            },
+            offline: true
+        },
+        '/api/classic-lottery/status': {
+            success: true,
+            lottery: {
+                bets: [],
+                total_pot: 0,
+                timer: 120,
+                participants_count: 0,
+                history: []
+            },
+            offline: true
+        },
+        '/api/referral/stats': {
+            success: true,
+            stats: {
+                referralsCount: 0,
+                totalEarnings: 0
+            },
+            referralCode: 'REF-OFFLINE',
+            offline: true
         }
     };
     
     for (const [key, value] of Object.entries(offlineResponses)) {
-        if (endpoint.startsWith(key)) {
+        if (endpoint.includes(key.replace('/:userId', ''))) {
             return value;
         }
     }
     
     return { 
         success: true, 
-        offline: true
+        offline: true,
+        message: 'Офлайн режим'
     };
 }
 
