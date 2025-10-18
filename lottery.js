@@ -1,4 +1,4 @@
-// lottery.js - система лотерей
+// lottery.js - система лотерей с поддержкой мультисессии
 console.log('🎰 Загружаем lottery.js...');
 
 let lotteryData = {
@@ -43,6 +43,15 @@ async function loadLotteryStatus() {
 
 async function placeLotteryBet(team, amount) {
     try {
+        // Проверяем мультисессию перед ставкой
+        if (window.multiSessionDetector) {
+            const status = window.multiSessionDetector.getStatus();
+            if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
+                showNotification('Ставки временно недоступны из-за мультисессии', 'warning');
+                return false;
+            }
+        }
+
         const data = await apiRequest('/api/lottery/bet', {
             method: 'POST',
             body: JSON.stringify({
@@ -243,6 +252,11 @@ function selectTeam(team) {
             btn.classList.add('active');
         }
     });
+    
+    // Обновляем синхронизацию
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
+    }
 }
 
 async function playTeamLottery() {
@@ -319,6 +333,15 @@ async function playClassicLottery() {
     if (bet < 0.000000001) {
         showNotification('Минимальная ставка 0.000000001 S', 'error');
         return;
+    }
+    
+    // Проверяем мультисессию перед ставкой
+    if (window.multiSessionDetector) {
+        const status = window.multiSessionDetector.getStatus();
+        if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
+            showNotification('Ставки временно недоступны из-за мультисессии', 'warning');
+            return;
+        }
     }
     
     try {
@@ -488,6 +511,11 @@ function shareReferral() {
         });
     } else {
         copyToClipboard(shareText);
+    }
+    
+    // Обновляем синхронизацию
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
     }
 }
 
