@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sparkcoin - Мультисессия</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+        }
+        
+        .warning-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255, 152, 0, 0.5);
+            box-shadow: 0 15px 35px rgba(255, 152, 0, 0.3);
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4CC9F0;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(76, 201, 240, 0.5);
+        }
+        
+        .warning-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #FF9800;
+        }
+        
+        .warning-text {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-reload {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+        
+        .btn-reload:hover {
+            background: linear-gradient(135deg, #1976D2, #2196F3);
+            transform: translateY(-2px);
+        }
+        
+        .btn-telegram {
+            background: linear-gradient(135deg, #0088cc, #006699);
+            color: white;
+        }
+        
+        .btn-telegram:hover {
+            background: linear-gradient(135deg, #006699, #0088cc);
+            transform: translateY(-2px);
+        }
+        
+        .bot-link {
+            margin-top: 15px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .bot-username {
+            color: #4CC9F0;
+            font-weight: bold;
+        }
+        
+        .icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        .countdown {
+            margin-top: 15px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="warning-container">
+        <div class="logo">Sparkcoin</div>
+        
+        <div class="warning-title">⚠️ Мультисессия</div>
+        
+        <div class="warning-text">
+            Обнаружена активность с другого устройства. Пожалуйста, используйте только одно устройство для корректной работы приложения и синхронизации данных.
+        </div>
+        
+        <div class="buttons-container">
+            <button class="btn btn-reload" onclick="location.reload()">
+                <span class="icon">🔄</span>
+                Перезагрузить
+            </button>
+            <a href="https://t.me/sparkcoin_app_bot" class="btn btn-telegram" target="_blank">
+                <span class="icon">📱</span>
+                Telegram
+            </a>
+        </div>
+        
+        <div class="bot-link">
+            @sparkcoin_app_bot
+        </div>
+        
+        <div class="countdown" id="countdown">
+            Автоматическая переадресация через: <span id="timer">5</span> сек
+        </div>
+    </div>
+
+    <script>
+        let countdown = 5;
+        const timerElement = document.getElementById('timer');
+        
+        function updateCountdown() {
+            countdown--;
+            timerElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                // Очищаем сессию и переходим к основной игре
+                localStorage.removeItem('sparkcoin_active_session');
+                localStorage.removeItem('sparkcoin_sync_data');
+                window.location.href = 'index.html';
+            }
+        }
+        
+        // Запускаем обратный отсчет
+        setInterval(updateCountdown, 1000);
+        
+        // Проверяем, можно ли перейти к игре
+        function checkSession() {
+            const lastSession = localStorage.getItem('sparkcoin_active_session');
+            const currentTime = Date.now();
+            
+            // Если с последней сессии прошло больше 30 секунд, разрешаем вход
+            if (!lastSession || currentTime - parseInt(lastSession) > 30000) {
+                localStorage.setItem('sparkcoin_active_session', currentTime.toString());
+                window.location.href = 'index.html';
+            }
+        }
+        
+        // Даем пользователю возможность перезагрузиться
+        document.querySelector('.btn-reload').addEventListener('click', function() {
+            localStorage.removeItem('sparkcoin_active_session');
+            localStorage.removeItem('sparkcoin_sync_data');
+        });
+    </script>
+</body>
+</html>
