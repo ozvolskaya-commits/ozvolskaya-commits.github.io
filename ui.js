@@ -5,7 +5,7 @@ let allPlayers = [];
 let selectedTransferUser = null;
 let currentRatingTab = 'balance';
 
-// Глобальные функции для кнопок
+// Глобальные функции для кнопок - ОБЯЗАТЕЛЬНО ОПРЕДЕЛИТЬ ПЕРВЫМИ
 window.showSection = function(sectionName) {
     console.log('🎯 Показываем секцию:', sectionName);
     
@@ -19,20 +19,20 @@ window.showSection = function(sectionName) {
         
         switch(sectionName) {
             case 'top':
-                updateTopWinners();
-                updateLeaderboard();
+                if (typeof updateTopWinners === 'function') updateTopWinners();
+                if (typeof updateLeaderboard === 'function') updateLeaderboard();
                 break;
             case 'transfer':
-                updateUsersList();
+                if (typeof updateUsersList === 'function') updateUsersList();
                 break;
             case 'shop':
-                updateShopUI();
+                if (typeof updateShopUI === 'function') updateShopUI();
                 break;
             case 'games':
-                showGameTab('team-lottery');
-                startLotteryAutoUpdate();
-                startClassicLotteryUpdate();
-                loadReferralStats();
+                if (typeof showGameTab === 'function') showGameTab('team-lottery');
+                if (typeof startLotteryAutoUpdate === 'function') startLotteryAutoUpdate();
+                if (typeof startClassicLotteryUpdate === 'function') startClassicLotteryUpdate();
+                if (typeof loadReferralStats === 'function') loadReferralStats();
                 break;
         }
     }
@@ -58,8 +58,15 @@ function showGameTab(tabName) {
         section.classList.remove('active');
     });
     
-    event.target.classList.add('active');
-    document.getElementById(tabName + '-game').classList.add('active');
+    // event может быть не определен, поэтому проверяем
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    const targetSection = document.getElementById(tabName + '-game');
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
     
     // Обновляем синхронизацию
     if (window.multiSessionDetector) {
@@ -77,18 +84,25 @@ function showTopTab(tabName) {
         section.classList.remove('active');
     });
     
-    event.target.classList.add('active');
-    document.getElementById(tabName + '-tab').classList.add('active');
+    // event может быть не определен
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    const targetSection = document.getElementById(tabName + '-tab');
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
     
     switch(tabName) {
         case 'winners':
-            updateTopWinners();
+            if (typeof updateTopWinners === 'function') updateTopWinners();
             break;
         case 'balance':
-            updateLeaderboard();
+            if (typeof updateLeaderboard === 'function') updateLeaderboard();
             break;
         case 'speed':
-            updateSpeedLeaderboard();
+            if (typeof updateSpeedLeaderboard === 'function') updateSpeedLeaderboard();
             break;
     }
     
@@ -109,8 +123,15 @@ window.showShopTab = function(tabName) {
         category.classList.add('hidden');
     });
     
-    event.target.classList.add('active');
-    document.getElementById('shop-' + tabName).classList.remove('hidden');
+    // event может быть не определен
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    const targetCategory = document.getElementById('shop-' + tabName);
+    if (targetCategory) {
+        targetCategory.classList.remove('hidden');
+    }
     
     // Обновляем синхронизацию
     if (window.multiSessionDetector) {
