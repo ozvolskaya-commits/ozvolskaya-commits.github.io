@@ -535,9 +535,19 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Основная функция инициализации
+// Основная функция инициализации с проверкой мультисессии
 async function initializeApp() {
     console.log('🚀 Инициализация приложения...');
+    
+    // ПРОВЕРКА МУЛЬТИСЕССИИ ПЕРЕД ЗАГРУЗКОЙ
+    if (window.multiSessionDetector) {
+        const status = window.multiSessionDetector.getStatus();
+        if (status.isBlocked) {
+            console.log('🚫 Сессия заблокирована, перенаправляем...');
+            window.location.href = 'multisession-warning.html';
+            return;
+        }
+    }
     
     if (typeof tg !== 'undefined') {
         try {
@@ -549,7 +559,7 @@ async function initializeApp() {
         }
     }
     
-    // Инициализация системы мультисессии
+    // Запускаем мониторинг мультисессии
     setTimeout(() => {
         if (window.multiSessionDetector) {
             const status = window.multiSessionDetector.getStatus();
