@@ -10,6 +10,8 @@ class MultiSessionDetector {
         this.checkInterval = null;
         this.isMonitoring = false;
         this.lastBlockTime = 0;
+        this.warningShown = false;
+        this.lastWarningTime = 0;
     }
     
     // Генерируем уникальный ID устройства
@@ -22,7 +24,7 @@ class MultiSessionDetector {
         return deviceId;
     }
     
-    // ПРОВЕРКА МУЛЬТИСЕССИИ С БЛОКИРОВКОЙ
+    // ПРОВЕРКА МУЛЬТИСЕССИИ С ПРЕДУПРЕЖДЕНИЕМ
     checkMultiSession() {
         try {
             const currentDevice = this.generateDeviceId();
@@ -37,18 +39,25 @@ class MultiSessionDetector {
                 return true;
             }
             
-            // Если другое устройство активно в последние 5 секунд
+            // Если другое устройство активно в последние 5 секунд - ПРЕДУПРЕЖДАЕМ
             if (lastSync.deviceId && lastSync.deviceId !== currentDevice && 
                 currentTime - lastSync.timestamp < 5000) {
                 
                 console.warn('⚠️ Обнаружена мультисессия! Устройство:', lastSync.deviceId);
                 
-                // БЛОКИРУЕМ текущую сессию
-                localStorage.setItem(this.blockedKey, currentDevice);
-                this.lastBlockTime = currentTime;
+                // Показываем предупреждение не чаще чем раз в 30 секунд
+                if (!this.warningShown && (currentTime - this.lastWarningTime > 30000)) {
+                    this.showWarning();
+                    this.warningShown = true;
+                    this.lastWarningTime = currentTime;
+                }
                 
-                this.redirectToWarning();
-                return true;
+                return true; // Возвращаем true, но не блокируем
+            }
+            
+            // Сбрасываем флаг предупреждения если нет мультисессии
+            if (this.warningShown && (!lastSync.deviceId || lastSync.deviceId === currentDevice)) {
+                this.warningShown = false;
             }
             
             // Если с момента блокировки прошло больше 30 секунд, разблокируем
@@ -77,7 +86,7 @@ class MultiSessionDetector {
         }, 1000);
     }
     
-    // ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ (резервный метод)
+    // ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ (всплывающее)
     showWarning() {
         if (document.getElementById('multisessionWarning')) {
             return;
@@ -90,7 +99,7 @@ class MultiSessionDetector {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.95);
+                background: rgba(0, 0, 0, 0.85);
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -115,10 +124,10 @@ class MultiSessionDetector {
                     </div>
                     <div style="color: white; margin-bottom: 25px; line-height: 1.5; font-size: 14px;">
                         Обнаружена активность с другого устройства.<br>
-                        Пожалуйста, используйте только одно устройство для корректной синхронизации данных.
+                        Данные будут синхронизированы автоматически.
                     </div>
                     <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="window.multiSessionDetector.handleReload()" style="
+                        <button onclick="window.multiSessionDetector.closeWarning()" style="
                             background: linear-gradient(135deg, #2196F3, #1976D2);
                             color: white;
                             border: none;
@@ -129,9 +138,9 @@ class MultiSessionDetector {
                             font-size: 14px;
                             transition: all 0.3s ease;
                         " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            🔄 Перезагрузить
+                            Продолжить
                         </button>
-                        <button onclick="window.multiSessionDetector.continueAnyway()" style="
+                        <button onclick="window.multiSessionDetector.handleReload()" style="
                             background: rgba(255, 255, 255, 0.1);
                             color: white;
                             border: 1px solid #666;
@@ -142,7 +151,7 @@ class MultiSessionDetector {
                             font-size: 14px;
                             transition: all 0.3s ease;
                         " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                            Продолжить
+                            Перезагрузить
                         </button>
                     </div>
                     <div style="margin-top: 15px; font-size: 11px; color: rgba(255, 255, 255, 0.5);">
@@ -163,6 +172,15 @@ class MultiSessionDetector {
         `;
         
         document.body.insertAdjacentHTML('beforeend', warningHTML);
+    }
+    
+    // Закрыть предупреждение
+    closeWarning() {
+        const warning = document.getElementById('multisessionWarning');
+        if (warning) {
+            warning.remove();
+        }
+        this.warningShown = false;
     }
     
     // Обработка перезагрузки
