@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparkcoin - Мультисессия</title>
+    <title>Sparkcoin - Доступ заблокирован</title>
     <style>
         * {
             margin: 0;
@@ -22,16 +22,16 @@
             padding: 20px;
         }
         
-        .warning-container {
+        .block-container {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 40px;
             text-align: center;
-            max-width: 400px;
+            max-width: 500px;
             width: 100%;
-            border: 1px solid rgba(255, 152, 0, 0.5);
-            box-shadow: 0 15px 35px rgba(255, 152, 0, 0.3);
+            border: 2px solid rgba(244, 67, 54, 0.5);
+            box-shadow: 0 15px 35px rgba(244, 67, 54, 0.3);
         }
         
         .logo {
@@ -42,29 +42,57 @@
             text-shadow: 0 2px 10px rgba(76, 201, 240, 0.5);
         }
         
-        .warning-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #FF9800;
+        .block-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #f44336;
         }
         
-        .warning-text {
-            font-size: 14px;
+        .block-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #f44336;
+        }
+        
+        .block-text {
+            font-size: 16px;
             line-height: 1.5;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .session-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .info-label {
+            color: #ccc;
+        }
+        
+        .info-value {
+            color: #4CC9F0;
+            font-weight: bold;
         }
         
         .buttons-container {
             display: flex;
             gap: 15px;
-            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
         
         .btn {
-            flex: 1;
-            padding: 12px 20px;
+            padding: 12px 25px;
             border: none;
             border-radius: 10px;
             font-size: 14px;
@@ -72,9 +100,10 @@
             cursor: pointer;
             transition: all 0.3s ease;
             text-decoration: none;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            min-width: 140px;
         }
         
         .btn-reload {
@@ -97,15 +126,15 @@
             transform: translateY(-2px);
         }
         
-        .bot-link {
-            margin-top: 15px;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
+        .countdown {
+            margin-top: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
         }
         
-        .bot-username {
-            color: #4CC9F0;
+        .timer {
             font-weight: bold;
+            color: #FF9800;
         }
         
         .icon {
@@ -113,46 +142,78 @@
             font-size: 16px;
         }
         
-        .countdown {
-            margin-top: 15px;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
+        @media (max-width: 480px) {
+            .block-container {
+                padding: 30px 20px;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="warning-container">
+    <div class="block-container">
         <div class="logo">Sparkcoin</div>
         
-        <div class="warning-title">⚠️ Мультисессия</div>
+        <div class="block-icon">🚫</div>
         
-        <div class="warning-text">
-            Обнаружена активность с другого устройства. Пожалуйста, используйте только одно устройство для корректной работы приложения и синхронизации данных.
+        <div class="block-title">Доступ заблокирован</div>
+        
+        <div class="block-text">
+            Обнаружена активность с другого устройства.<br>
+            Одновременно может быть активна только одна сессия для вашего аккаунта Telegram.
+        </div>
+        
+        <div class="session-info">
+            <div class="info-item">
+                <span class="info-label">Текущее устройство:</span>
+                <span class="info-value" id="currentDevice">Загрузка...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Telegram пользователь:</span>
+                <span class="info-value" id="telegramUser">Загрузка...</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Время блокировки:</span>
+                <span class="info-value" id="blockTime">Загрузка...</span>
+            </div>
         </div>
         
         <div class="buttons-container">
             <button class="btn btn-reload" onclick="handleReload()">
                 <span class="icon">🔄</span>
-                Перезагрузить
+                Попробовать снова
             </button>
             <a href="https://t.me/sparkcoin_app_bot" class="btn btn-telegram" target="_blank">
                 <span class="icon">📱</span>
-                Telegram
+                Telegram Bot
             </a>
         </div>
         
-        <div class="bot-link">
-            @sparkcoin_app_bot
-        </div>
-        
-        <div class="countdown" id="countdown">
-            Автоматическая переадресация через: <span id="timer">10</span> сек
+        <div class="countdown">
+            Автоматическая попытка через: <span class="timer" id="timer">30</span> сек
         </div>
     </div>
 
     <script>
-        let countdown = 10;
+        let countdown = 30;
         const timerElement = document.getElementById('timer');
+        
+        // Заполняем информацию о сессии
+        function loadSessionInfo() {
+            const currentDevice = localStorage.getItem('sparkcoin_device_id') || 'unknown';
+            const telegramUser = localStorage.getItem('sparkcoin_telegram_user') || 'Неизвестно';
+            
+            document.getElementById('currentDevice').textContent = currentDevice.substring(0, 15) + '...';
+            document.getElementById('telegramUser').textContent = telegramUser;
+            document.getElementById('blockTime').textContent = new Date().toLocaleTimeString();
+        }
         
         function updateCountdown() {
             countdown--;
@@ -164,22 +225,27 @@
         }
         
         function handleReload() {
-            // Очищаем сессию и переходим к основной игре
-            localStorage.removeItem('sparkcoin_active_session');
-            localStorage.removeItem('sparkcoin_sync_data');
+            // Очищаем блокировку
             localStorage.removeItem('sparkcoin_blocked_session');
+            localStorage.removeItem('sparkcoin_sync_data');
+            localStorage.removeItem('sparkcoin_last_activity');
             
             // Возвращаемся на оригинальную страницу
             const originalUrl = sessionStorage.getItem('original_url') || 'index.html';
             window.location.href = originalUrl;
         }
         
-        // Запускаем обратный отсчет
-        setInterval(updateCountdown, 1000);
-        
-        // Даем пользователю возможность перезагрузиться
-        document.querySelector('.btn-reload').addEventListener('click', function() {
-            handleReload();
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessionInfo();
+            
+            // Запускаем обратный отсчет
+            setInterval(updateCountdown, 1000);
+            
+            // Даем пользователю возможность перезагрузиться
+            document.querySelector('.btn-reload').addEventListener('click', function() {
+                handleReload();
+            });
         });
     </script>
 </body>
