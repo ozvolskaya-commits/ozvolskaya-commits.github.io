@@ -1,4 +1,4 @@
-// ui.js - функции интерфейса
+// ui.js - функции интерфейса с поддержкой мультисессии
 console.log('🖥️ Загружаем ui.js...');
 
 let allPlayers = [];
@@ -33,6 +33,11 @@ function showSection(sectionName) {
                 break;
         }
     }
+    
+    // Обновляем синхронизацию при смене секций
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
+    }
 }
 
 function showGamesSection() {
@@ -49,6 +54,11 @@ function showGameTab(tabName) {
     
     event.target.classList.add('active');
     document.getElementById(tabName + '-game').classList.add('active');
+    
+    // Обновляем синхронизацию
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
+    }
 }
 
 function showTopTab(tabName) {
@@ -73,6 +83,11 @@ function showTopTab(tabName) {
             updateSpeedLeaderboard();
             break;
     }
+    
+    // Обновляем синхронизацию
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
+    }
 }
 
 function showShopTab(tabName) {
@@ -85,6 +100,11 @@ function showShopTab(tabName) {
     
     event.target.classList.add('active');
     document.getElementById('shop-' + tabName).classList.remove('hidden');
+    
+    // Обновляем синхронизацию
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
+    }
 }
 
 // Управление переводом
@@ -147,6 +167,11 @@ function selectUserForTransfer(user) {
         const amount = parseFloat(this.value);
         document.getElementById('transferButton').disabled = !amount || amount <= 0;
     });
+    
+    // Обновляем синхронизацию
+    if (window.multiSessionDetector) {
+        window.multiSessionDetector.updateSync();
+    }
 }
 
 async function makeTransfer() {
@@ -170,6 +195,15 @@ async function makeTransfer() {
     if (amount < 0.000000001) {
         showNotification('Минимальная сумма перевода: 0.000000001 S', 'error');
         return;
+    }
+    
+    // Проверяем мультисессию перед переводом
+    if (window.multiSessionDetector) {
+        const status = window.multiSessionDetector.getStatus();
+        if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
+            showNotification('Переводы временно недоступны из-за мультисессии', 'warning');
+            return;
+        }
     }
     
     try {
@@ -221,7 +255,7 @@ async function updateLeaderboard() {
         
         let newHTML = '';
         
-        data.leaderboard.forEach((player, index) => {
+        data.leaderboard.forEach((player, index) {
             if (!player || typeof player !== 'object') {
                 return;
             }
@@ -263,7 +297,7 @@ async function updateSpeedLeaderboard() {
         
         let newHTML = '';
         
-        data.leaderboard.forEach((player, index) => {
+        data.leaderboard.forEach((player, index) {
             if (!player || typeof player !== 'object') {
                 return;
             }
