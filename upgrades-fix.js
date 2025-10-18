@@ -1,4 +1,4 @@
-// upgrades-fix.js - исправление системы улучшений
+// upgrades-fix.js - исправление системы улучшений с мультисессией
 console.log('🔧 Исправляем систему улучшений...');
 
 // Исправляем структуру upgrades
@@ -29,6 +29,15 @@ function buyUpgradeFixed(upgradeId) {
         return;
     }
     
+    // Проверяем мультисессию перед покупкой
+    if (window.multiSessionDetector) {
+        const status = window.multiSessionDetector.getStatus();
+        if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
+            showNotification('Покупки временно недоступны из-за мультисессии', 'warning');
+            return;
+        }
+    }
+    
     if (!window.upgrades[upgradeId]) {
         window.upgrades[upgradeId] = {
             level: 0,
@@ -50,6 +59,11 @@ function buyUpgradeFixed(upgradeId) {
         updateUI();
         updateShopUIFixed();
         saveUserData();
+        
+        // Обновляем синхронизацию после покупки
+        if (window.multiSessionDetector) {
+            window.multiSessionDetector.updateSync();
+        }
         
         setTimeout(() => window.syncUserData(), 1000);
         
