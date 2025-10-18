@@ -1378,3 +1378,53 @@ body {
     background: linear-gradient(90deg, transparent, #4CC9F0, transparent);
     border-radius: 2px;
 }
+
+/* Стили для системы мультисессии */
+.multisession-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(10px);
+}
+
+.multisession-content {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.1));
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    border: 2px solid rgba(255, 152, 0, 0.5);
+    box-shadow: 0 20px 40px rgba(255, 152, 0, 0.4);
+}
+
+.multisession-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FF9800;
+    margin-bottom: 10px;
+}
+
+.multisession-text {
+    color: white;
+    margin-bottom: 25px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.multisession-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.multisession-button {
+    background: linear-gradient(135deg, #2196F3, #197
+}
