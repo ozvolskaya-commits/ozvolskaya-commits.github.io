@@ -5,7 +5,10 @@ let allPlayers = [];
 let selectedTransferUser = null;
 let currentRatingTab = 'balance';
 
-function showSection(sectionName) {
+// Глобальные функции для кнопок
+window.showSection = function(sectionName) {
+    console.log('🎯 Показываем секцию:', sectionName);
+    
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
     });
@@ -38,13 +41,16 @@ function showSection(sectionName) {
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
-}
+};
 
-function showGamesSection() {
+window.showGamesSection = function() {
+    console.log('🎮 Показываем секцию игр');
     showSection('games');
-}
+};
 
 function showGameTab(tabName) {
+    console.log('🎰 Показываем игровую вкладку:', tabName);
+    
     document.querySelectorAll('.game-tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -62,6 +68,8 @@ function showGameTab(tabName) {
 }
 
 function showTopTab(tabName) {
+    console.log('🏆 Показываем вкладку рейтинга:', tabName);
+    
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -90,7 +98,10 @@ function showTopTab(tabName) {
     }
 }
 
-function showShopTab(tabName) {
+// Функции для табов магазина
+window.showShopTab = function(tabName) {
+    console.log('🛒 Показываем вкладку:', tabName);
+    
     document.querySelectorAll('.shop-tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -105,7 +116,7 @@ function showShopTab(tabName) {
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
-}
+};
 
 // Управление переводом
 async function updateUsersList() {
@@ -255,7 +266,7 @@ async function updateLeaderboard() {
         
         let newHTML = '';
         
-        data.leaderboard.forEach((player, index) {
+        data.leaderboard.forEach((player, index) => {
             if (!player || typeof player !== 'object') {
                 return;
             }
@@ -297,7 +308,7 @@ async function updateSpeedLeaderboard() {
         
         let newHTML = '';
         
-        data.leaderboard.forEach((player, index) {
+        data.leaderboard.forEach((player, index) => {
             if (!player || typeof player !== 'object') {
                 return;
             }
@@ -375,6 +386,56 @@ function closeResultPopup() {
     document.getElementById('resultPopup').style.display = 'none';
 }
 
+// Заглушки для отсутствующих функций
+if (typeof updateTopWinners === 'undefined') {
+    window.updateTopWinners = function() {
+        console.log('🏆 Обновляем топ победителей');
+        const topWinnersElement = document.getElementById('topWinners');
+        if (topWinnersElement) {
+            topWinnersElement.innerHTML = `
+                <div class="winner-item">
+                    <div class="winner-rank">1</div>
+                    <div class="winner-name">Топ Игрок</div>
+                    <div class="winner-amount">0.000001000 S</div>
+                </div>
+            `;
+        }
+    };
+}
+
+if (typeof updateUsersList === 'undefined') {
+    window.updateUsersList = function() {
+        console.log('👥 Обновляем список пользователей');
+    };
+}
+
+if (typeof updateShopUI === 'undefined') {
+    window.updateShopUI = function() {
+        console.log('🛒 Обновляем интерфейс магазина');
+        if (window.updateShopUIFixed) {
+            window.updateShopUIFixed();
+        }
+    };
+}
+
+if (typeof startLotteryAutoUpdate === 'undefined') {
+    window.startLotteryAutoUpdate = function() {
+        console.log('🎰 Запускаем автообновление лотереи');
+    };
+}
+
+if (typeof startClassicLotteryUpdate === 'undefined') {
+    window.startClassicLotteryUpdate = function() {
+        console.log('🎲 Запускаем автообновление классической лотереи');
+    };
+}
+
+if (typeof loadReferralStats === 'undefined') {
+    window.loadReferralStats = function() {
+        console.log('👥 Загружаем реферальную статистику');
+    };
+}
+
 // Инициализация интерфейса при загрузке
 document.addEventListener('DOMContentLoaded', function() {
     // Инициализация полей ввода
@@ -393,6 +454,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         searchInput.addEventListener('input', searchUsers);
     }
+    
+    console.log('✅ UI инициализирован!');
 });
 
 console.log('✅ ui.js загружен!');
