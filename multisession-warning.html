@@ -131,7 +131,7 @@
         </div>
         
         <div class="buttons-container">
-            <button class="btn btn-reload" onclick="location.reload()">
+            <button class="btn btn-reload" onclick="handleReload()">
                 <span class="icon">🔄</span>
                 Перезагрузить
             </button>
@@ -146,12 +146,12 @@
         </div>
         
         <div class="countdown" id="countdown">
-            Автоматическая переадресация через: <span id="timer">5</span> сек
+            Автоматическая переадресация через: <span id="timer">10</span> сек
         </div>
     </div>
 
     <script>
-        let countdown = 5;
+        let countdown = 10;
         const timerElement = document.getElementById('timer');
         
         function updateCountdown() {
@@ -159,32 +159,27 @@
             timerElement.textContent = countdown;
             
             if (countdown <= 0) {
-                // Очищаем сессию и переходим к основной игре
-                localStorage.removeItem('sparkcoin_active_session');
-                localStorage.removeItem('sparkcoin_sync_data');
-                window.location.href = 'index.html';
+                handleReload();
             }
+        }
+        
+        function handleReload() {
+            // Очищаем сессию и переходим к основной игре
+            localStorage.removeItem('sparkcoin_active_session');
+            localStorage.removeItem('sparkcoin_sync_data');
+            localStorage.removeItem('sparkcoin_blocked_session');
+            
+            // Возвращаемся на оригинальную страницу
+            const originalUrl = sessionStorage.getItem('original_url') || 'index.html';
+            window.location.href = originalUrl;
         }
         
         // Запускаем обратный отсчет
         setInterval(updateCountdown, 1000);
         
-        // Проверяем, можно ли перейти к игре
-        function checkSession() {
-            const lastSession = localStorage.getItem('sparkcoin_active_session');
-            const currentTime = Date.now();
-            
-            // Если с последней сессии прошло больше 30 секунд, разрешаем вход
-            if (!lastSession || currentTime - parseInt(lastSession) > 30000) {
-                localStorage.setItem('sparkcoin_active_session', currentTime.toString());
-                window.location.href = 'index.html';
-            }
-        }
-        
         // Даем пользователю возможность перезагрузиться
         document.querySelector('.btn-reload').addEventListener('click', function() {
-            localStorage.removeItem('sparkcoin_active_session');
-            localStorage.removeItem('sparkcoin_sync_data');
+            handleReload();
         });
     </script>
 </body>
