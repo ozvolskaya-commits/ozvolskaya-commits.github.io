@@ -1,4 +1,4 @@
-// game.js - исправленная игровая логика с правильной идентификацией
+// game.js - исправленная игровая логика с системой мультисессии
 console.log('🎮 Загружаем исправленный game.js...');
 
 const tg = window.Telegram.WebApp;
@@ -242,7 +242,6 @@ async function syncToServer() {
     return false;
 }
 
-// Остальные функции остаются без изменений...
 function initializeCoin() {
     console.log('🎯 Инициализация монетки...');
     
@@ -549,6 +548,19 @@ async function initializeApp() {
             console.log('⚠️ Ошибка инициализации Telegram:', error);
         }
     }
+    
+    // Инициализация системы мультисессии
+    setTimeout(() => {
+        if (window.multiSessionDetector) {
+            const status = window.multiSessionDetector.getStatus();
+            if (status.isMultiSession && status.timeSinceLastActivity < 15000) {
+                console.log('🚨 Обнаружена мультисессия, перенаправляем...');
+                window.location.href = 'multisession-warning.html';
+                return;
+            }
+            window.multiSessionDetector.startMonitoring();
+        }
+    }, 3000);
     
     await loadUserData();
     initializeCoin();
