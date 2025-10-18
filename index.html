@@ -545,22 +545,44 @@
     <script src="lottery.js"></script>
     <script src="ui.js"></script>
     <script src="multisession.js"></script>
+    <script src="api-fix.js"></script>
+    <script src="mobile-fix.js"></script>
     
     <script>
-        // Инициализация системы мультисессии
+        // ПРОВЕРКА МУЛЬТИСЕССИИ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
         document.addEventListener('DOMContentLoaded', function() {
-            // Проверяем мультисессию при загрузке
+            console.log('🔍 Проверка мультисессии при загрузке...');
+            
+            // Проверяем сразу при загрузке
             setTimeout(() => {
+                const blockedSession = localStorage.getItem('sparkcoin_blocked_session');
+                const deviceId = window.multiSessionDetector ? 
+                    window.multiSessionDetector.generateDeviceId() : 'unknown';
+                
+                if (blockedSession === deviceId) {
+                    console.log('🚫 Сессия заблокирована, перенаправляем...');
+                    window.location.href = 'multisession-warning.html';
+                    return;
+                }
+                
+                // Проверяем активность других сессий
+                const lastSync = JSON.parse(localStorage.getItem('sparkcoin_sync_data') || '{}');
+                const currentTime = Date.now();
+                
+                if (lastSync.deviceId && lastSync.deviceId !== deviceId && 
+                    currentTime - lastSync.timestamp < 5000) {
+                    console.log('🚨 Обнаружена активная сессия, блокируем...');
+                    localStorage.setItem('sparkcoin_blocked_session', deviceId);
+                    window.location.href = 'multisession-warning.html';
+                    return;
+                }
+                
+                // Запускаем мониторинг если все ок
                 if (window.multiSessionDetector) {
-                    const status = window.multiSessionDetector.getStatus();
-                    if (status.isMultiSession && status.timeSinceLastActivity < 15000) {
-                        console.log('🚨 Обнаружена мультисессия, перенаправляем...');
-                        window.location.href = 'multisession-warning.html';
-                        return;
-                    }
+                    console.log('✅ Мультисессия не обнаружена, запускаем мониторинг');
                     window.multiSessionDetector.startMonitoring();
                 }
-            }, 2000);
+            }, 1000);
         });
 
         // Обработка перед закрытием страницы
