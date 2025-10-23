@@ -36,7 +36,7 @@ window.syncUserData = async function(force = false) {
             balance: window.userData.balance,
             totalEarned: window.userData.totalEarned,
             totalClicks: window.userData.totalClicks,
-            upgrades: window.upgrades,
+            upgrades: window.getUpgradesForSync(), // Используем новую функцию
             lastUpdate: Date.now(),
             telegramId: window.userData.telegramId,
             deviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown'
@@ -78,7 +78,7 @@ window.syncUserData = async function(force = false) {
     return false;
 };
 
-// Загрузка данных с сервера
+// Загрузка данных с сервера с синхронизацией улучшений
 window.loadSyncedData = async function() {
     console.log('📥 Загрузка синхронизированных данных...');
     
@@ -112,11 +112,17 @@ window.loadSyncedData = async function() {
             window.userData.totalWinnings = serverData.totalWinnings;
             window.userData.totalLosses = serverData.totalLosses;
             
-            // Обновляем улучшения
+            // СИНХРОНИЗИРУЕМ УЛУЧШЕНИЯ
             if (serverData.upgrades) {
+                console.log('🔄 Синхронизация улучшений с сервера:', serverData.upgrades);
                 for (const key in serverData.upgrades) {
-                    if (!window.upgrades[key] || window.upgrades[key].level < serverData.upgrades[key]) {
-                        window.upgrades[key] = { level: serverData.upgrades[key] };
+                    const serverLevel = serverData.upgrades[key];
+                    const localLevel = window.upgrades[key]?.level || 0;
+                    
+                    // Берем максимальный уровень
+                    if (serverLevel > localLevel) {
+                        console.log(`📈 Обновление улучшения ${key}: ${localLevel} -> ${serverLevel}`);
+                        window.upgrades[key] = { level: serverLevel };
                     }
                 }
             }
@@ -134,6 +140,19 @@ window.loadSyncedData = async function() {
     }
     
     return false;
+};
+
+// Функция для получения улучшений для синхронизации
+window.getUpgradesForSync = function() {
+    const upgradesData = {};
+    if (window.upgrades) {
+        for (const key in window.upgrades) {
+            if (window.upgrades[key] && typeof window.upgrades[key].level !== 'undefined') {
+                upgradesData[key] = window.upgrades[key].level;
+            }
+        }
+    }
+    return upgradesData;
 };
 
 function generateSessionId() {
