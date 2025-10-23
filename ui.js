@@ -360,6 +360,34 @@ async function updateSpeedLeaderboard() {
     }
 }
 
+// ОБНОВЛЕНИЕ ИНТЕРФЕЙСА С ПРАВИЛЬНЫМИ СКОРОСТЯМИ
+function updateUI() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    const clickValueElement = document.getElementById('clickValue');
+    const clickSpeedElement = document.getElementById('clickSpeed');
+    const mineSpeedElement = document.getElementById('mineSpeed');
+    
+    if (balanceElement) {
+        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+    }
+    
+    if (clickValueElement) {
+        clickValueElement.textContent = calculateClickPower().toFixed(9);
+    }
+    
+    if (clickSpeedElement) {
+        // СКОРОСТЬ КЛИКА = сила одного клика (так как клики вручную)
+        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
+    }
+    
+    if (mineSpeedElement) {
+        // СКОРОСТЬ МАЙНИНГА = пассивный доход в секунду
+        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
+    }
+}
+
 // Уведомления и попапы
 function showNotification(message, type = 'info', duration = 3000) {
     const notification = document.createElement('div');
@@ -407,27 +435,121 @@ function closeResultPopup() {
     document.getElementById('resultPopup').style.display = 'none';
 }
 
-// Заглушки для отсутствующих функций
-if (typeof updateTopWinners === 'undefined') {
-    window.updateTopWinners = function() {
-        console.log('🏆 Обновляем топ победителей');
+// Функция для обновления топа победителей
+async function updateTopWinners() {
+    try {
+        const data = await apiRequest('/api/top/winners?limit=20');
         const topWinnersElement = document.getElementById('topWinners');
-        if (topWinnersElement) {
-            topWinnersElement.innerHTML = `
+        
+        if (!data || !data.success || !data.winners) {
+            topWinnersElement.innerHTML = '<div class="winner-item">🏆 Стань первым победителем!</div>';
+            return;
+        }
+        
+        let newHTML = '';
+        
+        data.winners.forEach((winner, index) => {
+            if (!winner || typeof winner !== 'object') {
+                return;
+            }
+            
+            const rank = index + 1;
+            const name = winner.username || `Игрок ${rank}`;
+            const netWinnings = winner.netWinnings || 0;
+            
+            newHTML += `
                 <div class="winner-item">
-                    <div class="winner-rank">1</div>
-                    <div class="winner-name">Топ Игрок</div>
-                    <div class="winner-amount">0.000001000 S</div>
+                    <div class="winner-rank">${rank}</div>
+                    <div class="winner-name">${name}</div>
+                    <div class="winner-amount">${netWinnings.toFixed(9)} S</div>
                 </div>
             `;
+        });
+        
+        topWinnersElement.innerHTML = newHTML;
+        
+    } catch (error) {
+        console.error('Ошибка обновления топа победителей:', error);
+        document.getElementById('topWinners').innerHTML = 
+            '<div class="winner-item">Ошибка загрузки топа победителей</div>';
+    }
+}
+
+// Функция для загрузки реферальной статистики
+async function loadReferralStats() {
+    try {
+        const userId = window.userData?.userId;
+        if (!userId) return;
+        
+        const data = await apiRequest(`/api/referral/stats/${userId}`);
+        
+        if (data && data.success) {
+            const referralsCountElement = document.getElementById('referralsCount');
+            const referralEarningsElement = document.getElementById('referralEarnings');
+            const referralLinkElement = document.getElementById('referralLink');
+            
+            if (referralsCountElement) {
+                referralsCountElement.textContent = data.stats.referralsCount || 0;
+            }
+            
+            if (referralEarningsElement) {
+                referralEarningsElement.textContent = (data.stats.totalEarnings || 0).toFixed(9) + ' S';
+            }
+            
+            if (referralLinkElement) {
+                referralLinkElement.textContent = data.referralCode || `REF-${userId.slice(-8).toUpperCase()}`;
+            }
         }
-    };
+    } catch (error) {
+        console.error('Ошибка загрузки реферальной статистики:', error);
+    }
+}
+
+// Функция для поделиться реферальной ссылкой
+function shareReferral() {
+    const referralLink = document.getElementById('referralLink');
+    if (referralLink) {
+        const link = referralLink.textContent;
+        if (navigator.share) {
+            navigator.share({
+                title: 'Присоединяйся к Sparkcoin!',
+                text: 'Зарабатывай Sparkcoin вместе со мной!',
+                url: link
+            }).then(() => {
+                showNotification('Реферальная ссылка успешно отправлена!', 'success');
+            }).catch(error => {
+                console.log('Ошибка sharing:', error);
+                copyToClipboard(link);
+            });
+        } else {
+            copyToClipboard(link);
+        }
+    }
+}
+
+// Функция для копирования в буфер обмена
+function copyToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showNotification('Реферальная ссылка скопирована в буфер обмена!', 'success');
+    } catch (err) {
+        console.error('Ошибка копирования:', err);
+        showNotification('Не удалось скопировать ссылку', 'error');
+    }
+    document.body.removeChild(textArea);
+}
+
+// Заглушки для отсутствующих функций
+if (typeof updateTopWinners === 'undefined') {
+    window.updateTopWinners = updateTopWinners;
 }
 
 if (typeof updateUsersList === 'undefined') {
-    window.updateUsersList = function() {
-        console.log('👥 Обновляем список пользователей');
-    };
+    window.updateUsersList = updateUsersList;
 }
 
 if (typeof updateShopUI === 'undefined') {
@@ -452,9 +574,7 @@ if (typeof startClassicLotteryUpdate === 'undefined') {
 }
 
 if (typeof loadReferralStats === 'undefined') {
-    window.loadReferralStats = function() {
-        console.log('👥 Загружаем реферальную статистику');
-    };
+    window.loadReferralStats = loadReferralStats;
 }
 
 // Инициализация интерфейса при загрузке
@@ -475,6 +595,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         searchInput.addEventListener('input', searchUsers);
     }
+    
+    // Инициализация реферальной системы
+    setTimeout(() => {
+        if (window.userData && window.isDataLoaded) {
+            loadReferralStats();
+        }
+    }, 2000);
     
     console.log('✅ UI инициализирован!');
 });
