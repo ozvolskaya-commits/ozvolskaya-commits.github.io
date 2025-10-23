@@ -212,7 +212,7 @@ async function syncToServer() {
             balance: window.userData.balance,
             totalEarned: window.userData.totalEarned,
             totalClicks: window.userData.totalClicks,
-            upgrades: window.upgrades,
+            upgrades: window.getUpgradesForSync ? window.getUpgradesForSync() : window.upgrades,
             lastUpdate: Date.now(),
             telegramId: window.userData.telegramId
         };
@@ -574,6 +574,13 @@ async function initializeApp() {
     
     await loadUserData();
     initializeCoin();
+    
+    // ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ПРИ ЗАГРУЗКЕ
+    setTimeout(() => {
+        if (window.loadSyncedData) {
+            window.loadSyncedData();
+        }
+    }, 2000);
     
     setTimeout(() => {
         updateUI();
