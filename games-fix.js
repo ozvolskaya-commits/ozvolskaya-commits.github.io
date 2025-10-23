@@ -59,7 +59,8 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    if (team not in ['eagle', 'tails']) {
+    // ИСПРАВЛЕННАЯ ПРОВЕРКА КОМАНДЫ
+    if (team !== 'eagle' && team !== 'tails') {
         showNotification('Неверная команда', 'error');
         return false;
     }
