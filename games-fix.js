@@ -1,7 +1,7 @@
 // games-fix.js - РЕАЛЬНЫЕ РАБОЧИЕ ИГРЫ С ИСПРАВЛЕНИЯМИ
 console.log('🎮 ЗАГРУЖАЕМ ИСПРАВЛЕННЫЕ ИГРЫ...');
 
-// Используем проверку на существование переменной, чтобы избежать повторного объявления
+// Проверяем существование переменных перед использованием
 if (typeof lotteryData === 'undefined') {
     var lotteryData = {
         eagle: [],
@@ -24,6 +24,7 @@ if (typeof classicLotteryData === 'undefined') {
     };
 }
 
+// Объявляем только локальные переменные
 let selectedTeam = null;
 let lotteryUpdateInterval;
 let classicLotteryInterval;
@@ -34,7 +35,8 @@ async function loadLotteryStatus() {
         const data = await apiRequest('/api/lottery/status');
         
         if (data && data.success && data.lottery) {
-            lotteryData = data.lottery;
+            // Используем Object.assign чтобы избежать переопределения
+            Object.assign(lotteryData, data.lottery);
             updateLotteryUI();
         } else {
             console.log('⚠️ Нет данных лотереи, используем локальные');
@@ -64,7 +66,7 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    // ИСПРАВЛЕННАЯ ПРОВЕРКА КОМАНДЫ - УБРАН СИНТАКСИЧЕСКИЙ ОШИБКУ
+    // ИСПРАВЛЕННАЯ ПРОВЕРКА КОМАНДЫ
     if (team !== 'eagle' && team !== 'tails') {
         showNotification('Неверная команда', 'error');
         return false;
@@ -325,7 +327,7 @@ async function loadClassicLottery() {
         const data = await apiRequest('/api/classic-lottery/status');
         
         if (data && data.success && data.lottery) {
-            classicLotteryData = data.lottery;
+            Object.assign(classicLotteryData, data.lottery);
             updateClassicLotteryUI();
         } else {
             console.log('⚠️ Нет данных классической лотереи');
