@@ -258,14 +258,16 @@ window.getUpgradesForSync = function() {
 };
 
 // 6. ИСПРАВЛЕННЫЙ МАЙНИНГ (без дублирования) с синхронизацией
-let miningInterval = null;
-let lastMiningUpdate = 0;
-let lastSyncTime = 0;
-
 window.startFixedMining = function() {
-    if (miningInterval) clearInterval(miningInterval);
+    // Очищаем существующий интервал если есть
+    if (window.miningInterval) {
+        clearInterval(window.miningInterval);
+    }
     
-    miningInterval = setInterval(() => {
+    let lastMiningUpdate = 0;
+    let lastSyncTime = 0;
+    
+    window.miningInterval = setInterval(() => {
         if (!window.userData || !window.isDataLoaded) return;
         
         const miningSpeed = calculateMiningSpeed();
