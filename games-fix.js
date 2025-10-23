@@ -1,4 +1,4 @@
-// games-fix.js - РЕАЛЬНЫЕ РАБОЧИЕ ИГРЫ
+// games-fix.js - РЕАЛЬНЫЕ РАБОЧИЕ ИГРЫ С ИСПРАВЛЕНИЯМИ
 console.log('🎮 ЗАГРУЖАЕМ ИСПРАВЛЕННЫЕ ИГРЫ...');
 
 let lotteryData = {
@@ -23,7 +23,7 @@ let selectedTeam = null;
 let lotteryUpdateInterval;
 let classicLotteryInterval;
 
-// КОМАНДНАЯ ЛОТЕРЕЯ - РЕАЛЬНАЯ РАБОТА
+// КОМАНДНАЯ ЛОТЕРЕЯ - РЕАЛЬНАЯ РАБОТА С ИСПРАВЛЕНИЯМИ
 async function loadLotteryStatus() {
     try {
         const data = await apiRequest('/api/lottery/status');
@@ -44,6 +44,28 @@ async function loadLotteryStatus() {
 async function placeLotteryBet(team, amount) {
     if (!window.userData) {
         showNotification('Данные не загружены', 'error');
+        return false;
+    }
+
+    // ПРОВЕРКА ВСЕХ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    if (!window.userData.userId || !team || !amount || !window.userData.username) {
+        console.error('❌ Missing required fields:', {
+            userId: window.userData.userId,
+            team: team,
+            amount: amount,
+            username: window.userData.username
+        });
+        showNotification('Ошибка данных: отсутствуют обязательные поля', 'error');
+        return false;
+    }
+
+    if (team not in ['eagle', 'tails']) {
+        showNotification('Неверная команда', 'error');
+        return false;
+    }
+
+    if (amount <= 0) {
+        showNotification('Неверная сумма ставки', 'error');
         return false;
     }
 
@@ -291,7 +313,7 @@ async function playTeamLottery() {
     }
 }
 
-// КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - РЕАЛЬНАЯ РАБОТА
+// КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - РЕАЛЬНАЯ РАБОТА С ИСПРАВЛЕНИЯМИ
 async function loadClassicLottery() {
     try {
         const data = await apiRequest('/api/classic-lottery/status');
@@ -333,6 +355,17 @@ async function playClassicLottery() {
     // Проверяем мультисессию
     if (window.hardSessionBlocker && window.hardSessionBlocker.isBlocked) {
         showNotification('Действие заблокировано из-за мультисессии', 'error');
+        return;
+    }
+    
+    // ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    if (!window.userData.userId || !bet || !window.userData.username) {
+        console.error('❌ Missing required fields for classic lottery:', {
+            userId: window.userData.userId,
+            amount: bet,
+            username: window.userData.username
+        });
+        showNotification('Ошибка данных: отсутствуют обязательные поля', 'error');
         return;
     }
     
