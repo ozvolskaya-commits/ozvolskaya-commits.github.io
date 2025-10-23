@@ -59,7 +59,7 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    // ИСПРАВЛЕННАЯ ПРОВЕРКА КОМАНДЫ
+    // ИСПРАВЛЕННАЯ ПРОВЕРКА КОМАНДЫ - УБРАН СИНТАКСИЧЕСКИЙ ОШИБКУ
     if (team !== 'eagle' && team !== 'tails') {
         showNotification('Неверная команда', 'error');
         return false;
