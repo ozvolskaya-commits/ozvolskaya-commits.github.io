@@ -114,6 +114,8 @@ function updateShopUIFixed() {
 function calculateClickPowerFixed() {
     let power = 0.000000001;
     
+    if (!window.upgrades) return power;
+    
     for (const key in window.upgrades) {
         if (key.startsWith('mouse') && window.upgrades[key]) {
             const level = window.upgrades[key].level || 0;
