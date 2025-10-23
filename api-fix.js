@@ -24,7 +24,7 @@ if (typeof window.syncPlayerDataWithAPI === 'undefined') {
                     balance: window.userData.balance,
                     totalEarned: window.userData.totalEarned,
                     totalClicks: window.userData.totalClicks,
-                    upgrades: window.upgrades,
+                    upgrades: window.getUpgradesForSync ? window.getUpgradesForSync() : window.upgrades,
                     deviceId: deviceId
                 })
             });
@@ -36,6 +36,14 @@ if (typeof window.syncPlayerDataWithAPI === 'undefined') {
                 if (response.userId && response.userId !== window.userData.userId) {
                     console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
                     window.userData.userId = response.userId;
+                    saveUserData();
+                }
+                
+                // Если серверный баланс больше - используем его
+                if (response.bestBalance > window.userData.balance) {
+                    console.log(`💰 Баланс обновлен: ${window.userData.balance} -> ${response.bestBalance}`);
+                    window.userData.balance = response.bestBalance;
+                    updateUI();
                     saveUserData();
                 }
                 
@@ -104,6 +112,142 @@ if (typeof window.loadReferralStats === 'undefined') {
     };
 }
 
+// Функция для получения улучшений для синхронизации
+if (typeof window.getUpgradesForSync === 'undefined') {
+    window.getUpgradesForSync = function() {
+        const upgradesData = {};
+        if (window.upgrades) {
+            for (const key in window.upgrades) {
+                if (window.upgrades[key] && typeof window.upgrades[key].level !== 'undefined') {
+                    upgradesData[key] = window.upgrades[key].level;
+                }
+            }
+        }
+        return upgradesData;
+    };
+}
+
+// Функция для загрузки синхронизированных данных
+if (typeof window.loadSyncedData === 'undefined') {
+    window.loadSyncedData = async function() {
+        console.log('📥 Загрузка синхронизированных данных...');
+        
+        try {
+            const userId = window.userData?.userId;
+            if (!userId) {
+                console.log('❌ Нет userID для загрузки');
+                return false;
+            }
+            
+            const response = await window.apiRequest(`/api/sync/unified/${userId}`);
+            
+            if (response && response.success && response.userData) {
+                console.log('✅ Данные загружены с сервера');
+                
+                // ОБЪЕДИНЯЕМ данные, сохраняя локальный прогресс
+                const serverData = response.userData;
+                
+                // Используем максимальные значения
+                window.userData.balance = Math.max(window.userData.balance, serverData.balance);
+                window.userData.totalEarned = Math.max(window.userData.totalEarned, serverData.totalEarned);
+                window.userData.totalClicks = Math.max(window.userData.totalClicks, serverData.totalClicks);
+                
+                // Обновляем другие данные с сервера
+                window.userData.userId = serverData.userId;
+                window.userData.username = serverData.username;
+                window.userData.lotteryWins = serverData.lotteryWins;
+                window.userData.totalBet = serverData.totalBet;
+                window.userData.referralEarnings = serverData.referralEarnings;
+                window.userData.referralsCount = serverData.referralsCount;
+                window.userData.totalWinnings = serverData.totalWinnings;
+                window.userData.totalLosses = serverData.totalLosses;
+                
+                // СИНХРОНИЗИРУЕМ УЛУЧШЕНИЯ
+                if (serverData.upgrades) {
+                    console.log('🔄 Синхронизация улучшений с сервера:', serverData.upgrades);
+                    for (const key in serverData.upgrades) {
+                        const serverLevel = serverData.upgrades[key];
+                        const localLevel = window.upgrades[key]?.level || 0;
+                        
+                        // Берем максимальный уровень
+                        if (serverLevel > localLevel) {
+                            console.log(`📈 Обновление улучшения ${key}: ${localLevel} -> ${serverLevel}`);
+                            window.upgrades[key] = { level: serverLevel };
+                        }
+                    }
+                }
+                
+                saveUserData();
+                updateUI();
+                updateShopUI();
+                
+                showNotification('Данные синхронизированы с сервером!', 'success');
+                return true;
+            }
+            
+        } catch (error) {
+            console.log('📴 Ошибка загрузки данных:', error);
+        }
+        
+        return false;
+    };
+}
+
+// Функция для синхронизации данных
+if (typeof window.syncUserData === 'undefined') {
+    window.syncUserData = async function(force = false) {
+        console.log('🔄 Синхронизация данных...');
+        
+        if (!window.userData) return false;
+        
+        try {
+            const syncData = {
+                userId: window.userData.userId,
+                username: window.userData.username,
+                balance: window.userData.balance,
+                totalEarned: window.userData.totalEarned,
+                totalClicks: window.userData.totalClicks,
+                upgrades: window.getUpgradesForSync(),
+                lastUpdate: Date.now(),
+                telegramId: window.userData.telegramId,
+                deviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown'
+            };
+            
+            const response = await window.apiRequest('/api/sync/unified', {
+                method: 'POST',
+                body: JSON.stringify(syncData)
+            });
+            
+            if (response && response.success) {
+                console.log('✅ Данные синхронизированы с сервером');
+                
+                // Если сервер вернул другой userId (при объединении записей)
+                if (response.userId && response.userId !== window.userData.userId) {
+                    console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
+                    window.userData.userId = response.userId;
+                    saveUserData();
+                }
+                
+                // Если серверный баланс больше - используем его
+                if (response.bestBalance > window.userData.balance) {
+                    console.log(`💰 Баланс обновлен: ${window.userData.balance} -> ${response.bestBalance}`);
+                    window.userData.balance = response.bestBalance;
+                    updateUI();
+                    saveUserData();
+                }
+                
+                localStorage.setItem('last_sync_time', Date.now());
+                return true;
+            }
+            
+        } catch (error) {
+            console.log('📴 Ошибка синхронизации:', error);
+        }
+        
+        return false;
+    };
+}
+
 // Функция для уведомлений (если не определена)
 if (typeof window.showNotification === 'undefined') {
     window.showNotification = function(message, type = 'info', duration = 3000) {
@@ -157,6 +301,27 @@ if (typeof window.calculateClickPower === 'undefined') {
     };
 }
 
+// Функция для расчета скорости майнинга (если не определена)
+if (typeof window.calculateMiningSpeed === 'undefined') {
+    window.calculateMiningSpeed = function() {
+        let speed = 0.000000000;
+        
+        if (window.upgrades) {
+            for (const key in window.upgrades) {
+                if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
+                    const level = window.upgrades[key].level || 0;
+                    const upgrade = UPGRADES[key];
+                    if (upgrade) {
+                        speed += level * upgrade.baseBonus;
+                    }
+                }
+            }
+        }
+        
+        return speed;
+    };
+}
+
 // Функция для обновления магазина (если не определена)
 if (typeof window.updateShopUI === 'undefined') {
     window.updateShopUI = function() {
@@ -167,7 +332,7 @@ if (typeof window.updateShopUI === 'undefined') {
             // Базовая реализация
             for (const upgradeId in UPGRADES) {
                 const upgrade = UPGRADES[upgradeId];
-                const currentLevel = window.upgrades[upgradeId] || 0;
+                const currentLevel = window.upgrades[upgradeId]?.level || 0;
                 const price = upgrade.basePrice * Math.pow(2, currentLevel);
                 
                 const ownedElement = document.getElementById(upgradeId + '-owned');
@@ -175,6 +340,19 @@ if (typeof window.updateShopUI === 'undefined') {
                 
                 if (ownedElement) ownedElement.textContent = currentLevel;
                 if (priceElement) priceElement.textContent = price.toFixed(9);
+                
+                const buyButton = document.querySelector(`[onclick="buyUpgrade('${upgradeId}')"]`);
+                if (buyButton) {
+                    if (window.userData && window.userData.balance >= price) {
+                        buyButton.disabled = false;
+                        buyButton.textContent = 'Купить';
+                        buyButton.style.opacity = '1';
+                    } else {
+                        buyButton.disabled = true;
+                        buyButton.textContent = 'Недостаточно средств';
+                        buyButton.style.opacity = '0.6';
+                    }
+                }
             }
         }
     };
@@ -203,19 +381,7 @@ if (typeof window.updateUI === 'undefined') {
         }
         
         if (mineSpeedElement) {
-            let mineSpeed = 0.000000000;
-            if (window.upgrades) {
-                for (const key in window.upgrades) {
-                    if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
-                        const level = window.upgrades[key].level || 0;
-                        const upgrade = UPGRADES[key];
-                        if (upgrade) {
-                            mineSpeed += level * upgrade.baseBonus;
-                        }
-                    }
-                }
-            }
-            mineSpeedElement.textContent = mineSpeed.toFixed(9) + ' S/сек';
+            mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
         }
     };
 }
@@ -245,4 +411,55 @@ if (typeof window.saveUserData === 'undefined') {
     };
 }
 
-console.log('✅ API фиксы загружены!');
+// Функция для покупки улучшений (если не определена)
+if (typeof window.buyUpgrade === 'undefined') {
+    window.buyUpgrade = function(upgradeId) {
+        if (!window.userData || !UPGRADES[upgradeId]) {
+            showNotification('Ошибка данных', 'error');
+            return;
+        }
+        
+        const upgrade = UPGRADES[upgradeId];
+        const currentLevel = window.upgrades[upgradeId]?.level || 0;
+        const price = upgrade.basePrice * Math.pow(2, currentLevel);
+        
+        console.log(`🛒 Покупка ${upgradeId}: уровень ${currentLevel}, цена ${price}`);
+        
+        if (window.userData.balance >= price) {
+            window.userData.balance -= price;
+            if (!window.upgrades[upgradeId]) {
+                window.upgrades[upgradeId] = { level: 0 };
+            }
+            window.upgrades[upgradeId].level = currentLevel + 1;
+            
+            updateUI();
+            updateShopUI();
+            saveUserData();
+            
+            setTimeout(() => window.syncUserData(), 1000);
+            
+            showNotification(`Улучшение "${upgrade.name}" куплено! Уровень: ${currentLevel + 1}`, 'success');
+        } else {
+            showNotification('Недостаточно средств', 'error');
+        }
+    };
+}
+
+// Функция для обновления баланса (если не определена)
+if (typeof window.updateBalanceImmediately === 'undefined') {
+    window.updateBalanceImmediately = function() {
+        if (!window.userData) return;
+        
+        const balanceElement = document.getElementById('balanceValue');
+        if (balanceElement) {
+            balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+        }
+        
+        const clickValueElement = document.getElementById('clickValue');
+        if (clickValueElement) {
+            clickValueElement.textContent = calculateClickPower().toFixed(9);
+        }
+    };
+}
+
+console.log('✅ API фиксы загружены! Все функции определены.');
