@@ -1,23 +1,28 @@
 // games-fix.js - РЕАЛЬНЫЕ РАБОЧИЕ ИГРЫ С ИСПРАВЛЕНИЯМИ
 console.log('🎮 ЗАГРУЖАЕМ ИСПРАВЛЕННЫЕ ИГРЫ...');
 
-let lotteryData = {
-    eagle: [],
-    tails: [],
-    last_winner: null,
-    timer: 60,
-    total_eagle: 0,
-    total_tails: 0,
-    participants_count: 0
-};
+// Используем проверку на существование переменной, чтобы избежать повторного объявления
+if (typeof lotteryData === 'undefined') {
+    var lotteryData = {
+        eagle: [],
+        tails: [],
+        last_winner: null,
+        timer: 60,
+        total_eagle: 0,
+        total_tails: 0,
+        participants_count: 0
+    };
+}
 
-let classicLotteryData = {
-    bets: [],
-    total_pot: 0,
-    timer: 120,
-    participants_count: 0,
-    history: []
-};
+if (typeof classicLotteryData === 'undefined') {
+    var classicLotteryData = {
+        bets: [],
+        total_pot: 0,
+        timer: 120,
+        participants_count: 0,
+        history: []
+    };
+}
 
 let selectedTeam = null;
 let lotteryUpdateInterval;
