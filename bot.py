@@ -1,3 +1,4 @@
+# bot.py - исправленная серверная часть с синхронизацией улучшений
 import os
 import json
 import logging
@@ -59,7 +60,7 @@ class SimpleSessionManager:
                 # Если сессия активна и устройство другое - МУЛЬТИСЕССИЯ
                 if (current_time - session['last_activity'] < SESSION_TIMEOUT and 
                     session['device_id'] != current_device_id):
-                    print(f"🚫 Мультисессия: {session['username']} на {session['device_id']}")
+                    print(f"🚫 Мультисессия ОБНАРУЖЕНА: {session['username']} на {session['device_id']}")
                     return True
 
         return False
@@ -356,7 +357,7 @@ def sync_unified():
                 best_total_clicks = max(total_clicks, int(max_balance_record['total_clicks'] or 0))
                 best_user_id = max_balance_record['user_id']
 
-                # ОБЪЕДИНЯЕМ УЛУЧШЕНИЯ
+                # ОБЪЕДИНЯЕМ УЛУЧШЕНИЯ - ИСПРАВЛЕННАЯ ЧАСТЬ
                 if max_balance_record['upgrades']:
                     try:
                         existing_upgrades = json.loads(max_balance_record['upgrades'])
@@ -365,9 +366,19 @@ def sync_unified():
                                 if isinstance(level, (int, float)):
                                     current_level = upgrades.get(key, 0)
                                     if isinstance(current_level, (int, float)):
-                                        upgrades[key] = max(current_level, level)
+                                        # Берем максимальный уровень улучшений
+                                        best_upgrades[key] = max(current_level, level)
+                                    else:
+                                        best_upgrades[key] = level
+                                elif isinstance(level, dict) and 'level' in level:
+                                    # Если улучшения хранятся как объекты
+                                    server_level = level['level']
+                                    current_level = upgrades.get(key, {}).get('level', 0) if isinstance(upgrades.get(key), dict) else upgrades.get(key, 0)
+                                    best_upgrades[key] = max(current_level, server_level)
                     except Exception as e:
                         print(f"⚠️ Ошибка улучшений: {e}")
+                        # В случае ошибки используем текущие улучшения
+                        best_upgrades = upgrades
 
             print(f"🔄 Объединено {len(existing_records)} записей. Баланс: {best_balance}")
 
@@ -380,7 +391,7 @@ def sync_unified():
                     telegram_id=?, telegram_username=?, last_device_id=?
                     WHERE user_id=?
                 ''', (username, best_balance, best_total_earned, best_total_clicks,
-                      json.dumps(upgrades), telegram_id, username, device_id, record['user_id']))
+                      json.dumps(best_upgrades), telegram_id, username, device_id, record['user_id']))
 
         else:
             # СОЗДАЕМ НОВУЮ ЗАПИСЬ
@@ -408,7 +419,7 @@ def sync_unified():
         print(f"❌ Sync error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# ПОЛУЧЕНИЕ ДАННЫХ ПОЛЬЗОВАТЕЛЯ
+# ПОЛУЧЕНИЕ ДАННЫХ ПОЛЬЗОВАТЕЛЯ С УЛУЧШЕНИЯМИ
 @flask_app.route('/api/sync/unified/<user_id>', methods=['GET'])
 def get_unified_user(user_id):
     try:
@@ -426,6 +437,14 @@ def get_unified_user(user_id):
         conn.close()
 
         if player:
+            # Парсим улучшения
+            upgrades_data = {}
+            if player['upgrades']:
+                try:
+                    upgrades_data = json.loads(player['upgrades'])
+                except:
+                    upgrades_data = {}
+
             return jsonify({
                 'success': True,
                 'userData': {
@@ -434,7 +453,7 @@ def get_unified_user(user_id):
                     'balance': player['balance'],
                     'totalEarned': player['total_earned'],
                     'totalClicks': player['total_clicks'],
-                    'upgrades': json.loads(player['upgrades']) if player['upgrades'] else {},
+                    'upgrades': upgrades_data,
                     'lastUpdate': player['last_update'],
                     'lotteryWins': player['lottery_wins'] or 0,
                     'totalBet': player['total_bet'] or 0,
@@ -471,6 +490,14 @@ def get_user_by_telegram_id(telegram_id):
         conn.close()
 
         if player:
+            # Парсим улучшения
+            upgrades_data = {}
+            if player['upgrades']:
+                try:
+                    upgrades_data = json.loads(player['upgrades'])
+                except:
+                    upgrades_data = {}
+
             return jsonify({
                 'success': True,
                 'userData': {
@@ -479,7 +506,7 @@ def get_user_by_telegram_id(telegram_id):
                     'balance': player['balance'],
                     'totalEarned': player['total_earned'],
                     'totalClicks': player['total_clicks'],
-                    'upgrades': json.loads(player['upgrades']) if player['upgrades'] else {},
+                    'upgrades': upgrades_data,
                     'lastUpdate': player['last_update'],
                     'telegramId': player['telegram_id'],
                     'telegramUsername': player['telegram_username']
@@ -492,7 +519,7 @@ def get_user_by_telegram_id(telegram_id):
         logger.error(f"Get user by telegram_id error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# ЛОТЕРЕЙНЫЕ ENDPOINTS - РАБОЧИЕ
+# ЛОТЕРЕЙНЫЕ ENDPOINTS - РАБОЧИЕ С ИСПРАВЛЕНИЯМИ
 
 @flask_app.route('/api/lottery/bet', methods=['POST'])
 def lottery_bet():
@@ -503,10 +530,12 @@ def lottery_bet():
         amount = float(data.get('amount', 0))
         username = data.get('username')
 
+        # ПРОВЕРКА ВСЕХ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
         if not user_id or not team or not amount or not username:
+            print(f"❌ Missing required fields: user_id={user_id}, team={team}, amount={amount}, username={username}")
             return jsonify({
                 'success': False,
-                'error': 'Missing required fields'
+                'error': 'Missing required fields: userId, team, amount, username'
             })
 
         if team not in ['eagle', 'tails']:
@@ -559,10 +588,12 @@ def classic_bet():
         amount = float(data.get('amount', 0))
         username = data.get('username')
 
+        # ПРОВЕРКА ВСЕХ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
         if not user_id or not amount or not username:
+            print(f"❌ Missing required fields: user_id={user_id}, amount={amount}, username={username}")
             return jsonify({
                 'success': False,
-                'error': 'Missing required fields'
+                'error': 'Missing required fields: userId, amount, username'
             })
 
         if amount <= 0:
