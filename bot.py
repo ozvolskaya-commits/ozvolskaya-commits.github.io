@@ -579,9 +579,8 @@ def lottery_bet():
             'success': False,
             'error': 'Bet failed'
         })
-
 @flask_app.route('/api/classic-lottery/bet', methods=['POST'])
-def classic_bet():
+def classic_lottery_bet():
     try:
         data = request.get_json()
         user_id = data.get('userId')
@@ -614,7 +613,7 @@ def classic_bet():
             'UPDATE players SET balance = balance - ?, total_bet = total_bet + ? WHERE user_id = ?',
             (amount, amount, user_id))
 
-        # Добавляем ставку
+        # Добавляем ставку С ЮЗЕРНЕЙМОМ
         cursor.execute(
             'INSERT INTO classic_lottery_bets (user_id, username, amount) VALUES (?, ?, ?)',
             (user_id, username, amount))
@@ -635,13 +634,124 @@ def classic_bet():
             'error': 'Bet failed'
         })
 
+@flask_app.route('/api/classic-lottery/status', methods=['GET'])
+def classic_lottery_status():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Получаем текущие ставки С ЮЗЕРНЕЙМАМИ
+        cursor.execute('''
+            SELECT user_id, username, amount, timestamp
+            FROM classic_lottery_bets 
+            WHERE timestamp > datetime('now', '-10 minutes')
+            ORDER BY timestamp DESC
+        ''')
+
+        bets = []
+        total_pot = 0
+
+        for row in cursor.fetchall():
+            bet = {
+                'userId': row['user_id'],
+                'username': row['username'],  # ОТОБРАЖАЕМ ЮЗЕРНЕЙМ
+                'amount': row['amount'],
+                'timestamp': row['timestamp']
+            }
+            bets.append(bet)
+            total_pot += row['amount']
+
+        # Получаем историю
+        cursor.execute('''
+            SELECT winner_username, prize, participants, timestamp
+            FROM lottery_history 
+            WHERE lottery_type = 'classic'
+            ORDER BY timestamp DESC
+            LIMIT 10
+        ''')
+
+        history = []
+        for row in cursor.fetchall():
+            history.append({
+                'winner': row['winner_username'],
+                'prize': row['prize'],
+                'participants': row['participants'],
+                'timestamp': row['timestamp']
+            })
+
+        # Получаем и обновляем таймер
+        cursor.execute('SELECT timer, total_pot, last_winner, last_prize FROM classic_lottery_timer WHERE id = 1')
+        timer_data = cursor.fetchone()
+
+        current_timer = timer_data['timer'] if timer_data else 120
+        new_timer = max(0, current_timer - 1)
+
+        if new_timer <= 0:
+            # РОЗЫГРЫШ КЛАССИЧЕСКОЙ ЛОТЕРЕИ
+            if bets and total_pot > 0:
+                winning_user = random.choice(bets)
+                prize = total_pot * 0.9  # 90% банка
+
+                # Начисляем выигрыш
+                cursor.execute(
+                    'UPDATE players SET balance = balance + ?, total_winnings = total_winnings + ? WHERE user_id = ?',
+                    (prize, prize, winning_user['user_id'])
+                )
+
+                # Сохраняем историю С ЮЗЕРНЕЙМОМ
+                cursor.execute('''
+                    INSERT INTO lottery_history (lottery_type, winner_user_id, winner_username, prize, participants)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', ('classic', winning_user['user_id'], winning_user['username'], prize, len(bets)))
+
+                # Обновляем последнего победителя С ЮЗЕРНЕЙМОМ
+                cursor.execute(
+                    'UPDATE classic_lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
+                    (winning_user['username'], prize)
+                )
+
+                print(f"🎉 Розыгрыш классической лотереи! Победитель: {winning_user['username']} - {prize:.9f} S")
+
+            # Сбрасываем таймер и очищаем ставки
+            new_timer = 120
+            cursor.execute("DELETE FROM classic_lottery_bets WHERE timestamp < datetime('now', '-1 hour')")
+
+        # Обновляем таймер и общий банк
+        cursor.execute('UPDATE classic_lottery_timer SET timer = ?, total_pot = ? WHERE id = 1', (new_timer, total_pot))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'lottery': {
+                'bets': bets,
+                'total_pot': total_pot,
+                'timer': new_timer,
+                'participants_count': len(bets),
+                'history': history
+            }
+        })
+    except Exception as e:
+        print(f"❌ Classic lottery error: {e}")
+        return jsonify({
+            'success': True,
+            'lottery': {
+                'bets': [],
+                'total_pot': 0,
+                'timer': 120,
+                'participants_count': 0,
+                'history': []
+            }
+        })
+
 @flask_app.route('/api/lottery/status', methods=['GET'])
 def lottery_status():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Получаем текущие ставки (последние 5 минут)
+        # Получаем текущие ставки с юзернеймами
         cursor.execute('''
             SELECT user_id, username, team, amount, timestamp
             FROM lottery_bets 
@@ -657,7 +767,7 @@ def lottery_status():
         for row in cursor.fetchall():
             bet = {
                 'userId': row['user_id'],
-                'username': row['username'],
+                'username': row['username'],  # Теперь отображаем юзернейм
                 'amount': row['amount'],
                 'timestamp': row['timestamp']
             }
@@ -693,13 +803,13 @@ def lottery_status():
                         (prize, prize, winning_user['user_id'])
                     )
 
-                    # Сохраняем историю
+                    # Сохраняем историю С ЮЗЕРНЕЙМОМ
                     cursor.execute('''
                         INSERT INTO lottery_history (lottery_type, winner_user_id, winner_username, prize, participants)
                         VALUES (?, ?, ?, ?, ?)
                     ''', ('team', winning_user['user_id'], winning_user['username'], prize, len(eagle_bets) + len(tails_bets)))
 
-                    # Обновляем последнего победителя
+                    # Обновляем последнего победителя С ЮЗЕРНЕЙМОМ
                     cursor.execute(
                         'UPDATE lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
                         (winning_user['username'], prize)
@@ -744,117 +854,6 @@ def lottery_status():
                 'total_eagle': 0,
                 'total_tails': 0,
                 'participants_count': 0
-            }
-        })
-
-@flask_app.route('/api/classic-lottery/status', methods=['GET'])
-def classic_lottery_status():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Получаем текущие ставки
-        cursor.execute('''
-            SELECT user_id, username, amount, timestamp
-            FROM classic_lottery_bets 
-            WHERE timestamp > datetime('now', '-10 minutes')
-            ORDER BY timestamp DESC
-        ''')
-
-        bets = []
-        total_pot = 0
-
-        for row in cursor.fetchall():
-            bet = {
-                'userId': row['user_id'],
-                'username': row['username'],
-                'amount': row['amount'],
-                'timestamp': row['timestamp']
-            }
-            bets.append(bet)
-            total_pot += row['amount']
-
-        # Получаем историю
-        cursor.execute('''
-            SELECT winner_username, prize, participants, timestamp
-            FROM lottery_history 
-            WHERE lottery_type = 'classic'
-            ORDER BY timestamp DESC
-            LIMIT 10
-        ''')
-
-        history = []
-        for row in cursor.fetchall():
-            history.append({
-                'winner': row['winner_username'],
-                'prize': row['prize'],
-                'participants': row['participants'],
-                'timestamp': row['timestamp']
-            })
-
-        # Получаем и обновляем таймер
-        cursor.execute('SELECT timer, total_pot, last_winner, last_prize FROM classic_lottery_timer WHERE id = 1')
-        timer_data = cursor.fetchone()
-
-        current_timer = timer_data['timer'] if timer_data else 120
-        new_timer = max(0, current_timer - 1)
-
-        if new_timer <= 0:
-            # РОЗЫГРЫШ КЛАССИЧЕСКОЙ ЛОТЕРЕИ
-            if bets and total_pot > 0:
-                winning_user = random.choice(bets)
-                prize = total_pot * 0.9  # 90% банка
-
-                # Начисляем выигрыш
-                cursor.execute(
-                    'UPDATE players SET balance = balance + ?, total_winnings = total_winnings + ? WHERE user_id = ?',
-                    (prize, prize, winning_user['user_id'])
-                )
-
-                # Сохраняем историю
-                cursor.execute('''
-                    INSERT INTO lottery_history (lottery_type, winner_user_id, winner_username, prize, participants)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', ('classic', winning_user['user_id'], winning_user['username'], prize, len(bets)))
-
-                # Обновляем последнего победителя
-                cursor.execute(
-                    'UPDATE classic_lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
-                    (winning_user['username'], prize)
-                )
-
-                print(f"🎉 Розыгрыш классической лотереи! Победитель: {winning_user['username']} - {prize:.9f} S")
-
-            # Сбрасываем таймер и очищаем ставки
-            new_timer = 120
-            cursor.execute("DELETE FROM classic_lottery_bets WHERE timestamp < datetime('now', '-1 hour')")
-
-        # Обновляем таймер и общий банк
-        cursor.execute('UPDATE classic_lottery_timer SET timer = ?, total_pot = ? WHERE id = 1', (new_timer, total_pot))
-
-        conn.commit()
-        conn.close()
-
-        return jsonify({
-            'success': True,
-            'lottery': {
-                'bets': bets,
-                'total_pot': total_pot,
-                'timer': new_timer,
-                'participants_count': len(bets),
-                'history': history
-            }
-        })
-    except Exception as e:
-        print(f"❌ Classic lottery error: {e}")
-        return jsonify({
-            'success': True,
-            'lottery': {
-                'bets': [],
-                'total_pot': 0,
-                'timer': 120,
-                'participants_count': 0,
-                'history': []
             }
         })
 
