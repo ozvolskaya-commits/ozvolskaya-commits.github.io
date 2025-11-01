@@ -1427,4 +1427,259 @@ body {
 
 .multisession-button {
     background: linear-gradient(135deg, #2196F3, #197
+    /* Добавляем в конец файла */
+
+/* Стили для 6 плашек главного меню */
+ main-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.menu-button {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(76, 201, 240, 0.3);
+    border-radius: 15px;
+    padding: 15px 12px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 80px;
+    backdrop-filter: blur(10px);
+}
+
+.menu-button:hover {
+    background: rgba(76, 201, 240, 0.15);
+    transform: translateY(-3px);
+    border-color: #4CC9F0;
+}
+
+.menu-icon {
+    font-size: 24px;
+}
+
+.menu-text {
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Стили для реферальной системы */
+.referral-container {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.referral-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.referral-header h2 {
+    color: #4CC9F0;
+    margin-bottom: 8px;
+}
+
+.referral-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.referral-stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+}
+
+.stat-icon {
+    font-size: 32px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4CC9F0;
+    font-family: 'Courier New', monospace;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #ccc;
+}
+
+.referral-link-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+}
+
+.link-title {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 10px;
+}
+
+.link-code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #4CC9F0;
+    word-break: break-all;
+    margin-bottom: 15px;
+    border: 1px solid rgba(76, 201, 240, 0.2);
+}
+
+.copy-link-btn {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.copy-link-btn:hover {
+    background: linear-gradient(135deg, #1976D2, #2196F3);
+}
+
+.referral-rules {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(76, 201, 240, 0.2);
+}
+
+.referral-rules h4 {
+    color: #4CC9F0;
+    margin-bottom: 10px;
+}
+
+.referral-rules ul {
+    list-style: none;
+    padding: 0;
+}
+
+.referral-rules li {
+    padding: 5px 0;
+    color: #ccc;
+}
+
+/* POPUP для игр */
+.games-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+}
+
+.games-popup-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 2px solid #4CC9F0;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.games-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(76, 201, 240, 0.3);
+}
+
+.games-popup-header h3 {
+    color: #4CC9F0;
+    margin: 0;
+}
+
+.close-popup {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.games-popup-body {
+    padding: 20px;
+}
+
+.game-option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.game-option:hover {
+    background: rgba(76, 201, 240, 0.1);
+    border-color: #4CC9F0;
+    transform: translateX(5px);
+}
+
+.game-icon {
+    font-size: 28px;
+}
+
+.game-title {
+    font-weight: bold;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.game-desc {
+    font-size: 12px;
+    color: #ccc;
+}
+
+/* Каталог */
+.catalog-container {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.catalog-container h2 {
+    color: #4CC9F0;
+    margin-bottom: 15px;
 }
