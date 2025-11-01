@@ -96,7 +96,7 @@ async function placeLotteryBet(team, amount) {
                 userId: window.userData.userId,
                 team: team,
                 amount: amount,
-                username: window.userData.username
+                username: window.userData.username // ОТПРАВЛЯЕМ ЮЗЕРНЕЙМ
             })
         });
         
@@ -125,10 +125,10 @@ async function placeLotteryBet(team, amount) {
         window.userData.balance -= amount;
         window.userData.totalBet = (window.userData.totalBet || 0) + amount;
         
-        // Добавляем ставку локально
+        // Добавляем ставку локально С ЮЗЕРНЕЙМОМ
         const bet = {
             userId: window.userData.userId,
-            username: window.userData.username,
+            username: window.userData.username, // СОХРАНЯЕМ ЮЗЕРНЕЙМ
             amount: amount,
             timestamp: new Date().toISOString()
         };
@@ -173,7 +173,7 @@ function updateLotteryUI() {
     if (eagleList) eagleList.innerHTML = '';
     if (tailsList) tailsList.innerHTML = '';
     
-    // Заполняем список Орлов
+    // Заполняем список Орлов С ОТОБРАЖЕНИЕМ ЮЗЕРНЕЙМОВ
     if (eagleList && lotteryData.eagle && lotteryData.eagle.length > 0) {
         lotteryData.eagle.forEach((participant, index) => {
             if (!participant) return;
@@ -184,6 +184,7 @@ function updateLotteryUI() {
             const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
             const timeString = betTime.toLocaleTimeString();
             
+            // ОТОБРАЖАЕМ ЮЗЕРНЕЙМ ВМЕСТО ID
             item.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div style="flex: 1;">
@@ -201,7 +202,7 @@ function updateLotteryUI() {
         eagleList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
     }
     
-    // Заполняем список Решек
+    // Заполняем список Решек С ОТОБРАЖЕНИЕМ ЮЗЕРНЕЙМОВ
     if (tailsList && lotteryData.tails && lotteryData.tails.length > 0) {
         lotteryData.tails.forEach((participant, index) => {
             if (!participant) return;
@@ -212,6 +213,7 @@ function updateLotteryUI() {
             const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
             const timeString = betTime.toLocaleTimeString();
             
+            // ОТОБРАЖАЕМ ЮЗЕРНЕЙМ ВМЕСТО ID
             item.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <div style="flex: 1;">
@@ -261,6 +263,7 @@ function updateLotteryUI() {
     }
 }
 
+// Остальные функции остаются без изменений...
 function startLotteryAutoUpdate() {
     clearInterval(lotteryUpdateInterval);
     
@@ -268,7 +271,7 @@ function startLotteryAutoUpdate() {
     
     lotteryUpdateInterval = setInterval(() => {
         loadLotteryStatus();
-    }, 3000); // Обновляем каждые 3 секунды
+    }, 3000);
 }
 
 function selectTeam(team) {
@@ -321,7 +324,7 @@ async function playTeamLottery() {
     }
 }
 
-// КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - РЕАЛЬНАЯ РАБОТА С ИСПРАВЛЕНИЯМИ
+// КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - аналогичные исправления для отображения юзернеймов
 async function loadClassicLottery() {
     try {
         const data = await apiRequest('/api/classic-lottery/status');
@@ -383,7 +386,7 @@ async function playClassicLottery() {
             body: JSON.stringify({
                 userId: window.userData.userId,
                 amount: bet,
-                username: window.userData.username
+                username: window.userData.username // ОТПРАВЛЯЕМ ЮЗЕРНЕЙМ
             })
         });
         
@@ -408,10 +411,10 @@ async function playClassicLottery() {
         window.userData.balance -= bet;
         window.userData.totalBet = (window.userData.totalBet || 0) + bet;
         
-        // Добавляем ставку локально
+        // Добавляем ставку локально С ЮЗЕРНЕЙМОМ
         const betData = {
             userId: window.userData.userId,
-            username: window.userData.username,
+            username: window.userData.username, // СОХРАНЯЕМ ЮЗЕРНЕЙМ
             amount: bet,
             timestamp: new Date().toISOString()
         };
@@ -470,7 +473,7 @@ function startClassicLotteryUpdate() {
     
     classicLotteryInterval = setInterval(() => {
         loadClassicLottery();
-    }, 3000); // Обновляем каждые 3 секунды
+    }, 3000);
 }
 
 // Глобальные функции для кнопок
