@@ -42,15 +42,36 @@
                 </div>
             </div>
             
+            <!-- 6 плашек главного меню -->
             <div class="main-menu">
-                <button class="menu-button" onclick="showSection('shop')">🛠️ Магазин</button>
-                <button class="menu-button" onclick="showGamesSection()">🎮 Игры</button>
-                <button class="menu-button" onclick="showSection('top')">🏆 Рейтинг</button>
-                <button class="menu-button" onclick="showSection('transfer')">💸 Переводы</button>
+                <button class="menu-button" onclick="showSection('top')">
+                    <div class="menu-icon">🏆</div>
+                    <div class="menu-text">Топ</div>
+                </button>
+                <button class="menu-button" onclick="showSection('shop')">
+                    <div class="menu-icon">🛠️</div>
+                    <div class="menu-text">Магазин</div>
+                </button>
+                <button class="menu-button" onclick="showGamesPopup()">
+                    <div class="menu-icon">🎮</div>
+                    <div class="menu-text">Игры</div>
+                </button>
+                <button class="menu-button" onclick="showSection('transfer')">
+                    <div class="menu-icon">💸</div>
+                    <div class="menu-text">Перевести</div>
+                </button>
+                <button class="menu-button" onclick="showSection('catalog')">
+                    <div class="menu-icon">📦</div>
+                    <div class="menu-text">Каталог</div>
+                </button>
+                <button class="menu-button" onclick="showSection('referral')">
+                    <div class="menu-icon">👥</div>
+                    <div class="menu-text">Рефералы</div>
+                </button>
             </div>
         </div>
         
-        <!-- Магазин -->
+        <!-- Магазин (без изменений) -->
         <div id="shop-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             
@@ -520,6 +541,100 @@
                 </div>
             </div>
         </div>
+
+        <!-- Новая секция: Рефералы -->
+        <div id="referral-section" class="section">
+            <button class="back-button" onclick="showSection('main')">← Назад</button>
+            <div class="referral-container">
+                <div class="referral-header">
+                    <h2>👥 Реферальная система</h2>
+                    <p>Приглашайте друзей и получайте бонусы!</p>
+                </div>
+                
+                <div class="referral-stats-grid">
+                    <div class="referral-stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="referralsCountNew">0</div>
+                            <div class="stat-label">Приглашено</div>
+                        </div>
+                    </div>
+                    <div class="referral-stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="referralEarningsNew">0.000000000 S</div>
+                            <div class="stat-label">Заработано</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="referral-link-card">
+                    <div class="link-title">Ваша реферальная ссылка:</div>
+                    <div class="link-code" id="referralLinkCode">Загрузка...</div>
+                    <button class="copy-link-btn" onclick="copyReferralLink()">
+                        📋 Скопировать ссылку
+                    </button>
+                </div>
+
+                <div class="referral-rules">
+                    <h4>🎯 Как это работает:</h4>
+                    <ul>
+                        <li>✅ 5% от заработка вашего друга</li>
+                        <li>✅ 1% от суммы его ставок в играх</li>
+                        <li>✅ Друг получает +10% к первому клику</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Новая секция: Каталог -->
+        <div id="catalog-section" class="section">
+            <button class="back-button" onclick="showSection('main')">← Назад</button>
+            <div class="catalog-container">
+                <h2>📦 Каталог товаров</h2>
+                <p>Скоро здесь появятся эксклюзивные товары за Sparkcoin!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP для игр -->
+    <div id="games-popup" class="games-popup">
+        <div class="games-popup-content">
+            <div class="games-popup-header">
+                <h3>🎮 Игры</h3>
+                <button class="close-popup" onclick="closeGamesPopup()">×</button>
+            </div>
+            <div class="games-popup-body">
+                <div class="game-option" onclick="openGame('team-lottery')">
+                    <div class="game-icon">👥</div>
+                    <div class="game-info">
+                        <div class="game-title">Командная лотерея</div>
+                        <div class="game-desc">Ставь за орлов или решек</div>
+                    </div>
+                </div>
+                <div class="game-option" onclick="openGame('classic-lottery')">
+                    <div class="game-icon">🎰</div>
+                    <div class="game-info">
+                        <div class="game-title">Классическая лотерея</div>
+                        <div class="game-desc">Шанс выиграть весь банк</div>
+                    </div>
+                </div>
+                <div class="game-option" onclick="openGame('plinko')">
+                    <div class="game-icon">🎯</div>
+                    <div class="game-info">
+                        <div class="game-title">Плинко</div>
+                        <div class="game-desc">Игра с шариком на удачу</div>
+                    </div>
+                </div>
+                <div class="game-option" onclick="openGame('dice')">
+                    <div class="game-icon">🎲</div>
+                    <div class="game-info">
+                        <div class="game-title">Dice</div>
+                        <div class="game-desc">Классическая игра с костями</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Попап результата -->
@@ -544,7 +659,6 @@
 <script src="game.js"></script>
 <script src="upgrades-fix.js"></script>
 <script src="sync.js"></script>
-<!-- УБЕРИТЕ lottery.js И ОСТАВЬТЕ ТОЛЬКО games-fix.js -->
 <script src="games-fix.js"></script>
 <script src="api-fix.js"></script>
 <script src="mobile-fix.js"></script>
@@ -552,7 +666,7 @@
 <script src="client-fix.js"></script>
 
 <script>
-    // Глобальные функции для кнопок (резервные)
+    // Глобальные функции для кнопок
     window.showSection = function(sectionName) {
         console.log('🎯 Показываем секцию:', sectionName);
         
@@ -566,30 +680,76 @@
         }
     };
 
-    window.showGamesSection = function() {
-        console.log('🎮 Показываем секцию игр');
-        showSection('games');
+    window.showGamesPopup = function() {
+        console.log('🎮 Открываем popup игр');
+        const popup = document.getElementById('games-popup');
+        if (popup) {
+            popup.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
     };
 
-    window.showShopTab = function(tabName) {
-        console.log('🛒 Показываем вкладку:', tabName);
+    window.closeGamesPopup = function() {
+        console.log('🎮 Закрываем popup игр');
+        const popup = document.getElementById('games-popup');
+        if (popup) {
+            popup.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    };
+
+    window.openGame = function(gameType) {
+        console.log('🎮 Открываем игру:', gameType);
+        closeGamesPopup();
         
-        document.querySelectorAll('.shop-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelectorAll('.shop-category').forEach(category => {
-            category.classList.add('hidden');
-        });
-        
-        event.target.classList.add('active');
-        document.getElementById('shop-' + tabName).classList.remove('hidden');
+        switch(gameType) {
+            case 'team-lottery':
+                showSection('games');
+                if (typeof showGameTab === 'function') {
+                    showGameTab('team-lottery');
+                }
+                break;
+            case 'classic-lottery':
+                showSection('games');
+                if (typeof showGameTab === 'function') {
+                    showGameTab('classic-lottery');
+                }
+                break;
+            case 'plinko':
+            case 'dice':
+                if (typeof showNotification === 'function') {
+                    showNotification('Игра скоро будет доступна!', 'info');
+                }
+                break;
+        }
+    };
+
+    window.copyReferralLink = function() {
+        const linkElement = document.getElementById('referralLinkCode');
+        if (linkElement) {
+            const link = linkElement.textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                if (typeof showNotification === 'function') {
+                    showNotification('Ссылка скопирована в буфер обмена!', 'success');
+                }
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = link;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (typeof showNotification === 'function') {
+                    showNotification('Ссылка скопирована!', 'success');
+                }
+            });
+        }
     };
 
     // ПРОВЕРКА МУЛЬТИСЕССИИ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 Проверка мультисессии при загрузке...');
         
-        // Проверяем сразу при загрузке
         setTimeout(() => {
             const blockedSession = localStorage.getItem('sparkcoin_blocked_session');
             const deviceId = window.multiSessionDetector ? 
@@ -601,7 +761,6 @@
                 return;
             }
             
-            // Запускаем мониторинг если все ок
             if (window.multiSessionDetector) {
                 console.log('✅ Мультисессия не обнаружена, запускаем мониторинг');
                 window.multiSessionDetector.startMonitoring();
@@ -609,7 +768,6 @@
         }, 1000);
     });
 
-    // Обработка перед закрытием страницы
     window.addEventListener('beforeunload', function() {
         if (window.multiSessionDetector) {
             window.multiSessionDetector.stopMonitoring();
