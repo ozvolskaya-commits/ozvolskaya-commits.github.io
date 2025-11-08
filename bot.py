@@ -1,4 +1,4 @@
-# bot.py - исправленная серверная часть с синхронизацией улучшений
+# bot.py - полностью исправленная серверная часть с синхронизацией улучшений
 import os
 import json
 import logging
@@ -8,6 +8,7 @@ import time
 import threading
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request
+import uuid
 
 # Настройка логирования
 logging.basicConfig(
@@ -35,7 +36,8 @@ class SimpleSessionManager:
                 sessions_to_remove.append(tid)
 
         for tid in sessions_to_remove:
-            del ACTIVE_SESSIONS[tid]
+            if tid in ACTIVE_SESSIONS:
+                del ACTIVE_SESSIONS[tid]
 
         # Создаем новую сессию
         ACTIVE_SESSIONS[telegram_id] = {
@@ -76,7 +78,8 @@ class SimpleSessionManager:
                 expired.append(tid)
 
         for tid in expired:
-            del ACTIVE_SESSIONS[tid]
+            if tid in ACTIVE_SESSIONS:
+                del ACTIVE_SESSIONS[tid]
 
 # Запуск очистки сессий
 def start_session_cleanup():
@@ -85,14 +88,6 @@ def start_session_cleanup():
             SimpleSessionManager.cleanup_sessions()
             time.sleep(30)
     threading.Thread(target=cleanup_loop, daemon=True).start()
-
-# CORS
-@flask_app.after_request
-def after_request(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    return response
 
 def get_db_connection():
     try:
@@ -127,7 +122,10 @@ def init_db():
                 total_losses REAL DEFAULT 0,
                 telegram_id TEXT,
                 telegram_username TEXT,
-                last_device_id TEXT
+                last_device_id TEXT,
+                referral_code TEXT,
+                referred_by TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
@@ -143,7 +141,9 @@ def init_db():
             'referral_earnings REAL DEFAULT 0',
             'referrals_count INTEGER DEFAULT 0',
             'total_winnings REAL DEFAULT 0',
-            'total_losses REAL DEFAULT 0'
+            'total_losses REAL DEFAULT 0',
+            'referral_code TEXT',
+            'referred_by TEXT'
         ]
 
         for column in columns_to_add:
@@ -209,6 +209,17 @@ def init_db():
             )
         ''')
 
+        # Таблица переводов
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS transfers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_user_id TEXT,
+                to_user_id TEXT,
+                amount REAL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         # Инициализация таймеров
         cursor.execute('INSERT OR IGNORE INTO lottery_timer (id, timer) VALUES (1, 60)')
         cursor.execute('INSERT OR IGNORE INTO classic_lottery_timer (id, timer) VALUES (1, 120)')
@@ -219,6 +230,14 @@ def init_db():
 
     except Exception as e:
         print(f"❌ Ошибка инициализации БД: {e}")
+
+# CORS
+@flask_app.after_request
+def after_request(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response
 
 # OPTIONS handlers для всех endpoint-ов
 @flask_app.route('/api/<path:path>', methods=['OPTIONS'])
@@ -232,8 +251,9 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'service': 'Sparkcoin API - FIXED',
-        'sessions_count': len(ACTIVE_SESSIONS)
+        'service': 'Sparkcoin API - COMPLETE',
+        'sessions_count': len(ACTIVE_SESSIONS),
+        'version': '2.0.0'
     })
 
 # ENDPOINT ДЛЯ ПРОВЕРКИ СЕССИЙ
@@ -396,12 +416,17 @@ def sync_unified():
         else:
             # СОЗДАЕМ НОВУЮ ЗАПИСЬ
             best_user_id = user_id or (f'tg_{telegram_id}' if telegram_id else f'user_{int(time.time())}')
+
+            # Генерируем реферальный код
+            referral_code = f"REF-{str(uuid.uuid4())[:8].upper()}"
+
             cursor.execute('''
                 INSERT INTO players 
-                (user_id, username, balance, total_earned, total_clicks, upgrades, telegram_id, telegram_username, last_device_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, username, balance, total_earned, total_clicks, upgrades, 
+                 telegram_id, telegram_username, last_device_id, referral_code)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (best_user_id, username, balance, total_earned, total_clicks,
-                  json.dumps(upgrades), telegram_id, username, device_id))
+                  json.dumps(upgrades), telegram_id, username, device_id, referral_code))
             print(f"🆕 Создана новая запись: {best_user_id}")
 
         conn.commit()
@@ -579,6 +604,7 @@ def lottery_bet():
             'success': False,
             'error': 'Bet failed'
         })
+
 @flask_app.route('/api/classic-lottery/bet', methods=['POST'])
 def classic_lottery_bet():
     try:
@@ -1031,6 +1057,12 @@ def transfer():
         cursor.execute('UPDATE players SET balance = balance + ? WHERE user_id = ?', (amount, to_user_id))
         cursor.execute('UPDATE players SET transfers_sent = transfers_sent + ? WHERE user_id = ?', (amount, from_user_id))
         cursor.execute('UPDATE players SET transfers_received = transfers_received + ? WHERE user_id = ?', (amount, to_user_id))
+
+        # Записываем в историю переводов
+        cursor.execute('''
+            INSERT INTO transfers (from_user_id, to_user_id, amount)
+            VALUES (?, ?, ?)
+        ''', (from_user_id, to_user_id, amount))
 
         conn.commit()
         conn.close()
