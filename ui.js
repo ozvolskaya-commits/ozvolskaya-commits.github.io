@@ -1,4 +1,4 @@
-// ui.js - функции интерфейса с поддержкой мультисессии
+// ui.js - полностью исправленная версия с поддержкой мультисессии
 console.log('🖥️ Загружаем ui.js...');
 
 let allPlayers = [];
@@ -33,6 +33,9 @@ window.showSection = function(sectionName) {
                 if (typeof startLotteryAutoUpdate === 'function') startLotteryAutoUpdate();
                 if (typeof startClassicLotteryUpdate === 'function') startClassicLotteryUpdate();
                 if (typeof loadReferralStats === 'function') loadReferralStats();
+                break;
+            case 'referral':
+                if (typeof updateReferralStats === 'function') updateReferralStats();
                 break;
         }
     }
@@ -505,6 +508,37 @@ async function loadReferralStats() {
     }
 }
 
+// Функция для обновления реферальной статистики (новая)
+window.updateReferralStats = async function() {
+    try {
+        const userId = window.userData?.userId;
+        if (!userId) return;
+        
+        const data = await apiRequest(`/api/referral/stats/${userId}`);
+        
+        if (data && data.success) {
+            // Обновляем все элементы реферальной статистики
+            const elements = [
+                { id: 'referralsCount', value: data.stats.referralsCount || 0 },
+                { id: 'referralEarnings', value: (data.stats.totalEarnings || 0).toFixed(9) + ' S' },
+                { id: 'referralsCountNew', value: data.stats.referralsCount || 0 },
+                { id: 'referralEarningsNew', value: (data.stats.totalEarnings || 0).toFixed(9) + ' S' },
+                { id: 'referralLink', value: data.referralCode || `REF-${userId.slice(-8).toUpperCase()}` },
+                { id: 'referralLinkCode', value: `https://t.me/your_bot?start=${data.referralCode || `REF-${userId.slice(-8).toUpperCase()}`}` }
+            ];
+            
+            elements.forEach(element => {
+                const el = document.getElementById(element.id);
+                if (el) el.textContent = element.value;
+            });
+            
+            console.log('✅ Реферальная статистика обновлена');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка загрузки реферальной статистики:', error);
+    }
+};
+
 // Функция для поделиться реферальной ссылкой
 function shareReferral() {
     const referralLink = document.getElementById('referralLink');
@@ -541,6 +575,88 @@ function copyToClipboard(text) {
         showNotification('Не удалось скопировать ссылку', 'error');
     }
     document.body.removeChild(textArea);
+}
+
+// Функция для копирования реферальной ссылки (новая)
+window.copyReferralLink = function() {
+    const linkElement = document.getElementById('referralLinkCode');
+    if (linkElement) {
+        const link = linkElement.textContent;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(link).then(() => {
+                showNotification('Ссылка скопирована в буфер обмена!', 'success');
+            }).catch(() => {
+                fallbackCopy(link);
+            });
+        } else {
+            fallbackCopy(link);
+        }
+    }
+};
+
+function fallbackCopy(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showNotification('Ссылка скопирована в буфер обмена!', 'success');
+    } catch (err) {
+        showNotification('Не удалось скопировать ссылку', 'error');
+    }
+    document.body.removeChild(textArea);
+}
+
+// Функция обновления магазина (улучшенная)
+window.updateShopUIFixed = function() {
+    console.log('🛒 Обновляем интерфейс магазина (фиксированная версия)');
+    
+    if (!window.userData || !window.isDataLoaded) {
+        console.log('⏳ Данные не загружены, откладываем обновление магазина');
+        setTimeout(window.updateShopUIFixed, 1000);
+        return;
+    }
+    
+    try {
+        // Обновляем все категории улучшений
+        updateShopCategory('gpu');
+        updateShopCategory('cpu'); 
+        updateShopCategory('mouse');
+        
+        console.log('✅ Магазин обновлен');
+    } catch (error) {
+        console.error('❌ Ошибка обновления магазина:', error);
+    }
+};
+
+function updateShopCategory(category) {
+    const prefix = category;
+    const upgrades = Object.keys(UPGRADES).filter(key => key.startsWith(prefix));
+    
+    upgrades.forEach(upgradeId => {
+        const upgrade = UPGRADES[upgradeId];
+        const currentLevel = window.upgrades[upgradeId] || 0;
+        const price = upgrade.basePrice * Math.pow(2, currentLevel);
+        
+        // Обновляем отображение
+        const ownedElement = document.getElementById(upgradeId + '-owned');
+        const priceElement = document.getElementById(upgradeId + '-price');
+        
+        if (ownedElement) ownedElement.textContent = currentLevel;
+        if (priceElement) priceElement.textContent = price.toFixed(9);
+        
+        // Обновляем кнопку
+        const buyButton = document.querySelector(`button[onclick="buyUpgrade('${upgradeId}')"]`);
+        if (buyButton) {
+            const canAfford = window.userData && parseFloat(window.userData.balance) >= price;
+            buyButton.disabled = !canAfford;
+            buyButton.innerHTML = canAfford ? 
+                'Купить' : 
+                'Недостаточно средств';
+            buyButton.style.opacity = canAfford ? '1' : '0.6';
+        }
+    });
 }
 
 // Заглушки для отсутствующих функций
