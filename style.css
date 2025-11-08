@@ -143,32 +143,46 @@ body {
     font-family: 'Courier New', monospace;
 }
 
+/* Исправленные стили для 6 плашек главного меню */
 .main-menu {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .menu-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    padding: 15px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    outline: none;
+    background: rgba(255, 255, 255, 0.08);
     border: 2px solid rgba(76, 201, 240, 0.3);
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    min-height: 44px;
+    border-radius: 12px;
+    padding: 12px 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 70px;
+    backdrop-filter: blur(10px);
+    font-size: 12px;
 }
 
 .menu-button:hover {
-    background: rgba(76, 201, 240, 0.2);
+    background: rgba(76, 201, 240, 0.15);
     transform: translateY(-2px);
+    border-color: #4CC9F0;
+}
+
+.menu-icon {
+    font-size: 20px;
+}
+
+.menu-text {
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
 }
 
 .section {
@@ -1049,563 +1063,40 @@ body {
     opacity: 0.9;
 }
 
-/* АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
-@media (max-width: 480px) {
-    .container {
-        padding: 10px;
-    }
-    
-    .click-coin {
-        width: 180px;
-        height: 180px;
-    }
-    
-    .coin-letter {
-        font-size: 64px;
-    }
-    
-    .balance-amount {
-        font-size: 24px;
-    }
-    
-    .main-menu {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-    
-    .menu-button {
-        padding: 12px;
-        font-size: 16px;
-    }
-    
-    .notification {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-        transform: translateY(-100px);
-    }
-    
-    .notification.show {
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 360px) {
-    .container {
-        padding: 8px;
-    }
-    
-    .click-coin {
-        width: 160px;
-        height: 160px;
-    }
-    
-    .coin-letter {
-        font-size: 56px;
-    }
-    
-    .header h1 {
-        font-size: 20px;
-    }
-    
-    .balance-amount {
-        font-size: 22px;
-    }
-}
-
-/* Улучшенные стили для участников лотереи */
-.participant-item {
-    background: rgba(255, 255, 255, 0.08);
-    padding: 12px;
-    margin: 6px 0;
-    border-radius: 10px;
-    border-left: 4px solid #2196F3;
-    transition: all 0.3s ease;
-    font-size: 13px;
-    backdrop-filter: blur(10px);
-}
-
-.participant-item.eagle {
-    border-left-color: #FF5722;
-    background: rgba(255, 87, 34, 0.1);
-}
-
-.participant-item.tails {
-    border-left-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.participant-item.current-player {
-    border: 2px solid #4CC9F0;
-    background: rgba(76, 201, 240, 0.2);
-    transform: scale(1.02);
-    box-shadow: 0 0 20px rgba(76, 201, 240, 0.4);
-}
-
-.participant-item:hover {
-    transform: translateX(5px);
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.participant-bet {
-    color: #4CAF50;
-    font-weight: bold;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    background: rgba(76, 175, 80, 0.15);
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.participant-time {
-    font-size: 10px;
-    color: #aaa;
-    margin-top: 4px;
-    font-family: 'Courier New', monospace;
-}
-
-/* Улучшенные кнопки команд */
-.team-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 16px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-}
-
-.team-button.eagle {
-    border-color: #FF5722;
-    background: rgba(255, 87, 34, 0.1);
-}
-
-.team-button.tails {
-    border-color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.team-button.active.eagle {
-    background: linear-gradient(135deg, #FF5722, #E64A19);
-    border-color: #FF5722;
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 87, 34, 0.4);
-}
-
-.team-button.active.tails {
-    background: linear-gradient(135deg, #4CAF50, #388E3C);
-    border-color: #4CAF50;
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
-}
-
-.team-button:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
-}
-
-/* Анимации для лотереи */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.lottery-timer {
-    background: linear-gradient(135deg, rgba(255, 165, 0, 0.3), rgba(255, 140, 0, 0.2));
-    padding: 12px;
-    border-radius: 10px;
-    text-align: center;
-    margin: 15px 0;
-    font-weight: bold;
-    color: #FFA500;
-    border: 1px solid rgba(255, 165, 0, 0.5);
-    animation: pulse 2s infinite;
-}
-
-.lottery-stat {
-    background: rgba(255, 255, 255, 0.08);
-    padding: 15px;
-    border-radius: 12px;
-    text-align: center;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.lottery-stat:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.lottery-stat.eagle {
-    border-left: 4px solid #FF5722;
-    background: rgba(255, 87, 34, 0.1);
-}
-
-.lottery-stat.tails {
-    border-left: 4px solid #4CAF50;
-    background: rgba(76, 175, 80, 0.1);
-}
-
-.stat-percentage {
-    font-size: 20px;
-    font-weight: bold;
-    margin: 8px 0;
-    font-family: 'Courier New', monospace;
-}
-
-.stat-amount {
-    font-size: 14px;
-    color: #ccc;
-    font-family: 'Courier New', monospace;
-}
-
-/* Улучшенный последний победитель */
-.last-winner {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 193, 7, 0.15));
-    padding: 15px;
-    border-radius: 12px;
-    margin: 15px 0;
-    text-align: center;
-    border: 2px solid #FFD700;
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-}
-
-.winner-team {
-    font-weight: bold;
-    color: #FFD700;
-    margin: 8px 0;
-    font-size: 16px;
-}
-
-.winner-prize {
-    color: #4CAF50;
-    font-weight: bold;
-    font-size: 18px;
-    font-family: 'Courier New', monospace;
-}
-
-/* Улучшенные поля ввода */
-.bet-input, .transfer-amount-input, .search-input {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(33, 150, 243, 0.5);
-    color: white;
-    padding: 14px;
-    border-radius: 10px;
-    font-size: 16px;
-    width: 100%;
-    margin-bottom: 15px;
-    outline: none;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-}
-
-.bet-input:focus, .transfer-amount-input:focus, .search-input:focus {
-    border-color: #2196F3;
-    background: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
-}
-
-/* Улучшенные кнопки действий */
-.play-button, .transfer-button {
-    background: linear-gradient(135deg, #4CAF50, #45a049);
-    border: none;
-    color: white;
-    padding: 16px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    width: 100%;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(76, 175, 80, 0.3);
-}
-
-.play-button:hover, .transfer-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #45a049, #4CAF50);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
-}
-
-.play-button:disabled, .transfer-button:disabled {
-    background: #666;
-    cursor: not-allowed;
-    opacity: 0.6;
-    transform: none;
-    box-shadow: none;
-}
-
-/* Специальные эффекты для победителя */
-.winner-glow {
-    animation: winnerGlow 2s ease-in-out infinite;
-}
-
-@keyframes winnerGlow {
-    0%, 100% {
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-    }
-    50% {
-        box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
-    }
-}
-
-/* Улучшенные заголовки секций */
-.section-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: #4CC9F0;
-    text-align: center;
-    margin-bottom: 20px;
-    text-shadow: 0 2px 10px rgba(76, 201, 240, 0.3);
-    position: relative;
-}
-
-.section-title::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, #4CC9F0, transparent);
-    border-radius: 2px;
-}
-
-/* Стили для системы мультисессии */
-.multisession-warning {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    backdrop-filter: blur(10px);
-}
-
-.multisession-content {
-    background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.1));
-    border-radius: 20px;
-    padding: 30px;
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    border: 2px solid rgba(255, 152, 0, 0.5);
-    box-shadow: 0 20px 40px rgba(255, 152, 0, 0.4);
-}
-
-.multisession-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: #FF9800;
-    margin-bottom: 10px;
-}
-
-.multisession-text {
-    color: white;
-    margin-bottom: 25px;
-    line-height: 1.5;
-    font-size: 14px;
-}
-
-.multisession-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-}
-
-.multisession-button {
-    background: linear-gradient(135deg, #2196F3, #197
-    /* Добавляем в конец файла */
-
-/* Стили для 6 плашек главного меню */
- main-menu {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.menu-button {
-    background: rgba(255, 255, 255, 0.08);
-    border: 2px solid rgba(76, 201, 240, 0.3);
-    border-radius: 15px;
-    padding: 15px 12px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    min-height: 80px;
-    backdrop-filter: blur(10px);
-}
-
-.menu-button:hover {
-    background: rgba(76, 201, 240, 0.15);
-    transform: translateY(-3px);
-    border-color: #4CC9F0;
-}
-
-.menu-icon {
-    font-size: 24px;
-}
-
-.menu-text {
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-}
-
-/* Стили для реферальной системы */
-.referral-container {
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-.referral-header {
-    text-align: center;
-    margin-bottom: 25px;
-}
-
-.referral-header h2 {
-    color: #4CC9F0;
-    margin-bottom: 8px;
-}
-
-.referral-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.referral-stat-card {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 15px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    border: 1px solid rgba(76, 201, 240, 0.3);
-}
-
-.stat-icon {
-    font-size: 32px;
-}
-
-.stat-value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #4CC9F0;
-    font-family: 'Courier New', monospace;
-}
-
-.stat-label {
-    font-size: 12px;
-    color: #ccc;
-}
-
-.referral-link-card {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 25px;
-    border: 1px solid rgba(76, 201, 240, 0.3);
-}
-
-.link-title {
-    font-size: 14px;
-    color: #ccc;
-    margin-bottom: 10px;
-}
-
-.link-code {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 12px;
-    border-radius: 10px;
-    font-family: 'Courier New', monospace;
-    font-weight: bold;
-    color: #4CC9F0;
-    word-break: break-all;
-    margin-bottom: 15px;
-    border: 1px solid rgba(76, 201, 240, 0.2);
-}
-
-.copy-link-btn {
-    background: linear-gradient(135deg, #2196F3, #1976D2);
-    border: none;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    width: 100%;
-    transition: all 0.3s ease;
-}
-
-.copy-link-btn:hover {
-    background: linear-gradient(135deg, #1976D2, #2196F3);
-}
-
-.referral-rules {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    padding: 20px;
-    border: 1px solid rgba(76, 201, 240, 0.2);
-}
-
-.referral-rules h4 {
-    color: #4CC9F0;
-    margin-bottom: 10px;
-}
-
-.referral-rules ul {
-    list-style: none;
-    padding: 0;
-}
-
-.referral-rules li {
-    padding: 5px 0;
-    color: #ccc;
-}
-
-/* POPUP для игр */
+/* POPUP для игр - исправленные стили */
 .games-popup {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     display: none;
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
 }
 
 .games-popup-content {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-radius: 20px;
     width: 90%;
-    max-width: 400px;
-    max-height: 80vh;
-    overflow-y: auto;
+    max-width: 350px;
     border: 2px solid #4CC9F0;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    animation: popupSlideIn 0.3s ease-out;
+}
+
+@keyframes popupSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .games-popup-header {
@@ -1614,11 +1105,14 @@ body {
     align-items: center;
     padding: 20px;
     border-bottom: 1px solid rgba(76, 201, 240, 0.3);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px 20px 0 0;
 }
 
 .games-popup-header h3 {
     color: #4CC9F0;
     margin: 0;
+    font-size: 18px;
 }
 
 .close-popup {
@@ -1633,6 +1127,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%;
+    transition: background 0.3s ease;
+}
+
+.close-popup:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .games-popup-body {
@@ -1646,7 +1146,7 @@ body {
     padding: 15px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid transparent;
@@ -1658,19 +1158,202 @@ body {
     transform: translateX(5px);
 }
 
+.game-option:active {
+    transform: scale(0.98);
+}
+
 .game-icon {
-    font-size: 28px;
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(76, 201, 240, 0.1);
+    border-radius: 10px;
+}
+
+.game-info {
+    flex: 1;
 }
 
 .game-title {
     font-weight: bold;
     color: white;
     margin-bottom: 4px;
+    font-size: 14px;
 }
 
 .game-desc {
-    font-size: 12px;
+    font-size: 11px;
     color: #ccc;
+    line-height: 1.3;
+}
+
+/* Стили для реферальной системы */
+.referral-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 0 10px;
+}
+
+.referral-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.referral-header h2 {
+    color: #4CC9F0;
+    margin-bottom: 8px;
+    font-size: 20px;
+}
+
+.referral-header p {
+    color: #ccc;
+    font-size: 14px;
+}
+
+.referral-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.referral-stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+    transition: all 0.3s ease;
+}
+
+.referral-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: #4CC9F0;
+}
+
+.stat-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(76, 201, 240, 0.1);
+    border-radius: 10px;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #4CC9F0;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 2px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: #ccc;
+}
+
+.referral-link-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(76, 201, 240, 0.3);
+}
+
+.link-title {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.link-code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #4CC9F0;
+    word-break: break-all;
+    margin-bottom: 15px;
+    border: 1px solid rgba(76, 201, 240, 0.2);
+    font-size: 12px;
+    text-align: center;
+}
+
+.copy-link-btn {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.copy-link-btn:hover {
+    background: linear-gradient(135deg, #1976D2, #2196F3);
+    transform: translateY(-1px);
+}
+
+.copy-link-btn:active {
+    transform: translateY(0);
+}
+
+.referral-rules {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(76, 201, 240, 0.2);
+}
+
+.referral-rules h4 {
+    color: #4CC9F0;
+    margin-bottom: 12px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.referral-rules ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.referral-rules li {
+    padding: 8px 0;
+    color: #ccc;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.referral-rules li:last-child {
+    border-bottom: none;
+}
+
+.referral-rules li::before {
+    content: "•";
+    color: #4CC9F0;
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
 }
 
 /* Каталог */
@@ -1682,4 +1365,44 @@ body {
 .catalog-container h2 {
     color: #4CC9F0;
     margin-bottom: 15px;
+    font-size: 22px;
+}
+
+.catalog-container p {
+    color: #ccc;
+    font-size: 14px;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 480px) {
+    .main-menu {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .menu-button {
+        padding: 10px 6px;
+        min-height: 65px;
+    }
+    
+    .menu-icon {
+        font-size: 18px;
+    }
+    
+    .menu-text {
+        font-size: 10px;
+    }
+    
+    .games-popup-content {
+        width: 95%;
+        max-width: 320px;
+    }
+    
+    .referral-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .referral-stat-card {
+        padding: 12px;
+    }
 }
