@@ -61,7 +61,7 @@ window.isDataLoaded = false;
 window.incomeInterval = null;
 window.saveInterval = null;
 
-// РАСЧЕТЫ УЛУЧШЕНИЙ - ПЕРЕМЕЩАЕМ ВВЕРХ ДО ИХ ИСПОЛЬЗОВАНИЯ
+// ========== ФУНКЦИИ РАСЧЕТА - ПЕРЕМЕЩЕНЫ ВВЕРХ ==========
 
 // Расчет силы клика
 function calculateClickPower() {
@@ -94,6 +94,53 @@ function calculateMiningSpeed() {
     
     return speed;
 }
+
+// Обновление UI
+function updateUI() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    const clickValueElement = document.getElementById('clickValue');
+    const clickSpeedElement = document.getElementById('clickSpeed');
+    const mineSpeedElement = document.getElementById('mineSpeed');
+    
+    if (balanceElement) {
+        balanceElement.textContent = parseFloat(window.userData.balance).toFixed(9) + ' S';
+    }
+    if (clickValueElement) {
+        clickValueElement.textContent = calculateClickPower().toFixed(9);
+    }
+    if (clickSpeedElement) {
+        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
+    }
+    if (mineSpeedElement) {
+        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
+    }
+}
+
+function updateBalanceImmediately() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    const clickValueElement = document.getElementById('clickValue');
+    const clickSpeedElement = document.getElementById('clickSpeed');
+    const mineSpeedElement = document.getElementById('mineSpeed');
+    
+    if (balanceElement) {
+        balanceElement.textContent = parseFloat(window.userData.balance).toFixed(9) + ' S';
+    }
+    if (clickValueElement) {
+        clickValueElement.textContent = calculateClickPower().toFixed(9);
+    }
+    if (clickSpeedElement) {
+        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
+    }
+    if (mineSpeedElement) {
+        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
+    }
+}
+
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
 
 // ЕДИНАЯ функция получения userID
 function getUnifiedUserId() {
@@ -391,33 +438,6 @@ function triggerAntiCheat() {
     }, CONFIG.ANTI_CHEAT_BLOCK_TIME);
 }
 
-// Обновление UI
-function updateBalanceImmediately() {
-    if (!window.userData) return;
-    
-    const balanceElement = document.getElementById('balanceValue');
-    const clickValueElement = document.getElementById('clickValue');
-    const clickSpeedElement = document.getElementById('clickSpeed');
-    const mineSpeedElement = document.getElementById('mineSpeed');
-    
-    if (balanceElement) {
-        balanceElement.textContent = parseFloat(window.userData.balance).toFixed(9) + ' S';
-    }
-    if (clickValueElement) {
-        clickValueElement.textContent = calculateClickPower().toFixed(9);
-    }
-    if (clickSpeedElement) {
-        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
-    }
-    if (mineSpeedElement) {
-        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
-    }
-}
-
-function updateUI() {
-    updateBalanceImmediately();
-}
-
 // Система улучшений
 function buyUpgrade(upgradeId) {
     if (!window.userData || !UPGRADES[upgradeId]) {
@@ -540,7 +560,7 @@ function createClickPopup(event, amount) {
     popup.style.left = x + 'px';
     popup.style.top = y + 'px';
     
-    document.body.appendChild(popup);
+    document.body.appendChild(pupup);
     
     setTimeout(() => {
         if (popup.parentNode) {
