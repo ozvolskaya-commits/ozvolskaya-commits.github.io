@@ -61,6 +61,40 @@ window.isDataLoaded = false;
 window.incomeInterval = null;
 window.saveInterval = null;
 
+// РАСЧЕТЫ УЛУЧШЕНИЙ - ПЕРЕМЕЩАЕМ ВВЕРХ ДО ИХ ИСПОЛЬЗОВАНИЯ
+
+// Расчет силы клика
+function calculateClickPower() {
+    let basePower = CONFIG.BASE_CLICK_POWER;
+    
+    for (const key in window.upgrades) {
+        if (key.startsWith('mouse') && window.upgrades[key] > 0) {
+            const upgrade = UPGRADES[key];
+            if (upgrade && upgrade.type === 'click') {
+                basePower += window.upgrades[key] * upgrade.baseBonus;
+            }
+        }
+    }
+    
+    return basePower;
+}
+
+// Расчет скорости майнинга
+function calculateMiningSpeed() {
+    let speed = CONFIG.BASE_MINING_SPEED;
+    
+    for (const key in window.upgrades) {
+        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key] > 0) {
+            const upgrade = UPGRADES[key];
+            if (upgrade && upgrade.type === 'mining') {
+                speed += window.upgrades[key] * upgrade.baseBonus;
+            }
+        }
+    }
+    
+    return speed;
+}
+
 // ЕДИНАЯ функция получения userID
 function getUnifiedUserId() {
     if (typeof tg !== 'undefined' && tg?.initDataUnsafe?.user) {
@@ -357,37 +391,6 @@ function triggerAntiCheat() {
     }, CONFIG.ANTI_CHEAT_BLOCK_TIME);
 }
 
-// Расчеты улучшений
-function calculateClickPower() {
-    let basePower = CONFIG.BASE_CLICK_POWER;
-    
-    for (const key in window.upgrades) {
-        if (key.startsWith('mouse') && window.upgrades[key] > 0) {
-            const upgrade = UPGRADES[key];
-            if (upgrade && upgrade.type === 'click') {
-                basePower += window.upgrades[key] * upgrade.baseBonus;
-            }
-        }
-    }
-    
-    return basePower;
-}
-
-function calculateMiningSpeed() {
-    let speed = CONFIG.BASE_MINING_SPEED;
-    
-    for (const key in window.upgrades) {
-        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key] > 0) {
-            const upgrade = UPGRADES[key];
-            if (upgrade && upgrade.type === 'mining') {
-                speed += window.upgrades[key] * upgrade.baseBonus;
-            }
-        }
-    }
-    
-    return speed;
-}
-
 // Обновление UI
 function updateBalanceImmediately() {
     if (!window.userData) return;
@@ -560,8 +563,10 @@ window.getUpgradesForSync = function() {
     return window.upgrades || {};
 };
 
+// Делаем функции глобальными для использования в других файлах
 window.calculateClickPower = calculateClickPower;
 window.calculateMiningSpeed = calculateMiningSpeed;
+window.buyUpgrade = buyUpgrade;
 
 // Основная инициализация
 async function initializeApp() {
