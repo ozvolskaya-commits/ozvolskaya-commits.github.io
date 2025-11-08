@@ -228,15 +228,109 @@ window.loadAllPlayers = async function() {
 // Заглушки для функций лотереи
 window.startLotteryAutoUpdate = function() {
     console.log('🎰 Автообновление лотереи...');
+    // Здесь будет реальная логика автообновления
+    setInterval(async () => {
+        try {
+            if (typeof updateLotteryStatus === 'function') {
+                await updateLotteryStatus();
+            }
+        } catch (error) {
+            console.log('Ошибка автообновления лотереи:', error);
+        }
+    }, 5000);
 };
 
 window.startClassicLotteryUpdate = function() {
     console.log('🎲 Автообновление классической лотереи...');
+    // Здесь будет реальная логика автообновления
+    setInterval(async () => {
+        try {
+            if (typeof updateClassicLotteryStatus === 'function') {
+                await updateClassicLotteryStatus();
+            }
+        } catch (error) {
+            console.log('Ошибка автообновления классической лотереи:', error);
+        }
+    }, 5000);
 };
 
 window.loadReferralStats = function() {
     console.log('👥 Загрузка реферальной статистики...');
+    if (typeof updateReferralStats === 'function') {
+        updateReferralStats();
+    }
 };
+
+// Вспомогательные функции для лотерей
+async function updateLotteryStatus() {
+    try {
+        const data = await window.apiRequest('/api/lottery/status');
+        if (data && data.success) {
+            // Обновляем UI лотереи
+            updateLotteryUI(data.lottery);
+        }
+    } catch (error) {
+        console.log('Ошибка обновления статуса лотереи');
+    }
+}
+
+async function updateClassicLotteryStatus() {
+    try {
+        const data = await window.apiRequest('/api/classic-lottery/status');
+        if (data && data.success) {
+            // Обновляем UI классической лотереи
+            updateClassicLotteryUI(data.lottery);
+        }
+    } catch (error) {
+        console.log('Ошибка обновления статуса классической лотереи');
+    }
+}
+
+function updateLotteryUI(lottery) {
+    // Обновляем таймер
+    const timerElement = document.getElementById('lotteryTimer');
+    if (timerElement) {
+        timerElement.textContent = lottery.timer;
+    }
+    
+    // Обновляем статистику команд
+    const eagleChanceElement = document.getElementById('eagleChance');
+    const tailsChanceElement = document.getElementById('tailsChance');
+    const eagleTotalElement = document.getElementById('eagleTotal');
+    const tailsTotalElement = document.getElementById('tailsTotal');
+    
+    if (eagleChanceElement && tailsChanceElement) {
+        const total = lottery.total_eagle + lottery.total_tails;
+        const eagleChance = total > 0 ? (lottery.total_eagle / total * 100).toFixed(1) : 50;
+        const tailsChance = total > 0 ? (lottery.total_tails / total * 100).toFixed(1) : 50;
+        
+        eagleChanceElement.textContent = eagleChance + '%';
+        tailsChanceElement.textContent = tailsChance + '%';
+    }
+    
+    if (eagleTotalElement) eagleTotalElement.textContent = lottery.total_eagle.toFixed(9) + ' S';
+    if (tailsTotalElement) tailsTotalElement.textContent = lottery.total_tails.toFixed(9) + ' S';
+}
+
+function updateClassicLotteryUI(lottery) {
+    // Обновляем таймер
+    const timerElement = document.getElementById('classicTimer');
+    if (timerElement) {
+        timerElement.textContent = lottery.timer;
+    }
+    
+    // Обновляем банк
+    const potElement = document.getElementById('lotteryPot');
+    if (potElement) {
+        potElement.textContent = lottery.total_pot.toFixed(9);
+    }
+    
+    // Обновляем участников
+    const participantsElement = document.getElementById('lotteryParticipants');
+    if (participantsElement) {
+        participantsElement.textContent = lottery.participants_count;
+    }
+}
 
 console.log('✅ API для Sparkcoin загружен! ВСЕ ФУНКЦИИ ОПРЕДЕЛЕНЫ');
 
