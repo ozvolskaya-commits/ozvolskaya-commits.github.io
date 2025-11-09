@@ -612,6 +612,34 @@ async function updateTopWinners() {
     }
 }
 
+// ========== ФИКС ДЛЯ СТРАНИЦЫ РЕЙТИНГА ==========
+
+function showRatingSection() {
+    console.log('📊 Показываем страницу рейтинга...');
+    
+    // Скрываем все секции
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Показываем секцию рейтинга
+    const ratingSection = document.getElementById('ratingSection');
+    if (ratingSection) {
+        ratingSection.classList.add('active');
+        console.log('✅ Секция рейтинга активирована');
+        
+        // Загружаем данные для рейтинга
+        setTimeout(() => {
+            updateTopWinners();
+            if (typeof updateLeaderboard === 'function') {
+                updateLeaderboard();
+            }
+        }, 100);
+    } else {
+        console.error('❌ Секция рейтинга не найдена');
+    }
+}
+
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ==========
 
 window.selectTeam = selectTeam;
@@ -619,6 +647,7 @@ window.playTeamLottery = playTeamLottery;
 window.playClassicLottery = playClassicLottery;
 window.shareReferral = shareReferral;
 window.copyToClipboard = copyToClipboard;
+window.showRatingSection = showRatingSection;
 
 // ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
 
