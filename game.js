@@ -1,650 +1,641 @@
-// game.js - полностью исправленная версия с мультисессией
-console.log('🎮 Загружаем исправленный game.js...');
+// games.js - РАБОЧИЙ КОД ИГР БЕЗ ПРОБЛЕМ
+console.log('🎮 ЗАГРУЖАЕМ РАБОЧИЙ КОД ИГР...');
 
-const tg = window.Telegram?.WebApp;
+// ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
 
-// Конфигурация
-const CONFIG = {
-    CLICK_COOLDOWN: 100,
-    ANTI_CHEAT_CLICKS: 20,
-    ANTI_CHEAT_WINDOW: 2000,
-    ANTI_CHEAT_BLOCK_TIME: 30000,
-    INCOME_INTERVAL: 1000,
-    SAVE_INTERVAL: 30000,
-    BASE_CLICK_POWER: 0.000000001,
-    BASE_MINING_SPEED: 0.000000000
-};
-
-// Улучшения (полная версия)
-const UPGRADES = {
-    gpu1: { name: "Интегрированная видеокарта", basePrice: 0.000000016, baseBonus: 0.000000001, type: "mining" },
-    gpu2: { name: "Видеокарта-затычка", basePrice: 0.000000256, baseBonus: 0.000000008, type: "mining" },
-    gpu3: { name: "Видеокарта Mining V100", basePrice: 0.000004096, baseBonus: 0.000000064, type: "mining" },
-    gpu4: { name: "Супер мощная видеокарта Mining V1000", basePrice: 0.000065536, baseBonus: 0.000000512, type: "mining" },
-    gpu5: { name: "Квантовая видеокарта Mining Q100", basePrice: 0.001048576, baseBonus: 0.000004096, type: "mining" },
-    gpu6: { name: "Видеокарта Думатель 42", basePrice: 0.016777216, baseBonus: 0.000032768, type: "mining" },
-    gpu7: { name: "Видеокарта Blue Earth 54", basePrice: 0.268435456, baseBonus: 0.000262144, type: "mining" },
-    gpu8: { name: "Видеокарта Big Bang", basePrice: 4.294967296, baseBonus: 0.002097152, type: "mining" },
-
-    cpu1: { name: "Обычный процессор", basePrice: 0.000000032, baseBonus: 0.000000001, type: "mining" },
-    cpu2: { name: "Процессор Miner X100", basePrice: 0.000000512, baseBonus: 0.000000008, type: "mining" },
-    cpu3: { name: "Супер процессор Miner X1000", basePrice: 0.000008192, baseBonus: 0.000000064, type: "mining" },
-    cpu4: { name: "Квантовый процессор Miner X10000", basePrice: 0.000131072, baseBonus: 0.000000512, type: "mining" },
-    cpu5: { name: "Кроховселенный процессор", basePrice: 0.002097152, baseBonus: 0.000004096, type: "mining" },
-    cpu6: { name: "Минивселенный процессор", basePrice: 0.033554432, baseBonus: 0.000032768, type: "mining" },
-    cpu7: { name: "Микровселенный процессор", basePrice: 0.536870912, baseBonus: 0.000262144, type: "mining" },
-    cpu8: { name: "Мультивселенный процессор", basePrice: 8.589934592, baseBonus: 0.002097152, type: "mining" },
-
-    mouse1: { name: "Обычная мышка", basePrice: 0.000000064, baseBonus: 0.000000004, type: "click" },
-    mouse2: { name: "Мышка с автокликером", basePrice: 0.000001024, baseBonus: 0.000000008, type: "click" },
-    mouse3: { name: "Мышка с макросами", basePrice: 0.000016384, baseBonus: 0.000000064, type: "click" },
-    mouse4: { name: "Мышка программиста", basePrice: 0.000262144, baseBonus: 0.000000512, type: "click" },
-    mouse5: { name: "Мышка Сатоси Накамото", basePrice: 0.004194304, baseBonus: 0.000004096, type: "click" },
-    mouse6: { name: "Мышка хакера", basePrice: 0.067108864, baseBonus: 0.000032768, type: "click" },
-    mouse7: { name: "Мышка Сноулена", basePrice: 1.073741824, baseBonus: 0.000262144, type: "click" },
-    mouse8: { name: "Мышка Админа", basePrice: 17.179869184, baseBonus: 0.002097152, type: "click" }
-};
-
-// Глобальные переменные
-window.apiConnected = false;
-window.isOnline = navigator.onLine;
-window.lastUpdateTime = Date.now();
-window.accumulatedIncome = 0;
-window.lastClickTime = 0;
-window.antiCheatBlocked = false;
-window.clickTimes = [];
-window.antiCheatTimeout = null;
-window.userData = null;
-window.upgrades = {};
-window.allPlayers = [];
-window.isDataLoaded = false;
-window.incomeInterval = null;
-window.saveInterval = null;
-
-// ========== ФУНКЦИИ РАСЧЕТА - ПЕРЕМЕЩЕНЫ ВВЕРХ ==========
-
-// Расчет силы клика
-function calculateClickPower() {
-    let basePower = CONFIG.BASE_CLICK_POWER;
-    
-    for (const key in window.upgrades) {
-        if (key.startsWith('mouse') && window.upgrades[key] > 0) {
-            const upgrade = UPGRADES[key];
-            if (upgrade && upgrade.type === 'click') {
-                basePower += window.upgrades[key] * upgrade.baseBonus;
-            }
-        }
-    }
-    
-    return basePower;
-}
-
-// Расчет скорости майнинга
-function calculateMiningSpeed() {
-    let speed = CONFIG.BASE_MINING_SPEED;
-    
-    for (const key in window.upgrades) {
-        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key] > 0) {
-            const upgrade = UPGRADES[key];
-            if (upgrade && upgrade.type === 'mining') {
-                speed += window.upgrades[key] * upgrade.baseBonus;
-            }
-        }
-    }
-    
-    return speed;
-}
-
-// Обновление UI
-function updateUI() {
-    if (!window.userData) return;
-    
-    const balanceElement = document.getElementById('balanceValue');
-    const clickValueElement = document.getElementById('clickValue');
-    const clickSpeedElement = document.getElementById('clickSpeed');
-    const mineSpeedElement = document.getElementById('mineSpeed');
-    
-    if (balanceElement) {
-        balanceElement.textContent = parseFloat(window.userData.balance).toFixed(9) + ' S';
-    }
-    if (clickValueElement) {
-        clickValueElement.textContent = calculateClickPower().toFixed(9);
-    }
-    if (clickSpeedElement) {
-        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
-    }
-    if (mineSpeedElement) {
-        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
-    }
-}
-
-function updateBalanceImmediately() {
-    if (!window.userData) return;
-    
-    const balanceElement = document.getElementById('balanceValue');
-    const clickValueElement = document.getElementById('clickValue');
-    const clickSpeedElement = document.getElementById('clickSpeed');
-    const mineSpeedElement = document.getElementById('mineSpeed');
-    
-    if (balanceElement) {
-        balanceElement.textContent = parseFloat(window.userData.balance).toFixed(9) + ' S';
-    }
-    if (clickValueElement) {
-        clickValueElement.textContent = calculateClickPower().toFixed(9);
-    }
-    if (clickSpeedElement) {
-        clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
-    }
-    if (mineSpeedElement) {
-        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
-    }
-}
-
-// ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
-
-// ЕДИНАЯ функция получения userID
-function getUnifiedUserId() {
-    if (typeof tg !== 'undefined' && tg?.initDataUnsafe?.user) {
-        const user = tg.initDataUnsafe.user;
-        if (user.id) return `tg_${user.id}`;
-        if (user.username) return `tg_${user.username.toLowerCase()}`;
-    }
-    
-    let webId = localStorage.getItem('sparkcoin_unified_user_id');
-    if (!webId) {
-        webId = 'web_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('sparkcoin_unified_user_id', webId);
-    }
-    return webId;
-}
-
-function getTelegramId() {
-    return typeof tg !== 'undefined' && tg?.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : null;
-}
-
-function getTelegramUsername() {
-    if (typeof tg === 'undefined') return 'Веб-Игрок';
-    
-    const user = tg?.initDataUnsafe?.user;
-    if (user) {
-        if (user.username) return '@' + user.username;
-        if (user.first_name) return user.first_name;
-        if (user.id) return `User${user.id}`;
-    }
-    return 'Игрок';
-}
-
-function createNewUserData() {
-    const userId = getUnifiedUserId();
-    const username = getTelegramUsername();
-    const telegramId = getTelegramId();
-
-    return {
-        userId: userId,
-        username: username,
-        balance: 0.000000100,
-        totalEarned: 0.000000100,
-        totalClicks: 0,
-        lastUpdate: Date.now(),
-        joinedDate: new Date().toISOString(),
-        lotteryWins: 0,
-        totalBet: 0,
-        telegramId: telegramId,
-        transfers: { sent: 0, received: 0 },
-        referralEarnings: 0,
-        referralsCount: 0,
-        totalWinnings: 0,
-        totalLosses: 0,
-        upgrades: {},
-        lastDeviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown'
+// Проверяем существование переменных перед использованием
+if (typeof lotteryData === 'undefined') {
+    var lotteryData = {
+        eagle: [],
+        tails: [],
+        last_winner: null,
+        timer: 60,
+        total_eagle: 0,
+        total_tails: 0,
+        participants_count: 0
     };
 }
 
-// Загрузка данных пользователя
-async function loadUserData() {
-    const userId = getUnifiedUserId();
-    const username = getTelegramUsername();
-    const telegramId = getTelegramId();
+if (typeof classicLotteryData === 'undefined') {
+    var classicLotteryData = {
+        bets: [],
+        total_pot: 0,
+        timer: 120,
+        participants_count: 0,
+        history: []
+    };
+}
 
-    console.log('📥 Загрузка данных для:', { userId, username, telegramId });
+// Реферальная система
+let referralData = {
+    referralsCount: 0,
+    totalEarnings: 0,
+    referralCode: ''
+};
 
+// Локальные переменные
+let selectedTeam = null;
+let lotteryUpdateInterval;
+let classicLotteryInterval;
+
+// ========== КОМАНДНАЯ ЛОТЕРЕЯ - РАБОЧИЙ КОД ==========
+
+async function loadLotteryStatus() {
     try {
-        // Сначала пробуем сервер
-        let serverData = null;
-        if (telegramId) {
-            serverData = await loadFromServerByTelegramId(telegramId);
-        }
-        if (!serverData) {
-            serverData = await loadFromServer(userId);
-        }
-
-        if (serverData) {
-            window.userData = serverData;
-            window.upgrades = serverData.upgrades || {};
-            console.log('✅ Данные загружены с сервера. Баланс:', window.userData.balance);
+        const data = await apiRequest('/api/lottery/status');
+        
+        if (data && data.success && data.lottery) {
+            // Безопасное обновление данных
+            lotteryData.eagle = data.lottery.eagle || [];
+            lotteryData.tails = data.lottery.tails || [];
+            lotteryData.last_winner = data.lottery.last_winner || null;
+            lotteryData.timer = data.lottery.timer || 60;
+            lotteryData.total_eagle = data.lottery.total_eagle || 0;
+            lotteryData.total_tails = data.lottery.total_tails || 0;
+            lotteryData.participants_count = data.lottery.participants_count || 0;
+            
+            updateLotteryUI();
         } else {
-            // Загружаем из localStorage
-            const savedData = localStorage.getItem('sparkcoin_user_data');
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                if (parsedData.userId === userId || parsedData.telegramId === telegramId) {
-                    window.userData = createNewUserData();
-                    Object.assign(window.userData, parsedData);
-                    window.userData.userId = userId;
-                    window.userData.telegramId = telegramId;
-                    console.log('✅ Данные загружены из localStorage');
-                } else {
-                    window.userData = createNewUserData();
-                    console.log('🆕 Созданы новые данные (несовпадение ID)');
-                }
-            } else {
-                window.userData = createNewUserData();
-                console.log('🆕 Созданы начальные данные');
-            }
-            
-            // Загружаем улучшения
-            try {
-                const savedUpgrades = localStorage.getItem('sparkcoin_upgrades_' + userId);
-                if (savedUpgrades) {
-                    window.upgrades = JSON.parse(savedUpgrades);
-                    window.userData.upgrades = window.upgrades;
-                } else {
-                    window.upgrades = {};
-                    window.userData.upgrades = {};
-                }
-            } catch (error) {
-                console.error('❌ Ошибка загрузки улучшений:', error);
-                window.upgrades = {};
-                window.userData.upgrades = {};
-            }
-            
-            setTimeout(() => syncToServer(), 1000);
+            console.log('⚠️ Нет данных лотереи, используем локальные');
+            updateLotteryUI();
         }
     } catch (error) {
-        console.error('❌ Ошибка загрузки данных:', error);
-        window.userData = createNewUserData();
-        window.upgrades = {};
+        console.warn('⚠️ Ошибка загрузки лотереи:', error);
+        updateLotteryUI();
     }
-
-    window.isDataLoaded = true;
-    console.log('👤 Пользователь загружен:', window.userData.username);
 }
 
-// Серверные функции
-async function loadFromServer(userId) {
-    try {
-        const response = await window.apiRequest(`/api/sync/unified/${userId}`);
-        if (response && response.success && response.userData) {
-            return response.userData;
-        }
-    } catch (error) {
-        console.log('📴 Сервер недоступен для userId');
+async function placeLotteryBet(team, amount) {
+    // ПРОВЕРКИ БЕЗОПАСНОСТИ
+    if (!window.userData) {
+        showNotification('Данные пользователя не загружены', 'error');
+        return false;
     }
-    return null;
-}
 
-async function loadFromServerByTelegramId(telegramId) {
-    try {
-        const response = await window.apiRequest(`/api/sync/telegram/${telegramId}`);
-        if (response && response.success && response.userData) {
-            console.log('✅ Найден пользователь по telegramId:', telegramId);
-            return response.userData;
-        }
-    } catch (error) {
-        console.log('📴 Сервер недоступен для telegramId');
+    if (!window.userData.userId || !team || !amount || !window.userData.username) {
+        console.error('❌ Отсутствуют обязательные поля');
+        showNotification('Ошибка данных', 'error');
+        return false;
     }
-    return null;
-}
 
-async function syncToServer() {
-    if (!window.userData) return false;
-    
+    if (team !== 'eagle' && team !== 'tails') {
+        showNotification('Неверная команда', 'error');
+        return false;
+    }
+
+    if (amount <= 0 || isNaN(amount)) {
+        showNotification('Неверная сумма ставки', 'error');
+        return false;
+    }
+
+    if (window.userData.balance < amount) {
+        showNotification('Недостаточно средств', 'error');
+        return false;
+    }
+
+    if (window.hardSessionBlocker && window.hardSessionBlocker.isBlocked) {
+        showNotification('Действие заблокировано', 'error');
+        return false;
+    }
+
+    // ОСНОВНАЯ ЛОГИКА СТАВКИ
     try {
-        const syncData = {
-            userId: window.userData.userId,
-            username: window.userData.username,
-            balance: parseFloat(window.userData.balance),
-            totalEarned: parseFloat(window.userData.totalEarned),
-            totalClicks: window.userData.totalClicks,
-            upgrades: window.upgrades,
-            lastUpdate: Date.now(),
-            telegramId: window.userData.telegramId,
-            deviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown'
-        };
-        
-        console.log('🔄 Синхронизация на сервер:', syncData.userId);
-        
-        const response = await window.apiRequest('/api/sync/unified', {
+        const response = await apiRequest('/api/lottery/bet', {
             method: 'POST',
-            body: JSON.stringify(syncData)
+            body: JSON.stringify({
+                userId: window.userData.userId,
+                team: team,
+                amount: amount,
+                username: window.userData.username
+            })
         });
         
         if (response && response.success) {
-            console.log('✅ Данные синхронизированы на сервер');
-            if (response.userId && response.userId !== window.userData.userId) {
-                console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
-                window.userData.userId = response.userId;
-                saveUserData();
-            }
+            // Обновляем баланс
+            window.userData.balance -= amount;
+            window.userData.totalBet = (window.userData.totalBet || 0) + amount;
+            window.userData.lastUpdate = Date.now();
+            
+            updateUI();
+            saveUserData();
+            
+            await loadLotteryStatus();
+            
+            showNotification(`Ставка ${amount.toFixed(9)} S за команду ${team === 'eagle' ? '🦅 Орлов' : '🪙 Решки'} принята!`, 'success');
             return true;
+        } else {
+            showNotification(`Ошибка ставки: ${response?.error || 'Неизвестная ошибка'}`, 'error');
+            return false;
         }
     } catch (error) {
-        console.log('📴 Ошибка синхронизации с сервером');
-    }
-    return false;
-}
-
-// Инициализация монетки
-function initializeCoin() {
-    console.log('🎯 Инициализация монетки...');
-    
-    const coin = document.getElementById('clickCoin');
-    if (!coin) {
-        setTimeout(initializeCoin, 1000);
-        return;
-    }
-    
-    // Очищаем старые обработчики
-    const newCoin = coin.cloneNode(true);
-    coin.parentNode.replaceChild(newCoin, coin);
-    
-    const freshCoin = document.getElementById('clickCoin');
-    
-    // Добавляем новые обработчики
-    freshCoin.addEventListener('click', handleCoinClick);
-    freshCoin.addEventListener('touchstart', handleCoinClick, { passive: false });
-    
-    // Стили для отзывчивости
-    freshCoin.style.cursor = 'pointer';
-    freshCoin.style.webkitTapHighlightColor = 'transparent';
-    freshCoin.style.touchAction = 'manipulation';
-    freshCoin.style.userSelect = 'none';
-    freshCoin.style.webkitUserSelect = 'none';
-    
-    console.log('✅ Обработчики монетки установлены');
-}
-
-// Обработка клика
-function handleCoinClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (!window.userData || !window.isDataLoaded) {
-        console.error('❌ userData не загружен');
-        return false;
-    }
-    
-    if (window.antiCheatBlocked) {
-        console.log('⏸️ Античит заблокирован');
-        return false;
-    }
-    
-    // Anti-cheat проверка
-    const now = Date.now();
-    if (window.lastClickTime && (now - window.lastClickTime < CONFIG.CLICK_COOLDOWN)) {
-        return false;
-    }
-    
-    window.clickTimes.push(now);
-    window.clickTimes = window.clickTimes.filter(time => now - time < CONFIG.ANTI_CHEAT_WINDOW);
-    
-    if (window.clickTimes.length > CONFIG.ANTI_CHEAT_CLICKS) {
-        triggerAntiCheat();
-        return false;
-    }
-    
-    window.lastClickTime = now;
-    
-    // Начисление за клик
-    const clickPower = calculateClickPower();
-    window.userData.balance = parseFloat(window.userData.balance) + clickPower;
-    window.userData.totalEarned = parseFloat(window.userData.totalEarned) + clickPower;
-    window.userData.totalClicks = (window.userData.totalClicks || 0) + 1;
-    window.userData.lastUpdate = Date.now();
-    
-    // Обновление UI
-    updateBalanceImmediately();
-    createClickPopup(event, clickPower);
-    
-    // Анимация монетки
-    const coin = document.getElementById('clickCoin');
-    if (coin) {
-        coin.style.transform = 'scale(0.95)';
-        setTimeout(() => coin.style.transform = 'scale(1)', 100);
-    }
-    
-    // Автосохранение
-    saveUserData();
-    
-    return false;
-}
-
-function triggerAntiCheat() {
-    console.log('🚫 Античит активирован!');
-    window.antiCheatBlocked = true;
-    
-    const antiCheat = document.getElementById('antiCheat');
-    if (antiCheat) {
-        antiCheat.style.display = 'flex';
-    }
-    
-    showNotification('Обнаружена подозрительная активность! Игра приостановлена на 30 секунд.', 'warning');
-    
-    window.antiCheatTimeout = setTimeout(() => {
-        window.antiCheatBlocked = false;
-        window.clickTimes = [];
-        if (antiCheat) antiCheat.style.display = 'none';
-        showNotification('Античит деактивирован. Можете продолжать играть.', 'success');
-    }, CONFIG.ANTI_CHEAT_BLOCK_TIME);
-}
-
-// Система улучшений
-function buyUpgrade(upgradeId) {
-    if (!window.userData || !UPGRADES[upgradeId]) {
-        showNotification('Ошибка покупки улучшения', 'error');
-        return;
-    }
-    
-    const upgrade = UPGRADES[upgradeId];
-    const currentLevel = window.upgrades[upgradeId] || 0;
-    const price = upgrade.basePrice * Math.pow(2, currentLevel);
-    
-    if (parseFloat(window.userData.balance) >= price) {
-        window.userData.balance = parseFloat(window.userData.balance) - price;
-        window.upgrades[upgradeId] = currentLevel + 1;
-        window.userData.upgrades = window.upgrades;
+        console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
+        
+        // ЛОКАЛЬНЫЙ РЕЖИМ - ВАЖНО ДЛЯ РАБОТОСПОСОБНОСТИ
+        window.userData.balance -= amount;
+        window.userData.totalBet = (window.userData.totalBet || 0) + amount;
+        
+        // Добавляем ставку локально
+        const bet = {
+            userId: window.userData.userId,
+            username: window.userData.username,
+            amount: amount,
+            timestamp: new Date().toISOString()
+        };
+        
+        lotteryData[team].push(bet);
+        
+        if (team === 'eagle') {
+            lotteryData.total_eagle += amount;
+        } else {
+            lotteryData.total_tails += amount;
+        }
+        
+        lotteryData.participants_count = lotteryData.eagle.length + lotteryData.tails.length;
         
         updateUI();
-        updateShopUI();
+        updateLotteryUI();
         saveUserData();
         
-        showNotification(`Улучшение "${upgrade.name}" куплено!`, 'success');
-    } else {
-        showNotification('Недостаточно средств для покупки', 'error');
+        showNotification(`Ставка ${amount.toFixed(9)} S принята в локальном режиме!`, 'warning');
+        return true;
     }
 }
 
-function updateShopUI() {
-    if (!window.userData) return;
-    
-    for (const upgradeId in UPGRADES) {
-        const upgrade = UPGRADES[upgradeId];
-        const currentLevel = window.upgrades[upgradeId] || 0;
-        const price = upgrade.basePrice * Math.pow(2, currentLevel);
-        
-        const ownedElement = document.getElementById(upgradeId + '-owned');
-        const priceElement = document.getElementById(upgradeId + '-price');
-        
-        if (ownedElement) ownedElement.textContent = currentLevel;
-        if (priceElement) priceElement.textContent = price.toFixed(9);
-        
-        const buyButton = document.querySelector(`button[onclick="buyUpgrade('${upgradeId}')"]`);
-        if (buyButton) {
-            const canAfford = parseFloat(window.userData.balance) >= price;
-            buyButton.disabled = !canAfford;
-            buyButton.textContent = canAfford ? 'Купить' : 'Недостаточно средств';
-            buyButton.style.opacity = canAfford ? '1' : '0.6';
-        }
-    }
-}
-
-// Пассивный доход
-function startPassiveIncome() {
-    if (window.incomeInterval) clearInterval(window.incomeInterval);
-    
-    window.incomeInterval = setInterval(() => {
-        if (window.userData && window.isDataLoaded) {
-            const miningSpeed = calculateMiningSpeed();
-            if (miningSpeed > 0) {
-                window.userData.balance = parseFloat(window.userData.balance) + miningSpeed;
-                window.userData.totalEarned = parseFloat(window.userData.totalEarned) + miningSpeed;
-                updateUI();
-                
-                // Автосохранение при значительном доходе
-                window.accumulatedIncome += miningSpeed;
-                if (window.accumulatedIncome >= 0.000000100) {
-                    saveUserData();
-                    window.accumulatedIncome = 0;
-                }
-            }
-        }
-    }, CONFIG.INCOME_INTERVAL);
-}
-
-// Сохранение данных
-function saveUserData() {
+function updateLotteryUI() {
+    // БЕЗОПАСНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
     try {
-        if (!window.userData) return;
+        const eagleList = document.getElementById('teamEagle');
+        const tailsList = document.getElementById('teamTails');
+        const eagleTotal = document.getElementById('eagleTotal');
+        const tailsTotal = document.getElementById('tailsTotal');
+        const eagleParticipants = document.getElementById('eagleParticipants');
+        const tailsParticipants = document.getElementById('tailsParticipants');
+        const lotteryTimer = document.getElementById('lotteryTimer');
+        const lastWinner = document.getElementById('lastWinner');
+        const winnerTeam = document.getElementById('winnerTeam');
         
-        window.userData.lastUpdate = Date.now();
-        window.userData.upgrades = window.upgrades;
+        if (lotteryTimer) lotteryTimer.textContent = lotteryData.timer || 60;
+        if (eagleTotal) eagleTotal.textContent = (lotteryData.total_eagle || 0).toFixed(9) + ' S';
+        if (tailsTotal) tailsTotal.textContent = (lotteryData.total_tails || 0).toFixed(9) + ' S';
+        if (eagleParticipants) eagleParticipants.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
+        if (tailsParticipants) tailsParticipants.textContent = lotteryData.tails ? lotteryData.tails.length : 0;
         
-        localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
-        localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(window.upgrades));
+        // Очищаем списки
+        if (eagleList) eagleList.innerHTML = '';
+        if (tailsList) tailsList.innerHTML = '';
         
-        // Автосинхронизация с сервером
-        setTimeout(() => syncToServer(), 500);
+        // Заполняем список Орлов
+        if (eagleList && lotteryData.eagle && lotteryData.eagle.length > 0) {
+            lotteryData.eagle.forEach((participant) => {
+                if (!participant) return;
+                
+                const item = document.createElement('div');
+                item.className = `participant-item eagle ${participant.userId === (window.userData?.userId) ? 'current-player' : ''}`;
+                
+                const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
+                const timeString = betTime.toLocaleTimeString();
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="flex: 1;">
+                            <div style="${participant.userId === (window.userData?.userId) ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
+                                ${participant.username || 'Игрок'} ${participant.userId === (window.userData?.userId) ? '(Вы)' : ''}
+                            </div>
+                            <div class="participant-time">${timeString}</div>
+                        </div>
+                        <span class="participant-bet">${(participant.amount || 0).toFixed(9)} S</span>
+                    </div>
+                `;
+                eagleList.appendChild(item);
+            });
+        } else if (eagleList) {
+            eagleList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
+        }
         
+        // Заполняем список Решек
+        if (tailsList && lotteryData.tails && lotteryData.tails.length > 0) {
+            lotteryData.tails.forEach((participant) => {
+                if (!participant) return;
+                
+                const item = document.createElement('div');
+                item.className = `participant-item tails ${participant.userId === (window.userData?.userId) ? 'current-player' : ''}`;
+                
+                const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
+                const timeString = betTime.toLocaleTimeString();
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div style="flex: 1;">
+                            <div style="${participant.userId === (window.userData?.userId) ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
+                                ${participant.username || 'Игрок'} ${participant.userId === (window.userData?.userId) ? '(Вы)' : ''}
+                            </div>
+                            <div class="participant-time">${timeString}</div>
+                        </div>
+                        <span class="participant-bet">${(participant.amount || 0).toFixed(9)} S</span>
+                    </div>
+                `;
+                tailsList.appendChild(item);
+            });
+        } else if (tailsList) {
+            tailsList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
+        }
+        
+        // Обновляем шансы
+        const totalBet = (lotteryData.total_eagle || 0) + (lotteryData.total_tails || 0);
+        let eagleChance = 50;
+        let tailsChance = 50;
+        
+        if (totalBet > 0) {
+            eagleChance = Math.round(((lotteryData.total_eagle || 0) / totalBet) * 100);
+            tailsChance = 100 - eagleChance;
+        }
+        
+        const eagleChanceElement = document.getElementById('eagleChance');
+        const tailsChanceElement = document.getElementById('tailsChance');
+        
+        if (eagleChanceElement) eagleChanceElement.textContent = eagleChance + '%';
+        if (tailsChanceElement) tailsChanceElement.textContent = tailsChance + '%';
+        
+        // Показываем последнего победителя
+        if (lastWinner && winnerTeam && lotteryData.last_winner) {
+            lastWinner.style.display = 'block';
+            const teamName = lotteryData.last_winner.team === 'eagle' ? '🦅 Орлы' : '🪙 Решки';
+            const winnerTime = lotteryData.last_winner.timestamp ? new Date(lotteryData.last_winner.timestamp).toLocaleDateString() : 'Недавно';
+            winnerTeam.innerHTML = `
+                <div style="color: #FFD700; font-weight: bold;">${teamName}</div>
+                <div style="color: white;">${lotteryData.last_winner.username || 'Победитель'}</div>
+                <div style="color: #4CAF50; font-weight: bold;">${(lotteryData.last_winner.prize || 0).toFixed(9)} S</div>
+                <div style="font-size: 10px; color: #ccc;">${winnerTime}</div>
+            `;
+        } else if (lastWinner) {
+            lastWinner.style.display = 'none';
+        }
     } catch (error) {
-        console.error('❌ Ошибка сохранения:', error);
+        console.error('❌ Ошибка обновления интерфейса лотереи:', error);
     }
 }
 
-// Автосохранение
-function startAutoSave() {
-    if (window.saveInterval) clearInterval(window.saveInterval);
+function startLotteryAutoUpdate() {
+    clearInterval(lotteryUpdateInterval);
     
-    window.saveInterval = setInterval(() => {
-        if (window.userData && window.isDataLoaded) {
-            saveUserData();
-            console.log('💾 Автосохранение выполнено');
-        }
-    }, CONFIG.SAVE_INTERVAL);
+    loadLotteryStatus();
+    
+    lotteryUpdateInterval = setInterval(() => {
+        loadLotteryStatus();
+    }, 5000);
 }
 
-// Вспомогательные функции
-function createClickPopup(event, amount) {
-    let x, y;
+function selectTeam(team) {
+    selectedTeam = team;
+    document.querySelectorAll('.team-button').forEach(btn => btn.classList.remove('active'));
     
-    if (event.touches && event.touches[0]) {
-        x = event.touches[0].clientX;
-        y = event.touches[0].clientY;
-    } else {
-        x = event.clientX;
-        y = event.clientY;
-    }
-    
-    const popup = document.createElement('div');
-    popup.className = 'click-popup';
-    popup.textContent = '+' + amount.toFixed(9);
-    popup.style.left = x + 'px';
-    popup.style.top = y + 'px';
-    
-    document.body.appendChild(pupup);
-    
-    setTimeout(() => {
-        if (popup.parentNode) {
-            popup.parentNode.removeChild(popup);
+    document.querySelectorAll('.team-button').forEach(btn => {
+        if (btn.classList.contains('eagle') && team === 'eagle') {
+            btn.classList.add('active');
+        } else if (btn.classList.contains('tails') && team === 'tails') {
+            btn.classList.add('active');
         }
-    }, 1000);
+    });
 }
 
-function showNotification(message, type = 'info') {
-    if (typeof window.showNotification === 'function') {
-        window.showNotification(message, type);
+async function playTeamLottery() {
+    if (!selectedTeam) {
+        showNotification('Выберите команду!', 'error');
         return;
     }
     
-    console.log('🔔 ' + type + ': ' + message);
+    const betInput = document.getElementById('teamBet');
+    if (!betInput) return;
+    
+    const bet = parseFloat(betInput.value);
+    
+    if (isNaN(bet) || bet <= 0) {
+        showNotification('Введите корректную сумму ставки', 'error');
+        return;
+    }
+    
+    if (window.userData && bet > window.userData.balance) {
+        showNotification('Недостаточно средств', 'error');
+        return;
+    }
+    
+    if (bet < 0.000000001) {
+        showNotification('Минимальная ставка 0.000000001 S', 'error');
+        return;
+    }
+    
+    const success = await placeLotteryBet(selectedTeam, bet);
+    
+    if (success) {
+        document.querySelectorAll('.team-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        selectedTeam = null;
+        if (betInput) betInput.value = '0.000000100';
+    }
 }
 
-// Глобальные функции для синхронизации
-window.getUpgradesForSync = function() {
-    return window.upgrades || {};
-};
+// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - РАБОЧИЙ КОД ==========
 
-// Делаем функции глобальными для использования в других файлах
-window.calculateClickPower = calculateClickPower;
-window.calculateMiningSpeed = calculateMiningSpeed;
-window.buyUpgrade = buyUpgrade;
+async function loadClassicLottery() {
+    try {
+        const data = await apiRequest('/api/classic-lottery/status');
+        
+        if (data && data.success && data.lottery) {
+            classicLotteryData.bets = data.lottery.bets || [];
+            classicLotteryData.total_pot = data.lottery.total_pot || 0;
+            classicLotteryData.timer = data.lottery.timer || 120;
+            classicLotteryData.participants_count = data.lottery.participants_count || 0;
+            classicLotteryData.history = data.lottery.history || [];
+            
+            updateClassicLotteryUI();
+        } else {
+            console.log('⚠️ Нет данных классической лотереи');
+            updateClassicLotteryUI();
+        }
+    } catch (error) {
+        console.warn('⚠️ Ошибка загрузки классической лотереи:', error);
+        updateClassicLotteryUI();
+    }
+}
 
-// Основная инициализация
-async function initializeApp() {
-    console.log('🚀 Инициализация приложения...');
+async function playClassicLottery() {
+    const betInput = document.getElementById('classicBet');
+    if (!betInput) return;
     
-    // Проверка мультисессии
-    if (window.multiSessionDetector) {
-        const status = window.multiSessionDetector.getStatus();
-        if (status.isBlocked) {
-            console.log('🚫 Сессия заблокирована');
-            window.location.href = 'multisession-warning.html';
+    const bet = parseFloat(betInput.value);
+    
+    if (isNaN(bet) || bet <= 0) {
+        showNotification('Введите корректную сумму ставки', 'error');
+        return;
+    }
+    
+    if (window.userData && bet > window.userData.balance) {
+        showNotification('Недостаточно средств', 'error');
+        return;
+    }
+    
+    if (bet < 0.000000001) {
+        showNotification('Минимальная ставка 0.000000001 S', 'error');
+        return;
+    }
+    
+    if (window.hardSessionBlocker && window.hardSessionBlocker.isBlocked) {
+        showNotification('Действие заблокировано', 'error');
+        return;
+    }
+    
+    if (!window.userData.userId || !bet || !window.userData.username) {
+        showNotification('Ошибка данных', 'error');
+        return;
+    }
+    
+    try {
+        const response = await apiRequest('/api/classic-lottery/bet', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: window.userData.userId,
+                amount: bet,
+                username: window.userData.username
+            })
+        });
+        
+        if (response && response.success) {
+            window.userData.balance -= bet;
+            window.userData.totalBet = (window.userData.totalBet || 0) + bet;
+            window.userData.lastUpdate = Date.now();
+            
+            updateUI();
+            saveUserData();
+            
+            await loadClassicLottery();
+            
+            showNotification(`Ставка ${bet.toFixed(9)} S принята!`, 'success');
+        } else {
+            showNotification(`Ошибка ставки: ${response?.error || 'Неизвестная ошибка'}`, 'error');
+        }
+    } catch (error) {
+        console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
+        
+        // ЛОКАЛЬНЫЙ РЕЖИМ
+        window.userData.balance -= bet;
+        window.userData.totalBet = (window.userData.totalBet || 0) + bet;
+        
+        const betData = {
+            userId: window.userData.userId,
+            username: window.userData.username,
+            amount: bet,
+            timestamp: new Date().toISOString()
+        };
+        
+        classicLotteryData.bets.push(betData);
+        classicLotteryData.total_pot += bet;
+        classicLotteryData.participants_count = classicLotteryData.bets.length;
+        
+        updateUI();
+        updateClassicLotteryUI();
+        saveUserData();
+        
+        showNotification(`Ставка ${bet.toFixed(9)} S принята в локальном режиме!`, 'warning');
+    }
+}
+
+function updateClassicLotteryUI() {
+    try {
+        const classicTimer = document.getElementById('classicTimer');
+        const lotteryPot = document.getElementById('lotteryPot');
+        const lotteryParticipants = document.getElementById('lotteryParticipants');
+        const historyElement = document.getElementById('classicHistory');
+        
+        if (classicTimer) classicTimer.textContent = classicLotteryData.timer || 120;
+        if (lotteryPot) lotteryPot.textContent = (classicLotteryData.total_pot || 0).toFixed(9);
+        if (lotteryParticipants) lotteryParticipants.textContent = classicLotteryData.participants_count || 0;
+        
+        if (historyElement) {
+            historyElement.innerHTML = '';
+            
+            if (classicLotteryData.history && Array.isArray(classicLotteryData.history)) {
+                classicLotteryData.history.forEach(item => {
+                    if (!item) return;
+                    
+                    const historyItem = document.createElement('div');
+                    const isWinner = item.winner === (window.userData?.username);
+                    historyItem.className = `history-item ${isWinner ? '' : 'lost'}`;
+                    historyItem.innerHTML = `
+                        <div style="font-weight: bold;">${item.winner || 'Победитель'}</div>
+                        <div style="color: ${isWinner ? '#4CAF50' : '#f44336'};">
+                            ${isWinner ? 'Выиграл' : 'Проиграл'} ${(item.prize || 0).toFixed(9)} S
+                        </div>
+                        <div style="font-size: 10px; color: #ccc;">Участников: ${item.participants || 0}</div>
+                    `;
+                    historyElement.appendChild(historyItem);
+                });
+            } else {
+                historyElement.innerHTML = '<div style="text-align: center; color: #666; padding: 20px; font-size: 12px;">История розыгрышей пуста</div>';
+            }
+        }
+    } catch (error) {
+        console.error('❌ Ошибка обновления интерфейса классической лотереи:', error);
+    }
+}
+
+function startClassicLotteryUpdate() {
+    clearInterval(classicLotteryInterval);
+    
+    loadClassicLottery();
+    
+    classicLotteryInterval = setInterval(() => {
+        loadClassicLottery();
+    }, 5000);
+}
+
+// ========== РЕФЕРАЛЬНАЯ СИСТЕМА ==========
+
+async function loadReferralStats() {
+    try {
+        if (!window.userData || !window.userData.userId) {
+            console.log('⚠️ Нет данных пользователя для загрузки рефералов');
+            updateReferralUI();
             return;
         }
-    }
-    
-    // Инициализация Telegram
-    if (typeof tg !== 'undefined') {
-        try {
-            tg.expand();
-            tg.enableClosingConfirmation();
-            console.log('✅ Telegram Web App инициализирован');
-        } catch (error) {
-            console.log('⚠️ Ошибка инициализации Telegram');
+        
+        const data = await apiRequest(`/api/referral/stats/${window.userData.userId}`);
+        
+        if (data && data.success) {
+            referralData.referralsCount = data.stats?.referralsCount || 0;
+            referralData.totalEarnings = data.stats?.totalEarnings || 0;
+            referralData.referralCode = data.referralCode || 'REF-' + (window.userData.userId.slice(-8) || 'DEFAULT');
+            
+            updateReferralUI();
+        } else {
+            console.log('⚠️ Нет данных рефералов, используем локальные');
+            updateReferralUI();
         }
+    } catch (error) {
+        console.warn('⚠️ Ошибка загрузки реферальной статистики:', error);
+        referralData.referralsCount = 0;
+        referralData.totalEarnings = 0;
+        referralData.referralCode = window.userData ? 'REF-' + window.userData.userId.slice(-8) : 'REF-DEFAULT';
+        updateReferralUI();
     }
-    
-    // Мониторинг мультисессии
-    setTimeout(() => {
-        if (window.multiSessionDetector) {
-            window.multiSessionDetector.startMonitoring();
-        }
-    }, 3000);
-    
-    // Загрузка данных
-    await loadUserData();
-    initializeCoin();
-    
-    // Запуск систем
-    setTimeout(() => {
-        updateUI();
-        updateShopUI();
-    }, 100);
-    
-    setTimeout(() => {
-        if (typeof showSection === 'function') showSection('main');
-    }, 500);
-    
-    startPassiveIncome();
-    startAutoSave();
-    
-    console.log('✅ Приложение полностью инициализировано');
 }
 
-// Запуск приложения
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-    initializeApp();
+function updateReferralUI() {
+    try {
+        const referralsCountElement = document.getElementById('referralsCount');
+        const referralEarningsElement = document.getElementById('referralEarnings');
+        const referralLinkElement = document.getElementById('referralLink');
+        
+        if (referralsCountElement) referralsCountElement.textContent = referralData.referralsCount;
+        if (referralEarningsElement) referralEarningsElement.textContent = referralData.totalEarnings.toFixed(9) + ' S';
+        if (referralLinkElement) referralLinkElement.textContent = referralData.referralCode;
+    } catch (error) {
+        console.error('❌ Ошибка обновления интерфейса рефералов:', error);
+    }
 }
 
-console.log('🎮 game.js загружен и готов к работе!');
+function shareReferral() {
+    const shareText = `Присоединяйся к Sparkcoin! Используй мою реферальную ссылку: ${referralData.referralCode}`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'Sparkcoin',
+            text: shareText,
+            url: window.location.href
+        }).catch(error => {
+            console.log('Ошибка sharing API:', error);
+            copyToClipboard(shareText);
+        });
+    } else {
+        copyToClipboard(shareText);
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Ссылка скопирована в буфер обмена!', 'success');
+    }).catch(error => {
+        console.error('Ошибка копирования:', error);
+        // Резервный метод
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        showNotification('Ссылка скопирована!', 'success');
+    });
+}
+
+// ========== ТОП ПОБЕДИТЕЛЕЙ ==========
+
+async function updateTopWinners() {
+    try {
+        const data = await apiRequest('/api/top/winners?limit=50');
+        
+        if (data && data.success) {
+            const topWinnersElement = document.getElementById('topWinners');
+            if (topWinnersElement) {
+                topWinnersElement.innerHTML = '';
+                
+                if (data.winners && Array.isArray(data.winners)) {
+                    data.winners.forEach((winner, index) => {
+                        if (!winner) return;
+                        
+                        const winnerItem = document.createElement('div');
+                        winnerItem.className = 'winner-item';
+                        winnerItem.innerHTML = `
+                            <div class="winner-rank">${index + 1}</div>
+                            <div class="winner-name">${winner.username || 'Игрок'}</div>
+                            <div class="winner-amount">${(winner.netWinnings || 0).toFixed(9)} S</div>
+                        `;
+                        topWinnersElement.appendChild(winnerItem);
+                    });
+                } else {
+                    topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Победителей пока нет</div></div>';
+                }
+            }
+        } else {
+            console.log('⚠️ Нет данных топа победителей');
+            const topWinnersElement = document.getElementById('topWinners');
+            if (topWinnersElement) {
+                topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Данные временно недоступны</div></div>';
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Ошибка обновления топа победителей:', error);
+        const topWinnersElement = document.getElementById('topWinners');
+        if (topWinnersElement) {
+            topWinnersElement.innerHTML = '<div class="winner-item"><div class="winner-name">Ошибка загрузки</div></div>';
+        }
+    }
+}
+
+// ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ==========
+
+window.selectTeam = selectTeam;
+window.playTeamLottery = playTeamLottery;
+window.playClassicLottery = playClassicLottery;
+window.shareReferral = shareReferral;
+window.copyToClipboard = copyToClipboard;
+
+// ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎮 Инициализация игровой системы...');
+    
+    setTimeout(() => {
+        startLotteryAutoUpdate();
+        startClassicLotteryUpdate();
+        loadReferralStats();
+        updateTopWinners();
+        
+        // Периодическое обновление
+        setInterval(() => {
+            updateTopWinners();
+        }, 30000);
+    }, 2000);
+});
+
+console.log('✅ РАБОЧИЙ КОД ИГР УСПЕШНО ЗАГРУЖЕН!');
