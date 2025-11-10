@@ -1,4 +1,4 @@
-# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN
+# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN С СИНХРОНИЗАЦИЕЙ СТАВОК И РЕФЕРАЛЬНОЙ СИСТЕМОЙ
 import os
 import json
 import logging
@@ -9,6 +9,7 @@ import threading
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request
 import uuid
+import hashlib
 
 # Настройка логирования
 logging.basicConfig(
@@ -31,7 +32,7 @@ def start_session_cleanup():
         while True:
             try:
                 EnhancedSessionManager.cleanup_sessions()
-                time.sleep(30)  # Очистка каждые 30 секунд
+                time.sleep(30)
             except Exception as e:
                 print(f"❌ Ошибка в cleanup_loop: {e}")
                 time.sleep(60)
@@ -53,18 +54,6 @@ def backup_database():
         print(f"❌ Ошибка создания бэкапа: {e}")
     return None
 
-def cleanup_old_backups():
-    """Очистка старых резервных копий (оставляет только последние 5)"""
-    try:
-        backup_files = [f for f in os.listdir('.') if f.startswith('backup_sparkcoin_') and f.endswith('.db')]
-        if len(backup_files) > 5:
-            backup_files.sort(reverse=True)
-            for old_backup in backup_files[5:]:
-                os.remove(old_backup)
-                print(f"🧹 Удален старый бэкап: {old_backup}")
-    except Exception as e:
-        print(f"❌ Ошибка очистки бэкапов: {e}")
-
 class EnhancedSessionManager:
     @staticmethod
     def update_session(telegram_id, device_id, username):
@@ -78,7 +67,6 @@ class EnhancedSessionManager:
         sessions_to_remove = []
         for tid, session in ACTIVE_SESSIONS.items():
             if tid == telegram_id or session.get('username') == username:
-                # Сохраняем сессию если она активна и устройство то же
                 if session.get('device_id') == device_id and current_time - session.get('last_activity', 0) < SESSION_TIMEOUT:
                     continue
                 sessions_to_remove.append(tid)
@@ -95,7 +83,6 @@ class EnhancedSessionManager:
             'timestamp': current_time,
             'ip_address': request.remote_addr
         }
-        print(f"✅ Сессия обновлена: {username} на {device_id}")
 
     @staticmethod
     def check_multi_session(telegram_id, current_device_id):
@@ -105,21 +92,17 @@ class EnhancedSessionManager:
 
         current_time = time.time()
 
-        # Проверяем активные сессии этого пользователя
         for tid, session in ACTIVE_SESSIONS.items():
             if tid == telegram_id:
                 session_age = current_time - session['last_activity']
-                # Если сессия активна и устройство другое - МУЛЬТИСЕССИЯ
                 if (session_age < SESSION_TIMEOUT and 
                     session['device_id'] != current_device_id):
-                    print(f"🚫 Мультисессия ОБНАРУЖЕНА: {session['username']} на {session['device_id']} (возраст: {session_age:.1f}с)")
                     return True
-
         return False
 
     @staticmethod
     def cleanup_sessions():
-        """Очищает старые сессии - УЛУЧШЕННАЯ ВЕРСИЯ"""
+        """Очищает старые сессии"""
         current_time = time.time()
         expired = []
 
@@ -130,9 +113,6 @@ class EnhancedSessionManager:
         for tid in expired:
             if tid in ACTIVE_SESSIONS:
                 del ACTIVE_SESSIONS[tid]
-
-        if expired:
-            print(f"🧹 Очищено {len(expired)} устаревших сессий")
 
     @staticmethod
     def get_session_stats():
@@ -151,112 +131,54 @@ class EnhancedSessionManager:
         }
 
 def validate_sync_data(data):
-    """Проверяет корректность данных синхронизации - УЛУЧШЕННАЯ ВЕРСИЯ 2.0"""
+    """Проверяет корректность данных синхронизации"""
     try:
-        # Обязательные поля
         if not data.get('username') or not isinstance(data.get('username'), str):
-            print("❌ Отсутствует или неверный username")
             return False
 
-        # Числовые значения
         balance = float(data.get('balance', 0))
         total_earned = float(data.get('totalEarned', 0))
         total_clicks = int(data.get('totalClicks', 0))
 
-        # Проверка диапазонов
         if balance < 0 or total_earned < 0 or total_clicks < 0:
-            print(f"⚠️ Отрицательные значения: balance={balance}, earned={total_earned}, clicks={total_clicks}")
             return False
 
         if balance > MAX_BALANCE:
-            print(f"⚠️ Подозрительный баланс: {balance} > {MAX_BALANCE}")
             return False
 
         if total_earned > MAX_EARNED:
-            print(f"⚠️ Подозрительный total_earned: {total_earned} > {MAX_EARNED}")
             return False
 
         if total_clicks > MAX_CLICKS:
-            print(f"⚠️ Подозрительное количество кликов: {total_clicks} > {MAX_CLICKS}")
             return False
 
-        # Проверка улучшений
         upgrades = data.get('upgrades', {})
         if upgrades:
             if not isinstance(upgrades, dict):
-                print("❌ Улучшения должны быть словарем")
                 return False
 
             for key, value in upgrades.items():
                 if not isinstance(key, str) or not key:
-                    print(f"❌ Неверный ключ улучшения: {key}")
                     return False
 
                 if isinstance(value, (int, float)):
-                    if value < 0 or value > 1000:  # Максимальный уровень улучшения
-                        print(f"⚠️ Неверный уровень улучшения {key}: {value}")
+                    if value < 0 or value > 1000:
                         return False
                 elif isinstance(value, dict):
                     level = value.get('level', 0)
                     if not isinstance(level, (int, float)) or level < 0 or level > 1000:
-                        print(f"⚠️ Неверный уровень улучшения {key}: {level}")
                         return False
                 else:
-                    print(f"❌ Неверный формат улучшения {key}: {type(value)}")
                     return False
 
-        # Проверка device_id
         device_id = data.get('deviceId')
         if device_id and (not isinstance(device_id, str) or len(device_id) > 100):
-            print(f"❌ Неверный device_id: {device_id}")
             return False
 
         return True
 
     except Exception as e:
-        print(f"❌ Ошибка валидации данных: {e}")
         return False
-
-def debug_upgrades(upgrades, source):
-    """Дебаг функция для логирования улучшений - УЛУЧШЕННАЯ ВЕРСИЯ"""
-    if not upgrades:
-        print(f"🔍 {source}: улучшений нет")
-        return
-
-    try:
-        if isinstance(upgrades, str):
-            upgrades = json.loads(upgrades)
-
-        if isinstance(upgrades, dict):
-            count = len(upgrades)
-            total_level = 0
-            max_level = 0
-
-            for key, value in upgrades.items():
-                if isinstance(value, (int, float)):
-                    level = value
-                elif isinstance(value, dict) and 'level' in value:
-                    level = value['level']
-                else:
-                    level = 0
-
-                total_level += level
-                if level > max_level:
-                    max_level = level
-
-            print(f"🔍 {source}: {count} улучшений, суммарный уровень: {total_level}, макс. уровень: {max_level}")
-
-            # Логируем топ улучшений
-            if count > 0:
-                top_upgrades = sorted([(k, v if isinstance(v, (int, float)) else v.get('level', 0) if isinstance(v, dict) else 0) 
-                                     for k, v in upgrades.items()], 
-                                    key=lambda x: x[1], reverse=True)[:3]
-                print(f"🔍 Топ улучшения: {top_upgrades}")
-
-        else:
-            print(f"🔍 {source}: неверный формат улучшений: {type(upgrades)}")
-    except Exception as e:
-        print(f"🔍 {source}: ошибка анализа улучшений: {e}")
 
 def get_db_connection():
     """Улучшенное подключение к БД"""
@@ -300,40 +222,14 @@ def init_db():
                 telegram_id TEXT,
                 telegram_username TEXT,
                 last_device_id TEXT,
-                referral_code TEXT,
+                referral_code TEXT UNIQUE,
                 referred_by TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_ip TEXT,
-                version TEXT DEFAULT '2.0.0'
+                version TEXT DEFAULT '2.0.0',
+                first_deposit_bonus BOOLEAN DEFAULT FALSE
             )
         ''')
-
-        # Добавляем недостающие колонки
-        columns_to_add = [
-            'telegram_id TEXT',
-            'telegram_username TEXT', 
-            'last_device_id TEXT',
-            'lottery_wins INTEGER DEFAULT 0',
-            'total_bet REAL DEFAULT 0',
-            'transfers_sent REAL DEFAULT 0',
-            'transfers_received REAL DEFAULT 0',
-            'referral_earnings REAL DEFAULT 0',
-            'referrals_count INTEGER DEFAULT 0',
-            'total_winnings REAL DEFAULT 0',
-            'total_losses REAL DEFAULT 0',
-            'referral_code TEXT',
-            'referred_by TEXT',
-            'last_ip TEXT',
-            'version TEXT DEFAULT "2.0.0"'
-        ]
-
-        for column in columns_to_add:
-            try:
-                column_name = column.split(' ')[0]
-                cursor.execute(f"ALTER TABLE players ADD COLUMN {column}")
-                print(f"✅ Добавлена колонка: {column_name}")
-            except sqlite3.OperationalError:
-                pass  # Колонка уже существует
 
         # Таблицы для лотерей
         cursor.execute('''
@@ -407,6 +303,18 @@ def init_db():
             )
         ''')
 
+        # Таблица рефералов
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS referrals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_user_id TEXT,
+                referred_user_id TEXT,
+                referral_code TEXT,
+                earnings REAL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         # Таблица системных логов
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS system_logs (
@@ -444,6 +352,41 @@ def log_system_event(level, message, details=None):
     except Exception as e:
         print(f"❌ Ошибка логирования: {e}")
 
+def apply_referral_bonus(user_id, referrer_id, amount):
+    """Применение реферального бонуса"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return False
+
+        cursor = conn.cursor()
+
+        # Начисляем бонус новому пользователю (10%)
+        cursor.execute(
+            'UPDATE players SET balance = balance + ?, referral_earnings = referral_earnings + ? WHERE user_id = ?',
+            (amount * 0.10, amount * 0.10, user_id)
+        )
+
+        # Начисляем бонус пригласившему (5%)
+        cursor.execute(
+            'UPDATE players SET balance = balance + ?, referral_earnings = referral_earnings + ?, referrals_count = referrals_count + 1 WHERE user_id = ?',
+            (amount * 0.05, amount * 0.05, referrer_id)
+        )
+
+        # Записываем реферала
+        cursor.execute(
+            'INSERT INTO referrals (referrer_user_id, referred_user_id, referral_code, earnings) VALUES (?, ?, ?, ?)',
+            (referrer_id, user_id, f"REF-{referrer_id[-8:]}", amount * 0.05)
+        )
+
+        conn.commit()
+        conn.close()
+        return True
+
+    except Exception as e:
+        print(f"❌ Ошибка применения реферального бонуса: {e}")
+        return False
+
 # CORS
 @flask_app.after_request
 def after_request(response):
@@ -453,7 +396,7 @@ def after_request(response):
     response.headers['X-Server-Version'] = 'Sparkcoin-2.0.0'
     return response
 
-# OPTIONS handlers для всех endpoint-ов
+# OPTIONS handlers
 @flask_app.route('/api/<path:path>', methods=['OPTIONS'])
 def options_handler(path):
     return jsonify({'status': 'preflight'}), 200
@@ -472,7 +415,6 @@ def health_check():
         'database': 'connected'
     })
 
-# ENDPOINT ДЛЯ ПРОВЕРКИ СЕССИЙ
 @flask_app.route('/api/session/check', methods=['POST'])
 def check_session():
     try:
@@ -488,16 +430,7 @@ def check_session():
                 'error': 'Missing telegramId or deviceId'
             })
 
-        print(f"🔍 Проверка сессии: {username} ({telegram_id}) на устройстве {device_id}")
-
-        # ПРОВЕРКА МУЛЬТИСЕССИИ
         if EnhancedSessionManager.check_multi_session(telegram_id, device_id):
-            print(f"🚫 МУЛЬТИСЕССИЯ ОБНАРУЖЕНА: {username}")
-            log_system_event('WARNING', 'Multisession detected', {
-                'telegram_id': telegram_id,
-                'username': username,
-                'device_id': device_id
-            })
             return jsonify({
                 'success': False,
                 'allowed': False,
@@ -505,7 +438,6 @@ def check_session():
                 'message': 'Обнаружена активная сессия на другом устройстве'
             })
 
-        # РАЗРЕШАЕМ ДОСТУП И ОБНОВЛЯЕМ СЕССИЮ
         EnhancedSessionManager.update_session(telegram_id, device_id, username)
 
         return jsonify({
@@ -515,10 +447,8 @@ def check_session():
         })
 
     except Exception as e:
-        print(f"❌ Session check error: {e}")
         return jsonify({'success': False, 'allowed': False, 'error': str(e)})
 
-# ГЛАВНЫЙ УЛУЧШЕННЫЙ ENDPOINT ДЛЯ СИНХРОНИЗАЦИИ
 @flask_app.route('/api/sync/unified', methods=['POST'])
 def sync_unified():
     try:
@@ -531,6 +461,7 @@ def sync_unified():
         total_clicks = int(data.get('totalClicks', 0))
         upgrades = data.get('upgrades', {})
         device_id = data.get('deviceId', 'unknown')
+        referral_code = data.get('referralCode')
 
         if not user_id and not telegram_id:
             return jsonify({
@@ -538,31 +469,16 @@ def sync_unified():
                 'error': 'No user ID or telegram ID'
             })
 
-        # ВАЛИДАЦИЯ ДАННЫХ
         if not validate_sync_data(data):
             return jsonify({
                 'success': False,
                 'error': 'Invalid data values detected'
             })
 
-        print(f"🔄 Синхронизация: {username}, баланс: {balance:.9f} S")
-
-        # ДЕБАГ УЛУЧШЕНИЙ
-        debug_upgrades(upgrades, "Клиентские улучшения")
-
-        # ПРОВЕРКА МУЛЬТИСЕССИИ
         multisession_detected = False
         if telegram_id:
             if EnhancedSessionManager.check_multi_session(telegram_id, device_id):
                 multisession_detected = True
-                print(f"🚨 МУЛЬТИСЕССИЯ ОБНАРУЖЕНА: {username}")
-                log_system_event('WARNING', 'Multisession sync attempt', {
-                    'telegram_id': telegram_id,
-                    'username': username,
-                    'device_id': device_id
-                })
-
-            # ОБНОВЛЯЕМ СЕССИЮ
             EnhancedSessionManager.update_session(telegram_id, device_id, username)
 
         conn = get_db_connection()
@@ -571,7 +487,18 @@ def sync_unified():
 
         cursor = conn.cursor()
 
-        # ИЩЕМ СУЩЕСТВУЮЩИЕ ЗАПИСИ
+        # Проверяем реферальный код
+        referrer_id = None
+        if referral_code and not referral_code.startswith('REF-'):
+            referral_code = f"REF-{referral_code}"
+
+        if referral_code:
+            cursor.execute('SELECT user_id FROM players WHERE referral_code = ?', (referral_code,))
+            referrer = cursor.fetchone()
+            if referrer:
+                referrer_id = referrer['user_id']
+
+        # Поиск существующих записей
         search_params = []
         if user_id:
             search_params.append(user_id)
@@ -589,15 +516,16 @@ def sync_unified():
         cursor.execute(query, search_params + [telegram_id])
         existing_records = cursor.fetchall()
 
-        # ОПРЕДЕЛЯЕМ ЛУЧШИЕ ДАННЫЕ
+        # Определяем лучшие данные
         best_balance = balance
         best_total_earned = total_earned  
         best_total_clicks = total_clicks
         best_upgrades = upgrades.copy() if upgrades else {}
         best_user_id = user_id or (f'tg_{telegram_id}' if telegram_id else f'user_{int(time.time())}')
 
+        is_new_user = False
+
         if existing_records:
-            # НАХОДИМ ЗАПИСЬ С МАКСИМАЛЬНЫМ БАЛАНСОМ
             max_balance_record = None
             max_balance = best_balance
 
@@ -616,40 +544,28 @@ def sync_unified():
                 best_total_clicks = max(total_clicks, int(max_balance_record['total_clicks'] or 0))
                 best_user_id = max_balance_record['user_id']
 
-                # УЛУЧШЕННОЕ ОБЪЕДИНЕНИЕ УЛУЧШЕНИЙ
                 if max_balance_record['upgrades']:
                     try:
                         existing_upgrades = json.loads(max_balance_record['upgrades'])
-                        debug_upgrades(existing_upgrades, "Серверные улучшения")
-
                         if isinstance(existing_upgrades, dict):
                             for key, level in existing_upgrades.items():
-                                # Получаем уровень с сервера
                                 server_level = level
                                 if isinstance(level, dict) and 'level' in level:
                                     server_level = level['level']
 
-                                # Получаем текущий уровень
                                 current_level = best_upgrades.get(key, 0)
                                 if isinstance(current_level, dict) and 'level' in current_level:
                                     current_level = current_level['level']
 
-                                # Берем максимальный уровень
                                 if isinstance(server_level, (int, float)) and isinstance(current_level, (int, float)):
                                     best_upgrades[key] = max(current_level, server_level)
                                 elif isinstance(server_level, (int, float)):
                                     best_upgrades[key] = server_level
                                 else:
                                     best_upgrades[key] = current_level
-
-                        print(f"🔄 Улучшения объединены: {len(best_upgrades)} шт")
                     except Exception as e:
                         print(f"⚠️ Ошибка объединения улучшений: {e}")
-                        # Сохраняем текущие улучшения при ошибке
 
-            print(f"🔄 Объединено {len(existing_records)} записей. Баланс: {best_balance:.9f} S")
-
-            # ОБНОВЛЯЕМ ВСЕ ЗАПИСИ ЭТОГО ПОЛЬЗОВАТЕЛЯ
             for record in existing_records:
                 cursor.execute('''
                     UPDATE players SET 
@@ -662,31 +578,27 @@ def sync_unified():
                       request.remote_addr, record['user_id']))
 
         else:
-            # СОЗДАЕМ НОВУЮ ЗАПИСЬ
+            is_new_user = True
             best_user_id = user_id or (f'tg_{telegram_id}' if telegram_id else f'user_{int(time.time())}')
 
-            # Генерируем реферальный код
-            referral_code = f"REF-{str(uuid.uuid4())[:8].upper()}"
+            # Генерируем уникальный реферальный код
+            referral_code_new = f"REF-{str(uuid.uuid4())[:8].upper()}"
+
+            # Применяем реферальный бонус для нового пользователя
+            if referrer_id:
+                apply_referral_bonus(best_user_id, referrer_id, 0.000000100)
 
             cursor.execute('''
                 INSERT INTO players 
                 (user_id, username, balance, total_earned, total_clicks, upgrades, 
-                 telegram_id, telegram_username, last_device_id, referral_code, last_ip)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 telegram_id, telegram_username, last_device_id, referral_code, last_ip, referred_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (best_user_id, username, balance, total_earned, total_clicks,
-                  json.dumps(upgrades), telegram_id, username, device_id, referral_code, request.remote_addr))
-            print(f"🆕 Создана новая запись: {best_user_id}")
+                  json.dumps(upgrades), telegram_id, username, device_id, referral_code_new, 
+                  request.remote_addr, referrer_id))
 
         conn.commit()
         conn.close()
-
-        debug_upgrades(best_upgrades, "Финальные улучшения")
-        log_system_event('INFO', 'User sync completed', {
-            'user_id': best_user_id,
-            'username': username,
-            'balance': best_balance,
-            'multisession': multisession_detected
-        })
 
         return jsonify({
             'success': True,
@@ -694,15 +606,15 @@ def sync_unified():
             'userId': best_user_id,
             'bestBalance': best_balance,
             'multisessionDetected': multisession_detected,
-            'upgradesCount': len(best_upgrades)
+            'upgradesCount': len(best_upgrades),
+            'isNewUser': is_new_user,
+            'referralApplied': referrer_id is not None
         })
 
     except Exception as e:
         print(f"❌ Sync error: {e}")
-        log_system_event('ERROR', 'Sync failed', {'error': str(e)})
         return jsonify({'success': False, 'error': str(e)})
 
-# ПОЛУЧЕНИЕ ДАННЫХ ПОЛЬЗОВАТЕЛЯ С УЛУЧШЕНИЯМИ
 @flask_app.route('/api/sync/unified/<user_id>', methods=['GET'])
 def get_unified_user(user_id):
     try:
@@ -723,7 +635,6 @@ def get_unified_user(user_id):
         conn.close()
 
         if player:
-            # Парсим улучшения
             upgrades_data = {}
             if player['upgrades']:
                 try:
@@ -749,6 +660,8 @@ def get_unified_user(user_id):
                     'totalLosses': player['total_losses'] or 0,
                     'telegramId': player['telegram_id'],
                     'telegramUsername': player['telegram_username'],
+                    'referralCode': player['referral_code'],
+                    'referredBy': player['referred_by'],
                     'version': player['version'] or '2.0.0'
                 }
             })
@@ -756,61 +669,9 @@ def get_unified_user(user_id):
             return jsonify({'success': False, 'message': 'User not found'})
 
     except Exception as e:
-        logger.error(f"Get user error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
-# ПОЛУЧЕНИЕ ДАННЫХ ПО TELEGRAM ID
-@flask_app.route('/api/sync/telegram/<telegram_id>', methods=['GET'])
-def get_user_by_telegram_id(telegram_id):
-    try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'})
-
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            SELECT * FROM players 
-            WHERE telegram_id = ? 
-            ORDER BY last_update DESC 
-            LIMIT 1
-        ''', (telegram_id,))
-
-        player = cursor.fetchone()
-        conn.close()
-
-        if player:
-            # Парсим улучшения
-            upgrades_data = {}
-            if player['upgrades']:
-                try:
-                    upgrades_data = json.loads(player['upgrades'])
-                except:
-                    upgrades_data = {}
-
-            return jsonify({
-                'success': True,
-                'userData': {
-                    'userId': player['user_id'],
-                    'username': player['username'],
-                    'balance': player['balance'],
-                    'totalEarned': player['total_earned'],
-                    'totalClicks': player['total_clicks'],
-                    'upgrades': upgrades_data,
-                    'lastUpdate': player['last_update'],
-                    'telegramId': player['telegram_id'],
-                    'telegramUsername': player['telegram_username'],
-                    'version': player['version'] or '2.0.0'
-                }
-            })
-        else:
-            return jsonify({'success': False, 'message': 'User not found'})
-
-    except Exception as e:
-        logger.error(f"Get user by telegram_id error: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-# ЛОТЕРЕЙНЫЕ ENDPOINTS - УЛУЧШЕННЫЕ ВЕРСИИ
+# ЛОТЕРЕЙНЫЕ ENDPOINTS С УЛУЧШЕННОЙ СИНХРОНИЗАЦИЕЙ
 
 @flask_app.route('/api/lottery/bet', methods=['POST'])
 def lottery_bet():
@@ -821,12 +682,10 @@ def lottery_bet():
         amount = float(data.get('amount', 0))
         username = data.get('username')
 
-        # ПРОВЕРКА ВСЕХ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
         if not user_id or not team or not amount or not username:
-            print(f"❌ Missing required fields: user_id={user_id}, team={team}, amount={amount}, username={username}")
             return jsonify({
                 'success': False,
-                'error': 'Missing required fields: userId, team, amount, username'
+                'error': 'Missing required fields'
             })
 
         if team not in ['eagle', 'tails']:
@@ -841,19 +700,16 @@ def lottery_bet():
 
         cursor = conn.cursor()
 
-        # Проверяем баланс
         cursor.execute('SELECT balance FROM players WHERE user_id = ?', (user_id, ))
         player = cursor.fetchone()
 
         if not player or player['balance'] < amount:
             return jsonify({'success': False, 'error': 'Insufficient funds'})
 
-        # Списываем средства
         cursor.execute(
             'UPDATE players SET balance = balance - ?, total_bet = total_bet + ? WHERE user_id = ?',
             (amount, amount, user_id))
 
-        # Добавляем ставку с IP адресом
         cursor.execute(
             'INSERT INTO lottery_bets (user_id, username, team, amount, ip_address) VALUES (?, ?, ?, ?, ?)',
             (user_id, username, team, amount, request.remote_addr))
@@ -861,21 +717,11 @@ def lottery_bet():
         conn.commit()
         conn.close()
 
-        print(f"🎯 Новая ставка: {username} - {team} - {amount:.9f} S")
-        log_system_event('INFO', 'Lottery bet placed', {
-            'user_id': user_id,
-            'username': username,
-            'team': team,
-            'amount': amount
-        })
-
         return jsonify({
             'success': True,
             'message': 'Bet placed'
         })
     except Exception as e:
-        print(f"❌ Lottery bet error: {e}")
-        log_system_event('ERROR', 'Lottery bet failed', {'error': str(e)})
         return jsonify({
             'success': False,
             'error': 'Bet failed'
@@ -889,12 +735,10 @@ def classic_lottery_bet():
         amount = float(data.get('amount', 0))
         username = data.get('username')
 
-        # ПРОВЕРКА ВСЕХ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
         if not user_id or not amount or not username:
-            print(f"❌ Missing required fields: user_id={user_id}, amount={amount}, username={username}")
             return jsonify({
                 'success': False,
-                'error': 'Missing required fields: userId, amount, username'
+                'error': 'Missing required fields'
             })
 
         if amount <= 0:
@@ -906,19 +750,16 @@ def classic_lottery_bet():
 
         cursor = conn.cursor()
 
-        # Проверяем баланс
         cursor.execute('SELECT balance FROM players WHERE user_id = ?', (user_id, ))
         player = cursor.fetchone()
 
         if not player or player['balance'] < amount:
             return jsonify({'success': False, 'error': 'Insufficient funds'})
 
-        # Списываем средства
         cursor.execute(
             'UPDATE players SET balance = balance - ?, total_bet = total_bet + ? WHERE user_id = ?',
             (amount, amount, user_id))
 
-        # Добавляем ставку С ЮЗЕРНЕЙМОМ и IP
         cursor.execute(
             'INSERT INTO classic_lottery_bets (user_id, username, amount, ip_address) VALUES (?, ?, ?, ?)',
             (user_id, username, amount, request.remote_addr))
@@ -926,20 +767,11 @@ def classic_lottery_bet():
         conn.commit()
         conn.close()
 
-        print(f"🎰 Новая ставка в классической лотерее: {username} - {amount:.9f} S")
-        log_system_event('INFO', 'Classic lottery bet placed', {
-            'user_id': user_id,
-            'username': username,
-            'amount': amount
-        })
-
         return jsonify({
             'success': True,
             'message': 'Bet placed'
         })
     except Exception as e:
-        print(f"❌ Classic lottery bet error: {e}")
-        log_system_event('ERROR', 'Classic lottery bet failed', {'error': str(e)})
         return jsonify({
             'success': False,
             'error': 'Bet failed'
@@ -963,7 +795,6 @@ def classic_lottery_status():
 
         cursor = conn.cursor()
 
-        # Получаем текущие ставки С ЮЗЕРНЕЙМАМИ
         cursor.execute('''
             SELECT user_id, username, amount, timestamp
             FROM classic_lottery_bets 
@@ -984,7 +815,6 @@ def classic_lottery_status():
             bets.append(bet)
             total_pot += row['amount']
 
-        # Получаем историю
         cursor.execute('''
             SELECT winner_username, prize, participants, timestamp
             FROM lottery_history 
@@ -1002,7 +832,6 @@ def classic_lottery_status():
                 'timestamp': row['timestamp']
             })
 
-        # Получаем и обновляем таймер
         cursor.execute('SELECT timer, total_pot, last_winner, last_prize FROM classic_lottery_timer WHERE id = 1')
         timer_data = cursor.fetchone()
 
@@ -1010,41 +839,28 @@ def classic_lottery_status():
         new_timer = max(0, current_timer - 1)
 
         if new_timer <= 0:
-            # РОЗЫГРЫШ КЛАССИЧЕСКОЙ ЛОТЕРЕИ
             if bets and total_pot > 0:
                 winning_user = random.choice(bets)
-                prize = total_pot * 0.9  # 90% банка
+                prize = total_pot * 0.9
 
-                # Начисляем выигрыш
                 cursor.execute(
                     'UPDATE players SET balance = balance + ?, total_winnings = total_winnings + ? WHERE user_id = ?',
                     (prize, prize, winning_user['user_id'])
                 )
 
-                # Сохраняем историю С ЮЗЕРНЕЙМОМ и IP
                 cursor.execute('''
                     INSERT INTO lottery_history (lottery_type, winner_user_id, winner_username, prize, participants, ip_address)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', ('classic', winning_user['user_id'], winning_user['username'], prize, len(bets), request.remote_addr))
 
-                # Обновляем последнего победителя С ЮЗЕРНЕЙМОМ
                 cursor.execute(
                     'UPDATE classic_lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
                     (winning_user['username'], prize)
                 )
 
-                print(f"🎉 Розыгрыш классической лотереи! Победитель: {winning_user['username']} - {prize:.9f} S")
-                log_system_event('INFO', 'Classic lottery draw', {
-                    'winner': winning_user['username'],
-                    'prize': prize,
-                    'participants': len(bets)
-                })
-
-            # Сбрасываем таймер и очищаем ставки
             new_timer = 120
             cursor.execute("DELETE FROM classic_lottery_bets WHERE timestamp < datetime('now', '-1 hour')")
 
-        # Обновляем таймер и общий банк
         cursor.execute('UPDATE classic_lottery_timer SET timer = ?, total_pot = ? WHERE id = 1', (new_timer, total_pot))
 
         conn.commit()
@@ -1061,8 +877,6 @@ def classic_lottery_status():
             }
         })
     except Exception as e:
-        print(f"❌ Classic lottery error: {e}")
-        log_system_event('ERROR', 'Classic lottery status failed', {'error': str(e)})
         return jsonify({
             'success': True,
             'lottery': {
@@ -1094,7 +908,6 @@ def lottery_status():
 
         cursor = conn.cursor()
 
-        # Получаем текущие ставки с юзернеймами
         cursor.execute('''
             SELECT user_id, username, team, amount, timestamp
             FROM lottery_bets 
@@ -1122,7 +935,6 @@ def lottery_status():
                 tails_bets.append(bet)
                 total_tails += row['amount']
 
-        # Получаем и обновляем таймер
         cursor.execute('SELECT timer, last_winner, last_prize FROM lottery_timer WHERE id = 1')
         timer_data = cursor.fetchone()
 
@@ -1130,7 +942,6 @@ def lottery_status():
         new_timer = max(0, current_timer - 1)
 
         if new_timer <= 0:
-            # РОЗЫГРЫШ ЛОТЕРЕИ
             winner = random.choice(['eagle', 'tails'])
             total_pot = total_eagle + total_tails
 
@@ -1138,41 +949,28 @@ def lottery_status():
                 winning_bets = eagle_bets if winner == 'eagle' else tails_bets
                 if winning_bets:
                     winning_user = random.choice(winning_bets)
-                    prize = total_pot * 0.9  # 90% банка
+                    prize = total_pot * 0.9
 
-                    # Начисляем выигрыш
                     cursor.execute(
                         'UPDATE players SET balance = balance + ?, total_winnings = total_winnings + ? WHERE user_id = ?',
                         (prize, prize, winning_user['user_id'])
                     )
 
-                    # Сохраняем историю С ЮЗЕРНЕЙМОМ и IP
                     cursor.execute('''
                         INSERT INTO lottery_history (lottery_type, winner_user_id, winner_username, prize, participants, ip_address)
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', ('team', winning_user['user_id'], winning_user['username'], prize, len(eagle_bets) + len(tails_bets), request.remote_addr))
 
-                    # Обновляем последнего победителя С ЮЗЕРНЕЙМОМ
                     cursor.execute(
                         'UPDATE lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
                         (winning_user['username'], prize)
                     )
 
-                    print(f"🎉 Розыгрыш командной лотереи! Победитель: {winning_user['username']} - {prize:.9f} S")
-                    log_system_event('INFO', 'Team lottery draw', {
-                        'winner': winning_user['username'],
-                        'team': winner,
-                        'prize': prize,
-                        'participants': len(eagle_bets) + len(tails_bets)
-                    })
-
-                # Сбрасываем таймер и очищаем старые ставки
                 new_timer = 60
                 cursor.execute("DELETE FROM lottery_bets WHERE timestamp < datetime('now', '-1 hour')")
             else:
                 new_timer = 60
 
-        # Обновляем таймер
         cursor.execute('UPDATE lottery_timer SET timer = ? WHERE id = 1', (new_timer,))
 
         conn.commit()
@@ -1192,8 +990,6 @@ def lottery_status():
             }
         })
     except Exception as e:
-        print(f"❌ Lottery status error: {e}")
-        log_system_event('ERROR', 'Lottery status failed', {'error': str(e)})
         return jsonify({
             'success': True,
             'lottery': {
@@ -1207,7 +1003,135 @@ def lottery_status():
             }
         })
 
-# ДРУГИЕ УЛУЧШЕННЫЕ ENDPOINTS
+# РЕФЕРАЛЬНАЯ СИСТЕМА
+
+@flask_app.route('/api/referral/stats/<user_id>', methods=['GET'])
+def referral_stats(user_id):
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({
+                'success': True,
+                'stats': {'referralsCount': 0, 'totalEarnings': 0},
+                'referralCode': f'REF-{user_id[-8:].upper()}'
+            })
+
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT referrals_count, referral_earnings, referral_code
+            FROM players WHERE user_id = ?
+        ''', (user_id, ))
+
+        player = cursor.fetchone()
+
+        if player:
+            # Получаем список рефералов
+            cursor.execute('''
+                SELECT referred_user_id, earnings, created_at 
+                FROM referrals 
+                WHERE referrer_user_id = ?
+                ORDER BY created_at DESC
+            ''', (user_id,))
+
+            referrals_list = []
+            for row in cursor.fetchall():
+                cursor.execute('SELECT username FROM players WHERE user_id = ?', (row['referred_user_id'],))
+                referred_user = cursor.fetchone()
+                referrals_list.append({
+                    'username': referred_user['username'] if referred_user else 'Игрок',
+                    'earnings': row['earnings'],
+                    'joined_at': row['created_at']
+                })
+
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'referralsCount': player['referrals_count'] or 0,
+                    'totalEarnings': player['referral_earnings'] or 0
+                },
+                'referralCode': player['referral_code'] or f'REF-{user_id[-8:].upper()}',
+                'referralsList': referrals_list
+            })
+        else:
+            conn.close()
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'referralsCount': 0,
+                    'totalEarnings': 0
+                },
+                'referralCode': f'REF-{user_id[-8:].upper()}',
+                'referralsList': []
+            })
+    except Exception as e:
+        return jsonify({
+            'success': True,
+            'stats': {
+                'referralsCount': 0,
+                'totalEarnings': 0
+            },
+            'referralCode': f'REF-{user_id[-8:].upper()}',
+            'referralsList': []
+        })
+
+@flask_app.route('/api/referral/apply', methods=['POST'])
+def apply_referral():
+    try:
+        data = request.get_json()
+        user_id = data.get('userId')
+        referral_code = data.get('referralCode')
+
+        if not user_id or not referral_code:
+            return jsonify({'success': False, 'error': 'Missing required fields'})
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'})
+
+        cursor = conn.cursor()
+
+        # Проверяем существование реферального кода
+        cursor.execute('SELECT user_id FROM players WHERE referral_code = ?', (referral_code,))
+        referrer = cursor.fetchone()
+
+        if not referrer:
+            return jsonify({'success': False, 'error': 'Invalid referral code'})
+
+        referrer_id = referrer['user_id']
+
+        # Проверяем, не использовал ли уже пользователь реферальный код
+        cursor.execute('SELECT referred_by FROM players WHERE user_id = ?', (user_id,))
+        user = cursor.fetchone()
+
+        if user and user['referred_by']:
+            return jsonify({'success': False, 'error': 'Referral code already used'})
+
+        # Применяем бонусы
+        bonus_amount = 0.000000100
+        success = apply_referral_bonus(user_id, referrer_id, bonus_amount)
+
+        if success:
+            # Обновляем запись пользователя
+            cursor.execute('UPDATE players SET referred_by = ? WHERE user_id = ?', (referrer_id, user_id))
+            conn.commit()
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'message': 'Referral bonus applied',
+                'bonus': bonus_amount
+            })
+        else:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Failed to apply bonus'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ДОПОЛНИТЕЛЬНЫЕ ENDPOINTS
 
 @flask_app.route('/api/all_players', methods=['GET'])
 def all_players():
@@ -1243,7 +1167,6 @@ def all_players():
         })
 
     except Exception as e:
-        logger.error(f"All players error: {e}")
         return jsonify({
             'success': True,
             'players': []
@@ -1298,61 +1221,10 @@ def leaderboard():
         })
 
     except Exception as e:
-        logger.error(f"Leaderboard error: {e}")
         return jsonify({
             'success': True,
             'leaderboard': [],
             'type': leaderboard_type
-        })
-
-@flask_app.route('/api/referral/stats/<user_id>', methods=['GET'])
-def referral_stats(user_id):
-    try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({
-                'success': True,
-                'stats': {'referralsCount': 0, 'totalEarnings': 0},
-                'referralCode': f'REF-{user_id[-8:].upper()}'
-            })
-
-        cursor = conn.cursor()
-
-        cursor.execute('''
-            SELECT referrals_count, referral_earnings, referral_code
-            FROM players WHERE user_id = ?
-        ''', (user_id, ))
-
-        player = cursor.fetchone()
-        conn.close()
-
-        if player:
-            return jsonify({
-                'success': True,
-                'stats': {
-                    'referralsCount': player['referrals_count'] or 0,
-                    'totalEarnings': player['referral_earnings'] or 0
-                },
-                'referralCode': player['referral_code'] or f'REF-{user_id[-8:].upper()}'
-            })
-        else:
-            return jsonify({
-                'success': True,
-                'stats': {
-                    'referralsCount': 0,
-                    'totalEarnings': 0
-                },
-                'referralCode': f'REF-{user_id[-8:].upper()}'
-            })
-    except Exception as e:
-        logger.error(f"Referral stats error: {e}")
-        return jsonify({
-            'success': True,
-            'stats': {
-                'referralsCount': 0,
-                'totalEarnings': 0
-            },
-            'referralCode': f'REF-{user_id[-8:].upper()}'
         })
 
 @flask_app.route('/api/transfer', methods=['POST'])
@@ -1380,30 +1252,25 @@ def transfer():
 
         cursor = conn.cursor()
 
-        # Проверяем баланс отправителя
         cursor.execute('SELECT balance, username FROM players WHERE user_id = ?', (from_user_id, ))
         sender = cursor.fetchone()
 
         if not sender or sender['balance'] < amount:
             return jsonify({'success': False, 'error': 'Insufficient funds'})
 
-        # Проверяем получателя
         cursor.execute('SELECT user_id, username FROM players WHERE user_id = ?', (to_user_id, ))
         receiver = cursor.fetchone()
 
         if not receiver:
             return jsonify({'success': False, 'error': 'Recipient not found'})
 
-        # Получаем имя получателя
         to_username = receiver['username']
 
-        # Выполняем перевод
         cursor.execute('UPDATE players SET balance = balance - ? WHERE user_id = ?', (amount, from_user_id))
         cursor.execute('UPDATE players SET balance = balance + ? WHERE user_id = ?', (amount, to_user_id))
         cursor.execute('UPDATE players SET transfers_sent = transfers_sent + ? WHERE user_id = ?', (amount, from_user_id))
         cursor.execute('UPDATE players SET transfers_received = transfers_received + ? WHERE user_id = ?', (amount, to_user_id))
 
-        # Записываем в историю переводов с именами
         cursor.execute('''
             INSERT INTO transfers (from_user_id, from_username, to_user_id, to_username, amount, ip_address)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -1412,20 +1279,11 @@ def transfer():
         conn.commit()
         conn.close()
 
-        print(f"💸 Перевод: {from_username} -> {to_username} - {amount:.9f} S")
-        log_system_event('INFO', 'Transfer completed', {
-            'from': from_username,
-            'to': to_username,
-            'amount': amount
-        })
-
         return jsonify({
             'success': True,
             'message': 'Transfer complete'
         })
     except Exception as e:
-        logger.error(f"Transfer error: {e}")
-        log_system_event('ERROR', 'Transfer failed', {'error': str(e)})
         return jsonify({
             'success': False,
             'error': 'Transfer failed'
@@ -1467,7 +1325,6 @@ def top_winners():
         })
 
     except Exception as e:
-        logger.error(f"Top winners error: {e}")
         return jsonify({
             'success': True,
             'winners': []
@@ -1475,7 +1332,6 @@ def top_winners():
 
 @flask_app.route('/api/admin/stats', methods=['GET'])
 def admin_stats():
-    """Расширенная статистика для администрирования"""
     try:
         conn = get_db_connection()
         if not conn:
@@ -1483,7 +1339,6 @@ def admin_stats():
 
         cursor = conn.cursor()
 
-        # Базовая статистика
         cursor.execute('SELECT COUNT(*) as total_players FROM players')
         total_players = cursor.fetchone()['total_players']
 
@@ -1493,14 +1348,12 @@ def admin_stats():
         cursor.execute('SELECT SUM(total_earned) as total_earned FROM players')
         total_earned = cursor.fetchone()['total_earned'] or 0
 
-        # Статистика по лотереям
         cursor.execute('SELECT COUNT(*) as active_bets FROM lottery_bets WHERE timestamp > datetime("now", "-5 minutes")')
         active_bets = cursor.fetchone()['active_bets']
 
         cursor.execute('SELECT COUNT(*) as classic_bets FROM classic_lottery_bets WHERE timestamp > datetime("now", "-10 minutes")')
         classic_bets = cursor.fetchone()['classic_bets']
 
-        # Статистика по переводам
         cursor.execute('SELECT COUNT(*) as total_transfers FROM transfers')
         total_transfers = cursor.fetchone()['total_transfers']
 
@@ -1527,15 +1380,6 @@ def admin_stats():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-@flask_app.route('/api/session/stats', methods=['GET'])
-def session_stats():
-    return jsonify({
-        'success': True,
-        'sessions_count': len(ACTIVE_SESSIONS),
-        'active_sessions': EnhancedSessionManager.get_session_stats()['active_sessions'],
-        'sessions': ACTIVE_SESSIONS
-    })
-
 @flask_app.route('/')
 def index():
     return jsonify({
@@ -1560,7 +1404,7 @@ if __name__ == "__main__":
     print("   /api/sync/unified - Синхронизация данных")
     print("   /api/lottery/status - Статус лотереи") 
     print("   /api/classic-lottery/status - Классическая лотерея")
-    print("   /api/admin/stats - Статистика администрирования")
-    print("   /api/session/stats - Статистика сессий")
+    print("   /api/referral/stats - Реферальная система")
+    print("   /api/referral/apply - Применить реферальный код")
 
     flask_app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
