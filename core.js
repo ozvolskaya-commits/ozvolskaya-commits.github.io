@@ -454,24 +454,24 @@ function calculateClickPower() {
     return basePower;
 }
 
-// РАСЧЕТ СКОРОСТИ МАЙНИНГА
-function calculateMiningSpeed() {
-    let speed = CONFIG.BASE_MINING_SPEED;
+// РАСЧЕТ СКОРОСТИ МАЙНИНГА (резервная функция)
+window.calculateMiningSpeed = function() {
+    let speed = 0.000000000;
     
-    if (window.upgrades) {
-        for (const key in window.upgrades) {
-            if (key.startsWith('gpu') || key.startsWith('cpu')) {
-                const level = window.upgrades[key]?.level || window.upgrades[key] || 0;
-                const upgrade = UPGRADES[key];
-                if (upgrade && upgrade.type === 'mining') {
-                    speed += level * upgrade.baseBonus;
-                }
+    if (!window.upgrades) return speed;
+    
+    for (const key in window.upgrades) {
+        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
+            const level = window.upgrades[key].level || 0;
+            const upgrade = UPGRADES[key];
+            if (upgrade && upgrade.type === "mining") {
+                speed += level * upgrade.baseBonus;
             }
         }
     }
     
     return speed;
-}
+};
 
 // ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
 function updateBalanceImmediately() {
