@@ -129,6 +129,25 @@ function calculateClickPowerFixed() {
     return power;
 }
 
+// Расчет скорости майнинга
+window.calculateMiningSpeed = function() {
+    let speed = 0.000000000;
+    
+    if (!window.upgrades) return speed;
+    
+    for (const key in window.upgrades) {
+        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
+            const level = window.upgrades[key].level || 0;
+            const upgrade = UPGRADES[key];
+            if (upgrade && upgrade.type === "mining") {
+                speed += level * upgrade.baseBonus;
+            }
+        }
+    }
+    
+    return speed;
+};
+
 // Переопределяем старые функции
 window.buyUpgrade = buyUpgradeFixed;
 window.updateShopUI = updateShopUIFixed;
