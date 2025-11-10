@@ -454,20 +454,51 @@ function calculateClickPower() {
     return basePower;
 }
 
-// РАСЧЕТ СКОРОСТИ МАЙНИНГА (резервная функция)
+// РАСЧЕТ СКОРОСТИ МАЙНИНГА (полностью исправленная версия)
 window.calculateMiningSpeed = function() {
     let speed = 0.000000000;
     
-    if (!window.upgrades) return speed;
+    if (!window.upgrades || !window.UPGRADES) return speed;
     
-    for (const key in window.upgrades) {
-        if ((key.startsWith('gpu') || key.startsWith('cpu')) && window.upgrades[key]) {
-            const level = window.upgrades[key].level || 0;
-            const upgrade = UPGRADES[key];
-            if (upgrade && upgrade.type === "mining") {
-                speed += level * upgrade.baseBonus;
+    try {
+        // Проверяем GPU улучшения
+        for (let i = 1; i <= 8; i++) {
+            const gpuKey = `gpu${i}`;
+            if (window.upgrades[gpuKey]) {
+                const upgradeData = window.upgrades[gpuKey];
+                const level = (upgradeData && typeof upgradeData.level !== 'undefined') ? upgradeData.level : 
+                             (typeof upgradeData === 'number' ? upgradeData : 0);
+                
+                const upgrade = window.UPGRADES[gpuKey];
+                if (upgrade && upgrade.baseBonus) {
+                    speed += level * upgrade.baseBonus;
+                }
             }
         }
+        
+        // Проверяем CPU улучшения
+        for (let i = 1; i <= 8; i++) {
+            const cpuKey = `cpu${i}`;
+            if (window.upgrades[cpuKey]) {
+                const upgradeData = window.upgrades[cpuKey];
+                const level = (upgradeData && typeof upgradeData.level !== 'undefined') ? upgradeData.level : 
+                             (typeof upgradeData === 'number' ? upgradeData : 0);
+                
+                const upgrade = window.UPGRADES[cpuKey];
+                if (upgrade && upgrade.baseBonus) {
+                    speed += level * upgrade.baseBonus;
+                }
+            }
+        }
+        
+        // Гарантируем, что значение корректное
+        if (isNaN(speed) || !isFinite(speed) || speed < 0) {
+            speed = 0.000000000;
+        }
+        
+    } catch (error) {
+        console.error('❌ Критическая ошибка расчета скорости майнинга:', error);
+        speed = 0.000000000;
     }
     
     return speed;
@@ -492,7 +523,10 @@ function updateBalanceImmediately() {
         clickSpeedElement.textContent = calculateClickPower().toFixed(9) + ' S/сек';
     }
     if (mineSpeedElement) {
-        mineSpeedElement.textContent = calculateMiningSpeed().toFixed(9) + ' S/сек';
+        const miningSpeed = calculateMiningSpeed();
+        // Дополнительная защита от NaN
+        const validSpeed = isNaN(miningSpeed) ? 0.000000000 : miningSpeed;
+        mineSpeedElement.textContent = validSpeed.toFixed(9) + ' S/сек';
     }
 }
 
