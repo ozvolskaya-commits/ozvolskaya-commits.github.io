@@ -389,14 +389,13 @@
             </div>
         </div>
         
-        <!-- Игры -->
+        <!-- Игры - УБРАНЫ ДУБЛИРУЮЩИЕСЯ ВКЛАДКИ -->
         <div id="games-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             
             <div class="games-tabs">
                 <button class="game-tab active" onclick="showGameTab('team-lottery')">👥 Командная</button>
                 <button class="game-tab" onclick="showGameTab('classic-lottery')">🎰 Классическая</button>
-                <button class="game-tab" onclick="showGameTab('referral')">👥 Рефералы</button>
             </div>
             
             <!-- Командная лотерея -->
@@ -490,46 +489,6 @@
                         <div style="text-align: center; color: #666; padding: 20px;">
                             История пуста
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Рефералы -->
-            <div id="referral-game" class="game-section">
-                <div class="referral-section">
-                    <div class="referral-header">
-                        <h2>👥 Реферальная система</h2>
-                        <p>Приглашайте друзей и получайте бонусы!</p>
-                    </div>
-                    
-                    <div class="referral-stats">
-                        <div class="referral-stat">
-                            <div class="stat-value" id="referralsCount">0</div>
-                            <div class="stat-label">Приглашено друзей</div>
-                        </div>
-                        <div class="referral-stat">
-                            <div class="stat-value" id="referralEarnings">0.000000000 S</div>
-                            <div class="stat-label">Заработано</div>
-                        </div>
-                    </div>
-
-                    <div class="referral-link">
-                        <div class="link-title">Ваша реферальная ссылка:</div>
-                        <div class="link-code" id="referralLink">Загрузка...</div>
-                    </div>
-
-                    <button class="share-button" onclick="shareReferral()">
-                        📢 Поделиться ссылкой
-                    </button>
-
-                    <div class="referral-rules">
-                        <h4>🎯 Как это работает:</h4>
-                        <ul>
-                            <li>5% от заработка вашего друга</li>
-                            <li>1% от суммы его ставок в играх</li>
-                            <li>Друг получает +10% к первому клику</li>
-                            <li>Бонусы начисляются автоматически</li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -819,4 +778,3 @@
 </script>
 </body>
 </html>
-
