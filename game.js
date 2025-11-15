@@ -1,5 +1,5 @@
-// game.js - ИСПРАВЛЕННЫЙ КОД С РАЗДЕЛЕННЫМИ ЛОТЕРЕЯМИ
-console.log('🎮 ЗАГРУЖАЕМ ИСПРАВЛЕННЫЙ КОД ИГР...');
+// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР
+console.log('🎮 ЗАГРУЖАЕМ ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР...');
 
 // ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
 if (typeof lotteryData === 'undefined') {
@@ -34,10 +34,11 @@ let selectedTeam = null;
 let lotteryUpdateInterval;
 let classicLotteryInterval;
 
-// ========== КОМАНДНАЯ ЛОТЕРЕЯ - ИСПРАВЛЕННАЯ ==========
+// ========== КОМАНДНАЯ ЛОТЕРЕЯ - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ==========
 
 async function loadLotteryStatus() {
     try {
+        console.log('🔄 Загрузка статуса командной лотереи...');
         const data = await apiRequest('/api/lottery/status');
         
         if (data && data.success && data.lottery) {
@@ -49,6 +50,7 @@ async function loadLotteryStatus() {
             lotteryData.total_tails = data.lottery.total_tails || 0;
             lotteryData.participants_count = data.lottery.participants_count || 0;
             
+            console.log('✅ Данные командной лотереи загружены:', lotteryData.timer + 'сек');
             updateLotteryUI();
         } else {
             console.log('⚠️ Нет данных лотереи, используем локальные');
@@ -61,6 +63,8 @@ async function loadLotteryStatus() {
 }
 
 async function placeLotteryBet(team, amount) {
+    console.log(`🎯 Размещение ставки: ${team}, ${amount}`);
+    
     if (!window.userData) {
         showNotification('Данные пользователя не загружены', 'error');
         return false;
@@ -82,7 +86,8 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    if (parseFloat(window.userData.balance) < amount) {
+    const userBalance = parseFloat(window.userData.balance);
+    if (userBalance < amount) {
         showNotification('Недостаточно средств', 'error');
         return false;
     }
@@ -90,6 +95,9 @@ async function placeLotteryBet(team, amount) {
     try {
         const response = await apiRequest('/api/lottery/bet', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 userId: window.userData.userId,
                 team: team,
@@ -99,7 +107,7 @@ async function placeLotteryBet(team, amount) {
         });
         
         if (response && response.success) {
-            window.userData.balance = parseFloat(window.userData.balance) - amount;
+            window.userData.balance = userBalance - amount;
             window.userData.totalBet = (window.userData.totalBet || 0) + amount;
             window.userData.lastUpdate = Date.now();
             
@@ -117,8 +125,8 @@ async function placeLotteryBet(team, amount) {
     } catch (error) {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
-        // ЛОКАЛЬНЫЙ РЕЖИМ
-        window.userData.balance = parseFloat(window.userData.balance) - amount;
+        // ЛОКАЛЬНЫЙ РЕЖИМ ДЛЯ ОБЕСПЕЧЕНИЯ РАБОТОСПОСОБНОСТИ
+        window.userData.balance = userBalance - amount;
         window.userData.totalBet = (window.userData.totalBet || 0) + amount;
         
         const bet = {
@@ -261,6 +269,7 @@ function updateLotteryUI() {
 }
 
 function startLotteryAutoUpdate() {
+    console.log('🔄 Запуск автообновления командной лотереи');
     clearInterval(lotteryUpdateInterval);
     
     loadLotteryStatus();
@@ -271,6 +280,7 @@ function startLotteryAutoUpdate() {
 }
 
 function selectTeam(team) {
+    console.log(`🎯 Выбрана команда: ${team}`);
     selectedTeam = team;
     document.querySelectorAll('.team-button').forEach(btn => btn.classList.remove('active'));
     
@@ -284,6 +294,7 @@ function selectTeam(team) {
 }
 
 async function playTeamLottery() {
+    console.log('🎮 Игра в командную лотерею');
     if (!selectedTeam) {
         showNotification('Выберите команду!', 'error');
         return;
@@ -320,10 +331,11 @@ async function playTeamLottery() {
     }
 }
 
-// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - ИСПРАВЛЕННАЯ ==========
+// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ==========
 
 async function loadClassicLottery() {
     try {
+        console.log('🔄 Загрузка статуса классической лотереи...');
         const data = await apiRequest('/api/classic-lottery/status');
         
         if (data && data.success && data.lottery) {
@@ -333,6 +345,7 @@ async function loadClassicLottery() {
             classicLotteryData.participants_count = data.lottery.participants_count || 0;
             classicLotteryData.history = data.lottery.history || [];
             
+            console.log('✅ Данные классической лотереи загружены:', classicLotteryData.timer + 'сек');
             updateClassicLotteryUI();
         } else {
             console.log('⚠️ Нет данных классической лотереи');
@@ -345,6 +358,7 @@ async function loadClassicLottery() {
 }
 
 async function playClassicLottery() {
+    console.log('🎮 Игра в классическую лотерею');
     const betInput = document.getElementById('classicBet');
     if (!betInput) return;
     
@@ -373,6 +387,9 @@ async function playClassicLottery() {
     try {
         const response = await apiRequest('/api/classic-lottery/bet', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 userId: window.userData.userId,
                 amount: bet,
@@ -397,7 +414,7 @@ async function playClassicLottery() {
     } catch (error) {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
-        // ЛОКАЛЬНЫЙ РЕЖИМ
+        // ЛОКАЛЬНЫЙ РЕЖИМ ДЛЯ ОБЕСПЕЧЕНИЯ РАБОТОСПОСОБНОСТИ
         window.userData.balance = parseFloat(window.userData.balance) - bet;
         window.userData.totalBet = (window.userData.totalBet || 0) + bet;
         
@@ -460,6 +477,7 @@ function updateClassicLotteryUI() {
 }
 
 function startClassicLotteryUpdate() {
+    console.log('🔄 Запуск автообновления классической лотереи');
     clearInterval(classicLotteryInterval);
     
     loadClassicLottery();
@@ -469,10 +487,11 @@ function startClassicLotteryUpdate() {
     }, 5000);
 }
 
-// ========== ТОП ПОБЕДИТЕЛЕЙ - ИСПРАВЛЕННЫЙ ==========
+// ========== ТОП ПОБЕДИТЕЛЕЙ - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ ==========
 
 async function updateTopWinners() {
     try {
+        console.log('🏆 Загрузка топа победителей...');
         const data = await apiRequest('/api/top/winners?limit=50');
         
         if (data && data.success) {
@@ -517,6 +536,7 @@ async function updateTopWinners() {
 
 async function updateLeaderboard() {
     try {
+        console.log('📊 Загрузка рейтинга по балансу...');
         const userId = window.userData?.userId;
         const data = await apiRequest(`/api/leaderboard?type=balance&limit=20&current_user=${userId}`);
         
@@ -563,6 +583,7 @@ async function updateLeaderboard() {
 
 async function updateSpeedLeaderboard() {
     try {
+        console.log('⚡ Загрузка рейтинга по скорости...');
         const userId = window.userData?.userId;
         const data = await apiRequest(`/api/leaderboard?type=speed&limit=20&current_user=${userId}`);
         
@@ -616,6 +637,7 @@ window.playTeamLottery = playTeamLottery;
 window.playClassicLottery = playClassicLottery;
 window.updateLeaderboard = updateLeaderboard;
 window.updateSpeedLeaderboard = updateSpeedLeaderboard;
+window.updateTopWinners = updateTopWinners;
 
 // ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
 
@@ -631,7 +653,9 @@ document.addEventListener('DOMContentLoaded', function() {
         setInterval(() => {
             updateTopWinners();
         }, 30000);
+        
+        console.log('✅ Игровая система полностью инициализирована');
     }, 2000);
 });
 
-console.log('✅ ИСПРАВЛЕННЫЙ КОД ИГР УСПЕШНО ЗАГРУЖЕН!');
+console.log('✅ ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР УСПЕШНО ЗАГРУЖЕН!');
