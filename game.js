@@ -1,9 +1,7 @@
-// game.js - РАБОЧИЙ КОД ИГР БЕЗ ПРОБЛЕМ И ДУБЛИРОВАНИЯ
-console.log('🎮 ЗАГРУЖАЕМ РАБОЧИЙ КОД ИГР...');
+// game.js - ИСПРАВЛЕННЫЙ КОД С РАЗДЕЛЕННЫМИ ЛОТЕРЕЯМИ
+console.log('🎮 ЗАГРУЖАЕМ ИСПРАВЛЕННЫЙ КОД ИГР...');
 
 // ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
-
-// Проверяем существование переменных перед использованием
 if (typeof lotteryData === 'undefined') {
     var lotteryData = {
         eagle: [],
@@ -26,26 +24,23 @@ if (typeof classicLotteryData === 'undefined') {
     };
 }
 
-// Реферальная система
 let referralData = {
     referralsCount: 0,
     totalEarnings: 0,
     referralCode: ''
 };
 
-// Локальные переменные
 let selectedTeam = null;
 let lotteryUpdateInterval;
 let classicLotteryInterval;
 
-// ========== КОМАНДНАЯ ЛОТЕРЕЯ - РАБОЧИЙ КОД ==========
+// ========== КОМАНДНАЯ ЛОТЕРЕЯ - ИСПРАВЛЕННАЯ ==========
 
 async function loadLotteryStatus() {
     try {
         const data = await apiRequest('/api/lottery/status');
         
         if (data && data.success && data.lottery) {
-            // Безопасное обновление данных
             lotteryData.eagle = data.lottery.eagle || [];
             lotteryData.tails = data.lottery.tails || [];
             lotteryData.last_winner = data.lottery.last_winner || null;
@@ -66,7 +61,6 @@ async function loadLotteryStatus() {
 }
 
 async function placeLotteryBet(team, amount) {
-    // ПРОВЕРКИ БЕЗОПАСНОСТИ
     if (!window.userData) {
         showNotification('Данные пользователя не загружены', 'error');
         return false;
@@ -88,17 +82,11 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    if (window.userData.balance < amount) {
+    if (parseFloat(window.userData.balance) < amount) {
         showNotification('Недостаточно средств', 'error');
         return false;
     }
 
-    if (window.hardSessionBlocker && window.hardSessionBlocker.isBlocked) {
-        showNotification('Действие заблокировано', 'error');
-        return false;
-    }
-
-    // ОСНОВНАЯ ЛОГИКА СТАВКИ
     try {
         const response = await apiRequest('/api/lottery/bet', {
             method: 'POST',
@@ -111,8 +99,7 @@ async function placeLotteryBet(team, amount) {
         });
         
         if (response && response.success) {
-            // Обновляем баланс
-            window.userData.balance -= amount;
+            window.userData.balance = parseFloat(window.userData.balance) - amount;
             window.userData.totalBet = (window.userData.totalBet || 0) + amount;
             window.userData.lastUpdate = Date.now();
             
@@ -130,11 +117,10 @@ async function placeLotteryBet(team, amount) {
     } catch (error) {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
-        // ЛОКАЛЬНЫЙ РЕЖИМ - ВАЖНО ДЛЯ РАБОТОСПОСОБНОСТИ
-        window.userData.balance -= amount;
+        // ЛОКАЛЬНЫЙ РЕЖИМ
+        window.userData.balance = parseFloat(window.userData.balance) - amount;
         window.userData.totalBet = (window.userData.totalBet || 0) + amount;
         
-        // Добавляем ставку локально
         const bet = {
             userId: window.userData.userId,
             username: window.userData.username,
@@ -162,7 +148,6 @@ async function placeLotteryBet(team, amount) {
 }
 
 function updateLotteryUI() {
-    // БЕЗОПАСНОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
     try {
         const eagleList = document.getElementById('teamEagle');
         const tailsList = document.getElementById('teamTails');
@@ -314,7 +299,7 @@ async function playTeamLottery() {
         return;
     }
     
-    if (window.userData && bet > window.userData.balance) {
+    if (window.userData && parseFloat(window.userData.balance) < bet) {
         showNotification('Недостаточно средств', 'error');
         return;
     }
@@ -335,7 +320,7 @@ async function playTeamLottery() {
     }
 }
 
-// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - РАБОЧИЙ КОД ==========
+// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - ИСПРАВЛЕННАЯ ==========
 
 async function loadClassicLottery() {
     try {
@@ -370,18 +355,13 @@ async function playClassicLottery() {
         return;
     }
     
-    if (window.userData && bet > window.userData.balance) {
+    if (window.userData && parseFloat(window.userData.balance) < bet) {
         showNotification('Недостаточно средств', 'error');
         return;
     }
     
     if (bet < 0.000000001) {
         showNotification('Минимальная ставка 0.000000001 S', 'error');
-        return;
-    }
-    
-    if (window.hardSessionBlocker && window.hardSessionBlocker.isBlocked) {
-        showNotification('Действие заблокировано', 'error');
         return;
     }
     
@@ -401,7 +381,7 @@ async function playClassicLottery() {
         });
         
         if (response && response.success) {
-            window.userData.balance -= bet;
+            window.userData.balance = parseFloat(window.userData.balance) - bet;
             window.userData.totalBet = (window.userData.totalBet || 0) + bet;
             window.userData.lastUpdate = Date.now();
             
@@ -418,7 +398,7 @@ async function playClassicLottery() {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
         // ЛОКАЛЬНЫЙ РЕЖИМ
-        window.userData.balance -= bet;
+        window.userData.balance = parseFloat(window.userData.balance) - bet;
         window.userData.totalBet = (window.userData.totalBet || 0) + bet;
         
         const betData = {
@@ -489,7 +469,7 @@ function startClassicLotteryUpdate() {
     }, 5000);
 }
 
-// ========== ТОП ПОБЕДИТЕЛЕЙ ==========
+// ========== ТОП ПОБЕДИТЕЛЕЙ - ИСПРАВЛЕННЫЙ ==========
 
 async function updateTopWinners() {
     try {
@@ -533,31 +513,99 @@ async function updateTopWinners() {
     }
 }
 
-// ========== ФИКС ДЛЯ СТРАНИЦЫ РЕЙТИНГА ==========
+// ========== ИСПРАВЛЕННЫЙ РЕЙТИНГ ==========
 
-function showRatingSection() {
-    console.log('📊 Показываем страницу рейтинга...');
-    
-    // Скрываем все секции
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    // Показываем секцию рейтинга
-    const ratingSection = document.getElementById('ratingSection');
-    if (ratingSection) {
-        ratingSection.classList.add('active');
-        console.log('✅ Секция рейтинга активирована');
+async function updateLeaderboard() {
+    try {
+        const userId = window.userData?.userId;
+        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20&current_user=${userId}`);
         
-        // Загружаем данные для рейтинга
-        setTimeout(() => {
-            updateTopWinners();
-            if (typeof updateLeaderboard === 'function') {
-                updateLeaderboard();
+        const leaderboard = document.getElementById('leaderboard');
+        if (!leaderboard) return;
+        
+        if (!data || !data.success || !data.leaderboard) {
+            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+            return;
+        }
+        
+        let newHTML = '';
+        
+        data.leaderboard.forEach((player, index) => {
+            if (!player || typeof player !== 'object') {
+                return;
             }
-        }, 100);
-    } else {
-        console.error('❌ Секция рейтинга не найдена');
+            
+            const rank = index + 1;
+            const name = player.username || `Игрок ${rank}`;
+            const balance = typeof player.balance === 'number' ? player.balance : 0;
+            const isCurrent = player.userId === userId;
+            const currentClass = isCurrent ? 'current-player' : '';
+            
+            newHTML += `
+                <div class="leader-item ${currentClass}">
+                    <div class="leader-rank">${rank} место</div>
+                    <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                    <div class="leader-balance">${balance.toFixed(9)} S</div>
+                </div>
+            `;
+        });
+        
+        leaderboard.innerHTML = newHTML;
+        
+    } catch (error) {
+        console.error('Ошибка обновления рейтинга:', error);
+        const leaderboard = document.getElementById('leaderboard');
+        if (leaderboard) {
+            leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+        }
+    }
+}
+
+async function updateSpeedLeaderboard() {
+    try {
+        const userId = window.userData?.userId;
+        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20&current_user=${userId}`);
+        
+        const leaderboard = document.getElementById('speedLeaderboard');
+        if (!leaderboard) return;
+        
+        if (!data || !data.success || !data.leaderboard) {
+            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге скорости!</div>';
+            return;
+        }
+        
+        let newHTML = '';
+        
+        data.leaderboard.forEach((player, index) => {
+            if (!player || typeof player !== 'object') {
+                return;
+            }
+            
+            const rank = index + 1;
+            const name = player.username || `Игрок ${rank}`;
+            const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
+            const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000000;
+            const totalSpeed = mineSpeed + clickSpeed;
+            const isCurrent = player.userId === userId;
+            const currentClass = isCurrent ? 'current-player' : '';
+            
+            newHTML += `
+                <div class="leader-item ${currentClass}">
+                    <div class="leader-rank">${rank} место</div>
+                    <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                    <div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>
+                </div>
+            `;
+        });
+        
+        leaderboard.innerHTML = newHTML;
+        
+    } catch (error) {
+        console.error('Ошибка обновления рейтинга скорости:', error);
+        const leaderboard = document.getElementById('speedLeaderboard');
+        if (leaderboard) {
+            leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+        }
     }
 }
 
@@ -566,7 +614,8 @@ function showRatingSection() {
 window.selectTeam = selectTeam;
 window.playTeamLottery = playTeamLottery;
 window.playClassicLottery = playClassicLottery;
-window.showRatingSection = showRatingSection;
+window.updateLeaderboard = updateLeaderboard;
+window.updateSpeedLeaderboard = updateSpeedLeaderboard;
 
 // ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
 
@@ -585,4 +634,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
 });
 
-console.log('✅ РАБОЧИЙ КОД ИГР УСПЕШНО ЗАГРУЖЕН!');
+console.log('✅ ИСПРАВЛЕННЫЙ КОД ИГР УСПЕШНО ЗАГРУЖЕН!');
