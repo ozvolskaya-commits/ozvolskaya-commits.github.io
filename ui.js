@@ -1066,13 +1066,6 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// ИСПРАВЛЕННАЯ Функция для проверки обновлений - убрана, так как эндпоинта нет
-async function checkForUpdates() {
-    // Эндпоинт /api/version не существует, поэтому пропускаем проверку
-    console.log('ℹ️ Проверка обновлений отключена (эндпоинт не существует)');
-    return;
-}
-
 // Функция для создания контекстного меню
 function setupContextMenu() {
     document.addEventListener('contextmenu', function(event) {
@@ -1102,13 +1095,6 @@ function handleVisibilityChange() {
 
 // Инициализация обработчиков событий
 document.addEventListener('visibilitychange', handleVisibilityChange);
-
-// ИСПРАВЛЕННАЯ Функция для предзагрузки изображений - убрана, так как изображений нет
-function preloadImages() {
-    // Изображения не существуют, поэтому пропускаем предзагрузку
-    console.log('ℹ️ Предзагрузка изображений отключена (изображения не существуют)');
-    return;
-}
 
 // Функция для оптимизации производительности
 function optimizePerformance() {
