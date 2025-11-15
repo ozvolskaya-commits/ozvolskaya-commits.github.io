@@ -1,4 +1,4 @@
-// games.js - РАБОЧИЙ КОД ИГР БЕЗ ПРОБЛЕМ
+// game.js - РАБОЧИЙ КОД ИГР БЕЗ ПРОБЛЕМ И ДУБЛИРОВАНИЯ
 console.log('🎮 ЗАГРУЖАЕМ РАБОЧИЙ КОД ИГР...');
 
 // ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
@@ -489,85 +489,6 @@ function startClassicLotteryUpdate() {
     }, 5000);
 }
 
-// ========== РЕФЕРАЛЬНАЯ СИСТЕМА ==========
-
-async function loadReferralStats() {
-    try {
-        if (!window.userData || !window.userData.userId) {
-            console.log('⚠️ Нет данных пользователя для загрузки рефералов');
-            updateReferralUI();
-            return;
-        }
-        
-        const data = await apiRequest(`/api/referral/stats/${window.userData.userId}`);
-        
-        if (data && data.success) {
-            referralData.referralsCount = data.stats?.referralsCount || 0;
-            referralData.totalEarnings = data.stats?.totalEarnings || 0;
-            referralData.referralCode = data.referralCode || 'REF-' + (window.userData.userId.slice(-8) || 'DEFAULT');
-            
-            updateReferralUI();
-        } else {
-            console.log('⚠️ Нет данных рефералов, используем локальные');
-            updateReferralUI();
-        }
-    } catch (error) {
-        console.warn('⚠️ Ошибка загрузки реферальной статистики:', error);
-        referralData.referralsCount = 0;
-        referralData.totalEarnings = 0;
-        referralData.referralCode = window.userData ? 'REF-' + window.userData.userId.slice(-8) : 'REF-DEFAULT';
-        updateReferralUI();
-    }
-}
-
-function updateReferralUI() {
-    try {
-        const referralsCountElement = document.getElementById('referralsCount');
-        const referralEarningsElement = document.getElementById('referralEarnings');
-        const referralLinkElement = document.getElementById('referralLink');
-        
-        if (referralsCountElement) referralsCountElement.textContent = referralData.referralsCount;
-        if (referralEarningsElement) referralEarningsElement.textContent = referralData.totalEarnings.toFixed(9) + ' S';
-        if (referralLinkElement) referralLinkElement.textContent = referralData.referralCode;
-    } catch (error) {
-        console.error('❌ Ошибка обновления интерфейса рефералов:', error);
-    }
-}
-
-function shareReferral() {
-    const shareText = `Присоединяйся к Sparkcoin! Используй мою реферальную ссылку: ${referralData.referralCode}`;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: 'Sparkcoin',
-            text: shareText,
-            url: window.location.href
-        }).catch(error => {
-            console.log('Ошибка sharing API:', error);
-            copyToClipboard(shareText);
-        });
-    } else {
-        copyToClipboard(shareText);
-    }
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showNotification('Ссылка скопирована в буфер обмена!', 'success');
-    }).catch(error => {
-        console.error('Ошибка копирования:', error);
-        // Резервный метод
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
-        showNotification('Ссылка скопирована!', 'success');
-    });
-}
-
 // ========== ТОП ПОБЕДИТЕЛЕЙ ==========
 
 async function updateTopWinners() {
@@ -645,8 +566,6 @@ function showRatingSection() {
 window.selectTeam = selectTeam;
 window.playTeamLottery = playTeamLottery;
 window.playClassicLottery = playClassicLottery;
-window.shareReferral = shareReferral;
-window.copyToClipboard = copyToClipboard;
 window.showRatingSection = showRatingSection;
 
 // ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
@@ -657,7 +576,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         startLotteryAutoUpdate();
         startClassicLotteryUpdate();
-        loadReferralStats();
         updateTopWinners();
         
         // Периодическое обновление
