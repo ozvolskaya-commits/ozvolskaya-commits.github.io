@@ -1066,18 +1066,11 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-// Функция для проверки обновлений
+// ИСПРАВЛЕННАЯ Функция для проверки обновлений - убрана, так как эндпоинта нет
 async function checkForUpdates() {
-    try {
-        const response = await fetch('/api/version');
-        const data = await response.json();
-        
-        if (data.version && data.version !== '1.0.0') {
-            showNotification('Доступно обновление! Перезагрузите страницу.', 'info');
-        }
-    } catch (error) {
-        // Игнорируем ошибки проверки обновлений
-    }
+    // Эндпоинт /api/version не существует, поэтому пропускаем проверку
+    console.log('ℹ️ Проверка обновлений отключена (эндпоинт не существует)');
+    return;
 }
 
 // Функция для создания контекстного меню
@@ -1110,18 +1103,11 @@ function handleVisibilityChange() {
 // Инициализация обработчиков событий
 document.addEventListener('visibilitychange', handleVisibilityChange);
 
-// Функция для предзагрузки изображений
+// ИСПРАВЛЕННАЯ Функция для предзагрузки изображений - убрана, так как изображений нет
 function preloadImages() {
-    const images = [
-        '/images/coin.png',
-        '/images/background.jpg',
-        '/images/icon.png'
-    ];
-    
-    images.forEach(src => {
-        const img = new Image();
-        img.src = src;
-    });
+    // Изображения не существуют, поэтому пропускаем предзагрузку
+    console.log('ℹ️ Предзагрузка изображений отключена (изображения не существуют)');
+    return;
 }
 
 // Функция для оптимизации производительности
@@ -1271,9 +1257,6 @@ window.importData = function(event) {
 
 // Инициализация расширенных функций
 setTimeout(() => {
-    // Предзагрузка изображений
-    preloadImages();
-    
     // Оптимизация производительности
     optimizePerformance();
     
@@ -1282,9 +1265,6 @@ setTimeout(() => {
     
     // Создание бэкапа
     createBackup();
-    
-    // Проверка обновлений
-    checkForUpdates();
     
     // Настройка контекстного меню
     setupContextMenu();
