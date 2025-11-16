@@ -1,4 +1,4 @@
-// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ
+// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР С СИНХРОНИЗАЦИЕЙ
 console.log('🎮 ЗАГРУЖАЕМ ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР...');
 
 // ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
@@ -282,7 +282,7 @@ function startLotteryAutoUpdate() {
     
     lotteryUpdateInterval = setInterval(() => {
         loadLotteryStatus();
-    }, 3000); // Увеличил интервал для стабильности
+    }, 3000);
 }
 
 function selectTeam(team) {
@@ -494,7 +494,7 @@ function startClassicLotteryUpdate() {
     
     classicLotteryInterval = setInterval(() => {
         loadClassicLottery();
-    }, 3000); // Увеличил интервал для стабильности
+    }, 3000);
 }
 
 // ========== ТОП ПОБЕДИТЕЛЕЙ - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ ==========
@@ -504,7 +504,7 @@ async function updateTopWinners() {
         console.log('🏆 Загрузка топа победителей...');
         const data = await apiRequest('/api/top/winners?limit=50');
         
-        if (data && data.success) {
+        if (data && data.success && data.winners) {
             const topWinnersElement = document.getElementById('topWinners');
             if (topWinnersElement) {
                 topWinnersElement.innerHTML = '';
@@ -515,10 +515,13 @@ async function updateTopWinners() {
                         
                         const winnerItem = document.createElement('div');
                         winnerItem.className = 'winner-item';
+                        const netWinnings = winner.netWinnings || 0;
                         winnerItem.innerHTML = `
                             <div class="winner-rank">${index + 1}</div>
                             <div class="winner-name">${winner.username || 'Игрок'}</div>
-                            <div class="winner-amount">${(winner.netWinnings || 0).toFixed(9)} S</div>
+                            <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
+                                ${netWinnings.toFixed(9)} S
+                            </div>
                         `;
                         topWinnersElement.appendChild(winnerItem);
                     });
