@@ -1,4 +1,4 @@
-// ui.js - полностью исправленная версия
+// ui.js - полностью исправленная версия с разделением лотерей
 console.log('🖥️ Загружаем ui.js...');
 
 let allPlayers = [];
@@ -95,7 +95,7 @@ window.showGamesSection = function() {
     showSection('games');
 };
 
-// Функции для вкладок игр
+// Функции для вкладок игр - ИСПРАВЛЕННЫЕ ДЛЯ РАЗДЕЛЕНИЯ ЛОТЕРЕЙ
 window.showGameTab = function(tabName) {
     console.log('🎰 Показываем игровую вкладку:', tabName);
     
@@ -117,13 +117,33 @@ window.showGameTab = function(tabName) {
         targetSection.classList.add('active');
     }
     
+    // Загружаем соответствующие данные
+    switch(tabName) {
+        case 'team-lottery':
+            if (typeof loadLotteryStatus === 'function') {
+                loadLotteryStatus();
+            }
+            if (typeof startLotteryAutoUpdate === 'function') {
+                startLotteryAutoUpdate();
+            }
+            break;
+        case 'classic-lottery':
+            if (typeof loadClassicLottery === 'function') {
+                loadClassicLottery();
+            }
+            if (typeof startClassicLotteryUpdate === 'function') {
+                startClassicLotteryUpdate();
+            }
+            break;
+    }
+    
     // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Функции для вкладок рейтинга
+// Функции для вкладок рейтинга - ИСПРАВЛЕННЫЕ
 window.showTopTab = function(tabName) {
     console.log('🏆 Показываем вкладку рейтинга:', tabName);
     
@@ -354,7 +374,7 @@ function searchUsers() {
 async function updateLeaderboard() {
     try {
         const userId = window.userData?.userId;
-        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20&current_user=${userId}`);
+        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20`);
         
         const leaderboard = document.getElementById('leaderboard');
         if (!leaderboard) return;
@@ -400,7 +420,7 @@ async function updateLeaderboard() {
 async function updateSpeedLeaderboard() {
     try {
         const userId = window.userData?.userId;
-        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20&current_user=${userId}`);
+        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20`);
         
         const leaderboard = document.getElementById('speedLeaderboard');
         if (!leaderboard) return;
@@ -586,7 +606,9 @@ async function updateTopWinners() {
                 <div class="winner-item">
                     <div class="winner-rank">${rank}</div>
                     <div class="winner-name">${name}</div>
-                    <div class="winner-amount">${netWinnings.toFixed(9)} S</div>
+                    <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
+                        ${netWinnings.toFixed(9)} S
+                    </div>
                 </div>
             `;
         });
@@ -650,44 +672,6 @@ function updateReferralUI(data) {
         const el = document.getElementById(element.id);
         if (el) el.textContent = element.value;
     });
-}
-
-// Функция для поделиться реферальной ссылкой
-function shareReferral() {
-    const referralLink = document.getElementById('referralLink');
-    if (referralLink) {
-        const link = referralLink.textContent;
-        if (navigator.share) {
-            navigator.share({
-                title: 'Присоединяйся к Sparkcoin!',
-                text: 'Зарабатывай Sparkcoin вместе со мной!',
-                url: link
-            }).then(() => {
-                showNotification('Реферальная ссылка успешно отправлена!', 'success');
-            }).catch(error => {
-                console.log('Ошибка sharing:', error);
-                copyToClipboard(link);
-            });
-        } else {
-            copyToClipboard(link);
-        }
-    }
-}
-
-// Функция для копирования в буфер обмена
-function copyToClipboard(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-        document.execCommand('copy');
-        showNotification('Реферальная ссылка скопирована в буфер обмена!', 'success');
-    } catch (err) {
-        console.error('Ошибка копирования:', err);
-        showNotification('Не удалось скопировать ссылку', 'error');
-    }
-    document.body.removeChild(textArea);
 }
 
 // Функция для копирования реферальной ссылки (новая)
@@ -774,52 +758,6 @@ function updateShopCategory(category) {
     });
 }
 
-// Дополнительные функции для мобильной оптимизации
-function initMobileFeatures() {
-    console.log('📱 Инициализация мобильных функций...');
-    
-    // Предотвращение масштабирования при двойном тапе
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (event) {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-            event.preventDefault();
-        }
-        lastTouchEnd = now;
-    }, false);
-    
-    // Оптимизация для мобильных устройств
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        document.body.classList.add('mobile-device');
-        console.log('📱 Мобильное устройство обнаружено');
-        
-        // Добавляем дополнительные стили для мобильных
-        const style = document.createElement('style');
-        style.textContent = `
-            .mobile-device .click-coin {
-                width: 180px !important;
-                height: 180px !important;
-            }
-            .mobile-device .coin-letter {
-                font-size: 64px !important;
-            }
-            .mobile-device .menu-button {
-                padding: 16px !important;
-                font-size: 16px !important;
-            }
-            .mobile-device .buy-button {
-                padding: 14px !important;
-                font-size: 14px !important;
-            }
-            .mobile-device .bet-input {
-                font-size: 16px !important;
-                padding: 12px !important;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-}
-
 // Функция для обновления баланса немедленно
 window.updateBalanceImmediately = function() {
     if (!window.userData) return;
@@ -900,9 +838,6 @@ if (typeof saveUserData === 'undefined') {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Инициализация UI...');
     
-    // Инициализация мобильных функций
-    initMobileFeatures();
-    
     // Инициализация полей ввода
     const betInputs = document.querySelectorAll('.bet-input, .transfer-amount-input');
     betInputs.forEach(input => {
@@ -939,326 +874,5 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('✅ UI полностью инициализирован!');
 });
-
-// ========== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПОЛНОТЫ ==========
-
-// Функция для обновления статистики пользователя
-function updateUserStats() {
-    if (!window.userData) return;
-    
-    const statsElements = {
-        'totalClicks': window.userData.totalClicks || 0,
-        'totalEarned': (window.userData.totalEarned || 0).toFixed(9) + ' S',
-        'totalBet': (window.userData.totalBet || 0).toFixed(9) + ' S',
-        'lotteryWins': window.userData.lotteryWins || 0,
-        'referralsCount': window.userData.referralsCount || 0,
-        'referralEarnings': (window.userData.referralEarnings || 0).toFixed(9) + ' S'
-    };
-    
-    for (const [id, value] of Object.entries(statsElements)) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = value;
-        }
-    }
-}
-
-// Функция для форматирования чисел
-function formatNumber(num) {
-    if (num >= 1) {
-        return num.toFixed(2);
-    } else if (num >= 0.001) {
-        return num.toFixed(6);
-    } else {
-        return num.toFixed(9);
-    }
-}
-
-// Функция для проверки соединения
-function checkConnection() {
-    const connectionStatus = document.getElementById('connectionStatus');
-    if (connectionStatus) {
-        if (navigator.onLine) {
-            connectionStatus.textContent = '🟢 Онлайн';
-            connectionStatus.style.color = '#4CAF50';
-        } else {
-            connectionStatus.textContent = '🔴 Офлайн';
-            connectionStatus.style.color = '#f44336';
-        }
-    }
-}
-
-// Функция для анимации элементов
-function animateValue(element, start, end, duration) {
-    let startTimestamp = null;
-    const step = (timestamp) => {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const value = progress * (end - start) + start;
-        element.textContent = formatNumber(value);
-        if (progress < 1) {
-            window.requestAnimationFrame(step);
-        }
-    };
-    window.requestAnimationFrame(step);
-}
-
-// Функция для создания вибрации (для мобильных устройств)
-function vibrate(duration = 50) {
-    if (navigator.vibrate) {
-        navigator.vibrate(duration);
-    }
-}
-
-// Функция для сохранения настроек
-function saveSettings() {
-    const settings = {
-        soundEnabled: document.getElementById('soundToggle')?.checked || true,
-        notificationsEnabled: document.getElementById('notificationsToggle')?.checked || true,
-        vibrationEnabled: document.getElementById('vibrationToggle')?.checked || true
-    };
-    localStorage.setItem('sparkcoin_settings', JSON.stringify(settings));
-}
-
-// Функция для загрузки настроек
-function loadSettings() {
-    const savedSettings = localStorage.getItem('sparkcoin_settings');
-    if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        const soundToggle = document.getElementById('soundToggle');
-        const notificationsToggle = document.getElementById('notificationsToggle');
-        const vibrationToggle = document.getElementById('vibrationToggle');
-        
-        if (soundToggle) soundToggle.checked = settings.soundEnabled;
-        if (notificationsToggle) notificationsToggle.checked = settings.notificationsEnabled;
-        if (vibrationToggle) vibrationToggle.checked = settings.vibrationEnabled;
-    }
-}
-
-// Функция для показа модального окна
-function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-// Функция для скрытия модального окна
-function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// Функция для обработки клавиши Escape
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => {
-            if (modal.style.display === 'flex') {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }
-        });
-    }
-});
-
-// Функция для создания контекстного меню
-function setupContextMenu() {
-    document.addEventListener('contextmenu', function(event) {
-        if (event.target.closest('.click-coin')) {
-            event.preventDefault();
-            showNotification('💡 Совет: Кликайте быстрее для большего дохода!', 'info');
-        }
-    });
-}
-
-// Функция для обработки видимости страницы
-function handleVisibilityChange() {
-    if (document.hidden) {
-        console.log('📱 Страница скрыта');
-        if (window.incomeInterval) {
-            clearInterval(window.incomeInterval);
-            console.log('⏸️ Пассивный доход приостановлен');
-        }
-    } else {
-        console.log('📱 Страница активна');
-        if (window.startPassiveIncome) {
-            window.startPassiveIncome();
-            console.log('▶️ Пассивный доход возобновлен');
-        }
-    }
-}
-
-// Инициализация обработчиков событий
-document.addEventListener('visibilitychange', handleVisibilityChange);
-
-// Функция для оптимизации производительности
-function optimizePerformance() {
-    // Отключаем ненужные анимации на слабых устройствах
-    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
-        document.body.classList.add('low-performance');
-    }
-    
-    // Оптимизация для старых браузеров
-    if (!('IntersectionObserver' in window)) {
-        console.log('⚠️ IntersectionObserver не поддерживается');
-    }
-}
-
-// Функция для работы с локальным хранилищем
-function manageLocalStorage() {
-    const storageKeys = Object.keys(localStorage).filter(key => key.startsWith('sparkcoin_'));
-    
-    // Очистка старых данных (старше 30 дней)
-    const now = Date.now();
-    const monthAgo = now - (30 * 24 * 60 * 60 * 1000);
-    
-    storageKeys.forEach(key => {
-        try {
-            const data = JSON.parse(localStorage.getItem(key));
-            if (data && data.lastUpdate && data.lastUpdate < monthAgo) {
-                localStorage.removeItem(key);
-                console.log(`🗑️ Удалены устаревшие данные: ${key}`);
-            }
-        } catch (error) {
-            // Игнорируем ошибки парсинга
-        }
-    });
-}
-
-// Функция для создания бэкапа данных
-function createBackup() {
-    const backupData = {
-        userData: window.userData,
-        upgrades: window.upgrades,
-        timestamp: Date.now()
-    };
-    
-    localStorage.setItem('sparkcoin_backup', JSON.stringify(backupData));
-    console.log('💾 Создан бэкап данных');
-}
-
-// Функция для восстановления из бэкапа
-function restoreFromBackup() {
-    const backup = localStorage.getItem('sparkcoin_backup');
-    if (backup) {
-        try {
-            const backupData = JSON.parse(backup);
-            window.userData = backupData.userData;
-            window.upgrades = backupData.upgrades;
-            updateUI();
-            updateShopUI();
-            showNotification('Данные восстановлены из бэкапа!', 'success');
-        } catch (error) {
-            showNotification('Ошибка восстановления данных', 'error');
-        }
-    }
-}
-
-// Расширенная функция дебага
-window.advancedDebug = function() {
-    console.group('🔧 РАСШИРЕННАЯ ДЕБАГ ИНФОРМАЦИЯ');
-    console.log('👤 UserData:', window.userData);
-    console.log('🛒 Upgrades:', window.upgrades);
-    console.log('⚙️ Config:', CONFIG);
-    console.log('🔄 Sync Counter:', window.syncCounter);
-    console.log('⏰ Last Sync:', new Date(window.lastSyncTime).toLocaleString());
-    console.log('📱 Device ID:', generateDeviceId());
-    console.log('🔗 API Connected:', window.apiConnected);
-    console.log('💾 Data Loaded:', window.isDataLoaded);
-    console.log('⛏️ Mining Speed:', calculateMiningSpeed());
-    console.log('🖱️ Click Power:', calculateClickPower());
-    console.log('🎯 Anti-Cheat Blocked:', window.antiCheatBlocked);
-    console.log('📊 Local Storage Usage:', JSON.stringify(localStorage).length, 'bytes');
-    console.groupEnd();
-};
-
-// Функция для сброса данных (только для разработки)
-window.resetData = function() {
-    if (confirm('ВНИМАНИЕ! Это сбросит все ваши данные. Продолжить?')) {
-        localStorage.removeItem('sparkcoin_user_data');
-        localStorage.removeItem('sparkcoin_upgrades_' + (window.userData?.userId || ''));
-        localStorage.removeItem('sparkcoin_web_user_id');
-        localStorage.removeItem('sparkcoin_web_username');
-        location.reload();
-    }
-};
-
-// Функция для экспорта данных
-window.exportData = function() {
-    const exportData = {
-        userData: window.userData,
-        upgrades: window.upgrades,
-        exportDate: new Date().toISOString(),
-        version: '1.0.0'
-    };
-    
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `sparkcoin_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    showNotification('Данные успешно экспортированы!', 'success');
-};
-
-// Функция для импорта данных
-window.importData = function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            
-            if (importedData.userData && importedData.upgrades) {
-                window.userData = importedData.userData;
-                window.upgrades = importedData.upgrades;
-                
-                localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
-                localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(window.upgrades));
-                
-                updateUI();
-                updateShopUI();
-                showNotification('Данные успешно импортированы!', 'success');
-            } else {
-                showNotification('Неверный формат файла', 'error');
-            }
-        } catch (error) {
-            showNotification('Ошибка импорта данных', 'error');
-        }
-    };
-    reader.readAsText(file);
-    
-    // Сбрасываем input
-    event.target.value = '';
-};
-
-// Инициализация расширенных функций
-setTimeout(() => {
-    // Оптимизация производительности
-    optimizePerformance();
-    
-    // Управление локальным хранилищем
-    manageLocalStorage();
-    
-    // Создание бэкапа
-    createBackup();
-    
-    // Настройка контекстного меню
-    setupContextMenu();
-    
-    // Загрузка настроек
-    loadSettings();
-    
-    console.log('🎯 Все расширенные функции инициализированы!');
-}, 5000);
 
 console.log('✅ ui.js загружен! Все функции интерфейса готовы к работе!');
