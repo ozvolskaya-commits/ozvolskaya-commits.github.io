@@ -1,4 +1,4 @@
-// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР
+// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ
 console.log('🎮 ЗАГРУЖАЕМ ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР...');
 
 // ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
@@ -33,11 +33,16 @@ let referralData = {
 let selectedTeam = null;
 let lotteryUpdateInterval;
 let classicLotteryInterval;
+let lastLotteryUpdate = 0;
+let lastClassicUpdate = 0;
 
 // ========== КОМАНДНАЯ ЛОТЕРЕЯ - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ==========
 
 async function loadLotteryStatus() {
     try {
+        const now = Date.now();
+        if (now - lastLotteryUpdate < 2000) return; // Защита от частых запросов
+        
         console.log('🔄 Загрузка статуса командной лотереи...');
         const data = await apiRequest('/api/lottery/status');
         
@@ -52,6 +57,7 @@ async function loadLotteryStatus() {
             
             console.log('✅ Данные командной лотереи загружены:', lotteryData.timer + 'сек');
             updateLotteryUI();
+            lastLotteryUpdate = now;
         } else {
             console.log('⚠️ Нет данных лотереи, используем локальные');
             updateLotteryUI();
@@ -276,7 +282,7 @@ function startLotteryAutoUpdate() {
     
     lotteryUpdateInterval = setInterval(() => {
         loadLotteryStatus();
-    }, 5000);
+    }, 3000); // Увеличил интервал для стабильности
 }
 
 function selectTeam(team) {
@@ -335,6 +341,9 @@ async function playTeamLottery() {
 
 async function loadClassicLottery() {
     try {
+        const now = Date.now();
+        if (now - lastClassicUpdate < 2000) return; // Защита от частых запросов
+        
         console.log('🔄 Загрузка статуса классической лотереи...');
         const data = await apiRequest('/api/classic-lottery/status');
         
@@ -347,6 +356,7 @@ async function loadClassicLottery() {
             
             console.log('✅ Данные классической лотереи загружены:', classicLotteryData.timer + 'сек');
             updateClassicLotteryUI();
+            lastClassicUpdate = now;
         } else {
             console.log('⚠️ Нет данных классической лотереи');
             updateClassicLotteryUI();
@@ -484,7 +494,7 @@ function startClassicLotteryUpdate() {
     
     classicLotteryInterval = setInterval(() => {
         loadClassicLottery();
-    }, 5000);
+    }, 3000); // Увеличил интервал для стабильности
 }
 
 // ========== ТОП ПОБЕДИТЕЛЕЙ - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ ==========
@@ -538,7 +548,7 @@ async function updateLeaderboard() {
     try {
         console.log('📊 Загрузка рейтинга по балансу...');
         const userId = window.userData?.userId;
-        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20&current_user=${userId}`);
+        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20`);
         
         const leaderboard = document.getElementById('leaderboard');
         if (!leaderboard) return;
@@ -585,7 +595,7 @@ async function updateSpeedLeaderboard() {
     try {
         console.log('⚡ Загрузка рейтинга по скорости...');
         const userId = window.userData?.userId;
-        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20&current_user=${userId}`);
+        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20`);
         
         const leaderboard = document.getElementById('speedLeaderboard');
         if (!leaderboard) return;
@@ -648,10 +658,14 @@ document.addEventListener('DOMContentLoaded', function() {
         startLotteryAutoUpdate();
         startClassicLotteryUpdate();
         updateTopWinners();
+        updateLeaderboard();
+        updateSpeedLeaderboard();
         
         // Периодическое обновление
         setInterval(() => {
             updateTopWinners();
+            updateLeaderboard();
+            updateSpeedLeaderboard();
         }, 30000);
         
         console.log('✅ Игровая система полностью инициализирована');
