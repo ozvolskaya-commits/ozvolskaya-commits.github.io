@@ -391,109 +391,109 @@
         
         <!-- Игры - УБРАНЫ ДУБЛИРУЮЩИЕСЯ ВКЛАДКИ -->
         <div id="games-section" class="section">
-            <button class="back-button" onclick="showSection('main')">← Назад</button>
+    <button class="back-button" onclick="showSection('main')">← Назад</button>
+    
+    <div class="games-tabs">
+        <button class="game-tab active" onclick="showGameTab('team-lottery')">👥 Командная</button>
+        <button class="game-tab" onclick="showGameTab('classic-lottery')">🎰 Классическая</button>
+    </div>
+    
+    <!-- Командная лотерея - ТОЛЬКО КОМАНДНАЯ -->
+    <div id="team-lottery-game" class="game-section active">
+        <div class="lottery-section">
+            <h2 class="lottery-title">🎯 Командная Лотерея</h2>
             
-            <div class="games-tabs">
-                <button class="game-tab active" onclick="showGameTab('team-lottery')">👥 Командная</button>
-                <button class="game-tab" onclick="showGameTab('classic-lottery')">🎰 Классическая</button>
+            <div class="lottery-timer">
+                До розыгрыша: <span id="lotteryTimer">60</span> сек
             </div>
-            
-            <!-- Командная лотерея -->
-            <div id="team-lottery-game" class="game-section active">
-                <div class="lottery-section">
-                    <h2 class="lottery-title">🎯 Командная Лотерея</h2>
-                    
-                    <div class="lottery-timer">
-                        До розыгрыша: <span id="lotteryTimer">60</span> сек
-                    </div>
 
-                    <div class="team-buttons">
-                        <button class="team-button eagle" onclick="selectTeam('eagle')">
-                            🦅 Орлы
-                        </button>
-                        <button class="team-button tails" onclick="selectTeam('tails')">
-                            🪙 Решки
-                        </button>
-                    </div>
+            <div class="team-buttons">
+                <button class="team-button eagle" onclick="selectTeam('eagle')">
+                    🦅 Орлы
+                </button>
+                <button class="team-button tails" onclick="selectTeam('tails')">
+                    🪙 Решки
+                </button>
+            </div>
 
-                    <input type="number" id="teamBet" class="bet-input" value="0.000000100" min="0.000000001" step="0.000000001">
+            <input type="number" id="teamBet" class="bet-input" value="0.000000100" min="0.000000001" step="0.000000001">
 
-                    <button class="play-button" onclick="playTeamLottery()">
-                        Участвовать
-                    </button>
+            <button class="play-button" onclick="playTeamLottery()">
+                Участвовать
+            </button>
 
-                    <div class="lottery-stats">
-                        <div class="lottery-stat eagle">
-                            <div>🦅 Орлы</div>
-                            <div class="stat-percentage" id="eagleChance">50%</div>
-                            <div class="stat-amount" id="eagleTotal">0.000000000 S</div>
-                            <div>Игроков: <span id="eagleParticipants">0</span></div>
-                        </div>
-                        <div class="lottery-stat tails">
-                            <div>🪙 Решки</div>
-                            <div class="stat-percentage" id="tailsChance">50%</div>
-                            <div class="stat-amount" id="tailsTotal">0.000000000 S</div>
-                            <div>Игроков: <span id="tailsParticipants">0</span></div>
-                        </div>
-                    </div>
-
-                    <div class="last-winner" id="lastWinner" style="display: none;">
-                        <div>🏆 Последний победитель:</div>
-                        <div id="winnerTeam"></div>
-                    </div>
-
-                    <h4>🦅 Орлы (<span id="eagleParticipantsCount">0</span> игроков)</h4>
-                    <div class="participants" id="teamEagle">
-                        <div style="text-align: center; color: #666; padding: 15px;">
-                            Пока нет ставок
-                        </div>
-                    </div>
-
-                    <h4>🪙 Решки (<span id="tailsParticipantsCount">0</span> игроков)</h4>
-                    <div class="participants" id="teamTails">
-                        <div style="text-align: center; color: #666; padding: 15px;">
-                            Пока нет ставок
-                        </div>
-                    </div>
+            <div class="lottery-stats">
+                <div class="lottery-stat eagle">
+                    <div>🦅 Орлы</div>
+                    <div class="stat-percentage" id="eagleChance">50%</div>
+                    <div class="stat-amount" id="eagleTotal">0.000000000 S</div>
+                    <div>Игроков: <span id="eagleParticipants">0</span></div>
+                </div>
+                <div class="lottery-stat tails">
+                    <div>🪙 Решки</div>
+                    <div class="stat-percentage" id="tailsChance">50%</div>
+                    <div class="stat-amount" id="tailsTotal">0.000000000 S</div>
+                    <div>Игроков: <span id="tailsParticipants">0</span></div>
                 </div>
             </div>
-            
-            <!-- Классическая лотерея -->
-            <div id="classic-lottery-game" class="game-section">
-                <div class="lottery-section">
-                    <h2 class="lottery-title">🎰 Классическая Лотерея</h2>
-                    
-                    <div class="lottery-timer-large">
-                        До розыгрыша: <span id="classicTimer">120</span> сек
-                    </div>
-                    
-                    <div class="lottery-pot">
-                        Банк: <span id="lotteryPot">0.000000000</span> S
-                    </div>
-                    
-                    <input type="number" id="classicBet" class="bet-input" value="0.000000100" min="0.000000001" step="0.000000001">
-                    
-                    <button class="play-button" onclick="playClassicLottery()">
-                        Участвовать
-                    </button>
-                    
-                    <div class="lottery-stats">
-                        <div class="lottery-stat">
-                            <div>Участников: <span id="lotteryParticipants">0</span></div>
-                            <div>Ваш шанс: <span id="playerChance">0%</span></div>
-                        </div>
-                    </div>
-                    
-                    <h4>🏆 История розыгрышей</h4>
-                    <div class="lottery-history" id="classicHistory">
-                        <div style="text-align: center; color: #666; padding: 20px;">
-                            История пуста
-                        </div>
-                    </div>
+
+            <div class="last-winner" id="lastWinner" style="display: none;">
+                <div>🏆 Последний победитель:</div>
+                <div id="winnerTeam"></div>
+            </div>
+
+            <h4>🦅 Орлы (<span id="eagleParticipantsCount">0</span> игроков)</h4>
+            <div class="participants" id="teamEagle">
+                <div style="text-align: center; color: #666; padding: 15px;">
+                    Пока нет ставок
+                </div>
+            </div>
+
+            <h4>🪙 Решки (<span id="tailsParticipantsCount">0</span> игроков)</h4>
+            <div class="participants" id="teamTails">
+                <div style="text-align: center; color: #666; padding: 15px;">
+                    Пока нет ставок
                 </div>
             </div>
         </div>
-        
+    </div>
+    
+    <!-- Классическая лотерея - ТОЛЬКО КЛАССИЧЕСКАЯ -->
+    <div id="classic-lottery-game" class="game-section">
+        <div class="lottery-section">
+            <h2 class="lottery-title">🎰 Классическая Лотерея</h2>
+            
+            <div class="lottery-timer-large">
+                До розыгрыша: <span id="classicTimer">120</span> сек
+            </div>
+            
+            <div class="lottery-pot">
+                Банк: <span id="lotteryPot">0.000000000</span> S
+            </div>
+            
+            <input type="number" id="classicBet" class="bet-input" value="0.000000100" min="0.000000001" step="0.000000001">
+            
+            <button class="play-button" onclick="playClassicLottery()">
+                Участвовать
+            </button>
+            
+            <div class="lottery-stats">
+                <div class="lottery-stat">
+                    <div>Участников: <span id="lotteryParticipants">0</span></div>
+                    <div>Ваш шанс: <span id="playerChance">0%</span></div>
+                </div>
+            </div>
+            
+            <h4>🏆 История розыгрышей</h4>
+            <div class="lottery-history" id="classicHistory">
+                <div style="text-align: center; color: #666; padding: 20px;">
+                    История пуста
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
         <!-- Рейтинг -->
         <div id="top-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
