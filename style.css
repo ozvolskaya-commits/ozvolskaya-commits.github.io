@@ -477,9 +477,6 @@ body {
     width: 100%;
     margin-bottom: 10px;
     outline: none;
-    -webkit-appearance: none;
-    border-radius: 8px;
-    font-size: 16px;
 }
 
 .play-button {
@@ -633,9 +630,6 @@ body {
     width: 100%;
     margin-bottom: 15px;
     outline: none;
-    -webkit-appearance: none;
-    border-radius: 8px;
-    font-size: 16px;
 }
 
 .users-list {
@@ -689,8 +683,6 @@ body {
     margin-bottom: 15px;
     outline: none;
     text-align: center;
-    -webkit-appearance: none;
-    border-radius: 8px;
 }
 
 .transfer-button {
@@ -1373,6 +1365,114 @@ body {
     font-size: 14px;
 }
 
+/* Стили для участников с аватарками */
+.participant-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    border-left: 3px solid #2196F3;
+}
+
+.participant-item.current-player {
+    border: 2px solid #4CC9F0;
+    background: rgba(76, 201, 240, 0.1);
+    transform: scale(1.02);
+}
+
+.participant-item.eagle {
+    border-left-color: #FF5722;
+}
+
+.participant-item.tails {
+    border-left-color: #4CAF50;
+}
+
+.participant-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(76, 201, 240, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.participant-avatar:hover {
+    transform: scale(1.1);
+    border-color: #4CC9F0;
+}
+
+.participant-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.participant-name {
+    font-weight: bold;
+    color: white;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.participant-name.current-player {
+    color: #4CC9F0;
+    text-shadow: 0 0 10px rgba(76, 201, 240, 0.7);
+}
+
+.participant-time {
+    font-size: 11px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.participant-bet {
+    color: #4CAF50;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    text-align: right;
+}
+
+/* Анимация появления новой ставки */
+@keyframes newBet {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.new-bet {
+    animation: newBet 0.5s ease-out;
+}
+
+/* Таймер ставки */
+.bet-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+}
+
+.timer-icon {
+    font-size: 10px;
+}
+
 /* Адаптивность для мобильных */
 @media (max-width: 480px) {
     .main-menu {
@@ -1404,5 +1504,23 @@ body {
     
     .referral-stat-card {
         padding: 12px;
+    }
+    
+    .participant-item {
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    .participant-avatar {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .participant-name {
+        font-size: 11px;
+    }
+    
+    .participant-bet {
+        font-size: 11px;
     }
 }
