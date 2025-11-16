@@ -1,4 +1,4 @@
-# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN С СИНХРОНИЗАЦИЕЙ СТАВОК И РЕФЕРАЛЬНОЙ СИСТЕМОЙ
+# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ
 import os
 import json
 import logging
@@ -18,6 +18,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 flask_app = Flask(__name__)
+
+# СИНХРОНИЗАЦИЯ ВРЕМЕНИ ЛОТЕРЕЙ
+LOTTERY_START_TIME = time.time()
+CLASSIC_LOTTERY_START_TIME = time.time()
+
+def get_synced_lottery_timer():
+    """Синхронизированный таймер для командной лотереи"""
+    global LOTTERY_START_TIME
+    elapsed = int(time.time() - LOTTERY_START_TIME)
+    timer = 60 - (elapsed % 60)
+    return max(1, timer)
+
+def get_synced_classic_timer():
+    """Синхронизированный таймер для классической лотереи"""
+    global CLASSIC_LOTTERY_START_TIME
+    elapsed = int(time.time() - CLASSIC_LOTTERY_START_TIME)
+    timer = 120 - (elapsed % 120)
+    return max(1, timer)
 
 # УЛУЧШЕННАЯ СИСТЕМА МУЛЬТИСЕССИИ
 ACTIVE_SESSIONS = {}
@@ -607,7 +625,7 @@ def sync_unified():
             'bestBalance': best_balance,
             'multisessionDetected': multisession_detected,
             'upgradesCount': len(best_upgrades),
-            'isNewUser': is_new_user,
+            'isNewUser': is_newUser,
             'referralApplied': referrer_id is not None
         })
 
@@ -671,7 +689,7 @@ def get_unified_user(user_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ЛОТЕРЕЙНЫЕ ENDPOINTS С УЛУЧШЕННОЙ СИНХРОНИЗАЦИЕЙ
+# ЛОТЕРЕЙНЫЕ ENDPOINTS С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ
 
 @flask_app.route('/api/lottery/bet', methods=['POST'])
 def lottery_bet():
@@ -787,7 +805,7 @@ def classic_lottery_status():
                 'lottery': {
                     'bets': [],
                     'total_pot': 0,
-                    'timer': 120,
+                    'timer': get_synced_classic_timer(),
                     'participants_count': 0,
                     'history': []
                 }
@@ -832,13 +850,11 @@ def classic_lottery_status():
                 'timestamp': row['timestamp']
             })
 
-        cursor.execute('SELECT timer, total_pot, last_winner, last_prize FROM classic_lottery_timer WHERE id = 1')
-        timer_data = cursor.fetchone()
+        # Используем синхронизированный таймер
+        current_timer = get_synced_classic_timer()
 
-        current_timer = timer_data['timer'] if timer_data else 120
-        new_timer = max(0, current_timer - 1)
-
-        if new_timer <= 0:
+        # Проверяем, нужно ли проводить розыгрыш
+        if current_timer == 1:
             if bets and total_pot > 0:
                 winning_user = random.choice(bets)
                 prize = total_pot * 0.9
@@ -853,15 +869,7 @@ def classic_lottery_status():
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', ('classic', winning_user['user_id'], winning_user['username'], prize, len(bets), request.remote_addr))
 
-                cursor.execute(
-                    'UPDATE classic_lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
-                    (winning_user['username'], prize)
-                )
-
-            new_timer = 120
             cursor.execute("DELETE FROM classic_lottery_bets WHERE timestamp < datetime('now', '-1 hour')")
-
-        cursor.execute('UPDATE classic_lottery_timer SET timer = ?, total_pot = ? WHERE id = 1', (new_timer, total_pot))
 
         conn.commit()
         conn.close()
@@ -871,7 +879,7 @@ def classic_lottery_status():
             'lottery': {
                 'bets': bets,
                 'total_pot': total_pot,
-                'timer': new_timer,
+                'timer': current_timer,
                 'participants_count': len(bets),
                 'history': history
             }
@@ -882,7 +890,7 @@ def classic_lottery_status():
             'lottery': {
                 'bets': [],
                 'total_pot': 0,
-                'timer': 120,
+                'timer': get_synced_classic_timer(),
                 'participants_count': 0,
                 'history': []
             }
@@ -899,7 +907,7 @@ def lottery_status():
                     'eagle': [],
                     'tails': [],
                     'last_winner': None,
-                    'timer': 60,
+                    'timer': get_synced_lottery_timer(),
                     'total_eagle': 0,
                     'total_tails': 0,
                     'participants_count': 0
@@ -935,13 +943,11 @@ def lottery_status():
                 tails_bets.append(bet)
                 total_tails += row['amount']
 
-        cursor.execute('SELECT timer, last_winner, last_prize FROM lottery_timer WHERE id = 1')
-        timer_data = cursor.fetchone()
+        # Используем синхронизированный таймер
+        current_timer = get_synced_lottery_timer()
 
-        current_timer = timer_data['timer'] if timer_data else 60
-        new_timer = max(0, current_timer - 1)
-
-        if new_timer <= 0:
+        # Проверяем, нужно ли проводить розыгрыш
+        if current_timer == 1:
             winner = random.choice(['eagle', 'tails'])
             total_pot = total_eagle + total_tails
 
@@ -961,17 +967,7 @@ def lottery_status():
                         VALUES (?, ?, ?, ?, ?, ?)
                     ''', ('team', winning_user['user_id'], winning_user['username'], prize, len(eagle_bets) + len(tails_bets), request.remote_addr))
 
-                    cursor.execute(
-                        'UPDATE lottery_timer SET last_winner = ?, last_prize = ? WHERE id = 1',
-                        (winning_user['username'], prize)
-                    )
-
-                new_timer = 60
                 cursor.execute("DELETE FROM lottery_bets WHERE timestamp < datetime('now', '-1 hour')")
-            else:
-                new_timer = 60
-
-        cursor.execute('UPDATE lottery_timer SET timer = ? WHERE id = 1', (new_timer,))
 
         conn.commit()
         conn.close()
@@ -981,9 +977,8 @@ def lottery_status():
             'lottery': {
                 'eagle': eagle_bets,
                 'tails': tails_bets,
-                'last_winner': timer_data['last_winner'] if timer_data else None,
-                'last_prize': timer_data['last_prize'] if timer_data else 0,
-                'timer': new_timer,
+                'last_winner': None,
+                'timer': current_timer,
                 'total_eagle': total_eagle,
                 'total_tails': total_tails,
                 'participants_count': len(eagle_bets) + len(tails_bets)
@@ -996,7 +991,7 @@ def lottery_status():
                 'eagle': [],
                 'tails': [],
                 'last_winner': None,
-                'timer': 60,
+                'timer': get_synced_lottery_timer(),
                 'total_eagle': 0,
                 'total_tails': 0,
                 'participants_count': 0
