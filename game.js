@@ -36,6 +36,130 @@ let classicLotteryInterval;
 let lastLotteryUpdate = 0;
 let lastClassicUpdate = 0;
 
+// ========== ФУНКЦИИ ДЛЯ АВАТАРОК И ТАЙМЕРОВ ==========
+
+// Функция для получения аватарки пользователя
+function getUserAvatar(userId, username) {
+    // Для Telegram пользователей
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user) {
+        const user = Telegram.WebApp.initDataUnsafe.user;
+        // Проверяем, это текущий пользователь или другой
+        const isCurrentUser = user.id && `tg_${user.id}` === userId;
+        
+        if (isCurrentUser && user.photo_url) {
+            return user.photo_url;
+        }
+    }
+    
+    // Для демо-пользователей генерируем аватарки через DiceBear
+    const avatarSeed = userId || username || 'default';
+    return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed)}&size=40`;
+}
+
+// Функция для получения ссылки на профиль
+function getUserProfileLink(userId, username) {
+    // Для Telegram пользователей
+    if (userId.startsWith('tg_')) {
+        const tgId = userId.replace('tg_', '');
+        return `https://t.me/${username?.replace('@', '') || tgId}`;
+    }
+    
+    // Для веб-пользователей или если нет username
+    return `https://t.me/${username?.replace('@', '') || 'sparkcoin'}`;
+}
+
+// Функция для форматирования времени ставки
+function formatBetTime(timestamp) {
+    if (!timestamp) return 'только что';
+    
+    const betTime = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - betTime;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    
+    if (diffSec < 10) return 'только что';
+    if (diffSec < 60) return `${diffSec} сек назад`;
+    if (diffMin < 60) return `${diffMin} мин назад`;
+    
+    return betTime.toLocaleTimeString();
+}
+
+// Функция для создания элемента участника
+function createParticipantElement(participant, team) {
+    if (!participant) return null;
+    
+    const isCurrentUser = participant.userId === (window.userData?.userId);
+    const item = document.createElement('div');
+    item.className = `participant-item ${team} ${isCurrentUser ? 'current-player' : ''} new-bet`;
+    
+    const avatarUrl = getUserAvatar(participant.userId, participant.username);
+    const profileLink = getUserProfileLink(participant.userId, participant.username);
+    const timeText = formatBetTime(participant.timestamp);
+    
+    item.innerHTML = `
+        <img src="${avatarUrl}" 
+             alt="${participant.username}" 
+             class="participant-avatar"
+             onclick="window.open('${profileLink}', '_blank')"
+             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(participant.userId)}&size=40'">
+        
+        <div class="participant-info">
+            <div class="participant-name ${isCurrentUser ? 'current-player' : ''}">
+                ${participant.username || 'Игрок'} ${isCurrentUser ? '(Вы)' : ''}
+            </div>
+            <div class="participant-time">
+                <span class="timer-icon">⏱</span>
+                <span class="time-text">${timeText}</span>
+            </div>
+        </div>
+        
+        <div class="participant-bet">
+            ${(participant.amount || 0).toFixed(9)} S
+        </div>
+    `;
+    
+    // Убираем анимацию через 2 секунды
+    setTimeout(() => {
+        item.classList.remove('new-bet');
+    }, 2000);
+    
+    return item;
+}
+
+// Функция для обновления всех таймеров ставок
+function updateAllBetTimers() {
+    const timeElements = document.querySelectorAll('.time-text');
+    const now = new Date();
+    
+    timeElements.forEach(element => {
+        const participantItem = element.closest('.participant-item');
+        if (participantItem) {
+            // Находим временную метку из данных
+            const participantName = participantItem.querySelector('.participant-name').textContent;
+            const team = participantItem.classList.contains('eagle') ? 'eagle' : 'tails';
+            
+            // Ищем соответствующего участника в данных
+            const participants = lotteryData[team] || [];
+            const participant = participants.find(p => 
+                p.username && participantName.includes(p.username.replace('(Вы)', '').trim())
+            );
+            
+            if (participant && participant.timestamp) {
+                const newTimeText = formatBetTime(participant.timestamp);
+                element.textContent = newTimeText;
+            }
+        }
+    });
+}
+
+// Функция для обновления времени в реальном времени
+function startRealTimeUpdates() {
+    setInterval(() => {
+        updateAllBetTimers();
+    }, 1000); // Обновляем каждую секунду
+}
+
 // ========== КОМАНДНАЯ ЛОТЕРЕЯ - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ==========
 
 async function loadLotteryStatus() {
@@ -68,6 +192,7 @@ async function loadLotteryStatus() {
     }
 }
 
+// ОБНОВЛЕННАЯ ФУНКЦИЯ СТАВКИ
 async function placeLotteryBet(team, amount) {
     console.log(`🎯 Размещение ставки: ${team}, ${amount}`);
     
@@ -76,27 +201,14 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    if (!window.userData.userId || !team || !amount || !window.userData.username) {
-        console.error('❌ Отсутствуют обязательные поля');
-        showNotification('Ошибка данных', 'error');
-        return false;
-    }
-
-    if (team !== 'eagle' && team !== 'tails') {
-        showNotification('Неверная команда', 'error');
-        return false;
-    }
-
-    if (amount <= 0 || isNaN(amount)) {
-        showNotification('Неверная сумма ставки', 'error');
-        return false;
-    }
-
-    const userBalance = parseFloat(window.userData.balance);
-    if (userBalance < amount) {
-        showNotification('Недостаточно средств', 'error');
-        return false;
-    }
+    // Создаем объект ставки с текущим временем
+    const betData = {
+        userId: window.userData.userId,
+        username: window.userData.username,
+        amount: amount,
+        timestamp: new Date().toISOString(), // Точное время ставки
+        team: team
+    };
 
     try {
         const response = await apiRequest('/api/lottery/bet', {
@@ -104,23 +216,29 @@ async function placeLotteryBet(team, amount) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                userId: window.userData.userId,
-                team: team,
-                amount: amount,
-                username: window.userData.username
-            })
+            body: JSON.stringify(betData)
         });
         
         if (response && response.success) {
-            window.userData.balance = userBalance - amount;
+            // Обновляем баланс
+            window.userData.balance = parseFloat(window.userData.balance) - amount;
             window.userData.totalBet = (window.userData.totalBet || 0) + amount;
             window.userData.lastUpdate = Date.now();
             
-            updateUI();
-            saveUserData();
+            // Добавляем ставку в локальные данные
+            lotteryData[team].unshift(betData); // Добавляем в начало массива
             
-            await loadLotteryStatus();
+            if (team === 'eagle') {
+                lotteryData.total_eagle += amount;
+            } else {
+                lotteryData.total_tails += amount;
+            }
+            
+            lotteryData.participants_count = lotteryData.eagle.length + lotteryData.tails.length;
+            
+            updateUI();
+            updateLotteryUI();
+            saveUserData();
             
             showNotification(`Ставка ${amount.toFixed(9)} S за команду ${team === 'eagle' ? '🦅 Орлов' : '🪙 Решки'} принята!`, 'success');
             return true;
@@ -131,18 +249,12 @@ async function placeLotteryBet(team, amount) {
     } catch (error) {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
-        // ЛОКАЛЬНЫЙ РЕЖИМ ДЛЯ ОБЕСПЕЧЕНИЯ РАБОТОСПОСОБНОСТИ
-        window.userData.balance = userBalance - amount;
+        // ЛОКАЛЬНЫЙ РЕЖИМ
+        window.userData.balance = parseFloat(window.userData.balance) - amount;
         window.userData.totalBet = (window.userData.totalBet || 0) + amount;
         
-        const bet = {
-            userId: window.userData.userId,
-            username: window.userData.username,
-            amount: amount,
-            timestamp: new Date().toISOString()
-        };
-        
-        lotteryData[team].push(bet);
+        // Добавляем ставку в локальные данные
+        lotteryData[team].unshift(betData);
         
         if (team === 'eagle') {
             lotteryData.total_eagle += amount;
@@ -161,6 +273,7 @@ async function placeLotteryBet(team, amount) {
     }
 }
 
+// ОБНОВЛЕННАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ ИНТЕРФЕЙСА ЛОТЕРЕИ
 function updateLotteryUI() {
     try {
         const eagleList = document.getElementById('teamEagle');
@@ -169,6 +282,8 @@ function updateLotteryUI() {
         const tailsTotal = document.getElementById('tailsTotal');
         const eagleParticipants = document.getElementById('eagleParticipants');
         const tailsParticipants = document.getElementById('tailsParticipants');
+        const eagleCountElement = document.getElementById('eagleParticipantsCount');
+        const tailsCountElement = document.getElementById('tailsParticipantsCount');
         const lotteryTimer = document.getElementById('lotteryTimer');
         const lastWinner = document.getElementById('lastWinner');
         const winnerTeam = document.getElementById('winnerTeam');
@@ -178,6 +293,8 @@ function updateLotteryUI() {
         if (tailsTotal) tailsTotal.textContent = (lotteryData.total_tails || 0).toFixed(9) + ' S';
         if (eagleParticipants) eagleParticipants.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
         if (tailsParticipants) tailsParticipants.textContent = lotteryData.tails ? lotteryData.tails.length : 0;
+        if (eagleCountElement) eagleCountElement.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
+        if (tailsCountElement) tailsCountElement.textContent = lotteryData.tails ? lotteryData.tails.length : 0;
         
         // Очищаем списки
         if (eagleList) eagleList.innerHTML = '';
@@ -186,26 +303,8 @@ function updateLotteryUI() {
         // Заполняем список Орлов
         if (eagleList && lotteryData.eagle && lotteryData.eagle.length > 0) {
             lotteryData.eagle.forEach((participant) => {
-                if (!participant) return;
-                
-                const item = document.createElement('div');
-                item.className = `participant-item eagle ${participant.userId === (window.userData?.userId) ? 'current-player' : ''}`;
-                
-                const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
-                const timeString = betTime.toLocaleTimeString();
-                
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <div style="flex: 1;">
-                            <div style="${participant.userId === (window.userData?.userId) ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
-                                ${participant.username || 'Игрок'} ${participant.userId === (window.userData?.userId) ? '(Вы)' : ''}
-                            </div>
-                            <div class="participant-time">${timeString}</div>
-                        </div>
-                        <span class="participant-bet">${(participant.amount || 0).toFixed(9)} S</span>
-                    </div>
-                `;
-                eagleList.appendChild(item);
+                const item = createParticipantElement(participant, 'eagle');
+                if (item) eagleList.appendChild(item);
             });
         } else if (eagleList) {
             eagleList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
@@ -214,26 +313,8 @@ function updateLotteryUI() {
         // Заполняем список Решек
         if (tailsList && lotteryData.tails && lotteryData.tails.length > 0) {
             lotteryData.tails.forEach((participant) => {
-                if (!participant) return;
-                
-                const item = document.createElement('div');
-                item.className = `participant-item tails ${participant.userId === (window.userData?.userId) ? 'current-player' : ''}`;
-                
-                const betTime = participant.timestamp ? new Date(participant.timestamp) : new Date();
-                const timeString = betTime.toLocaleTimeString();
-                
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <div style="flex: 1;">
-                            <div style="${participant.userId === (window.userData?.userId) ? 'color: #4CC9F0; font-weight: bold;' : 'color: white;'}">
-                                ${participant.username || 'Игрок'} ${participant.userId === (window.userData?.userId) ? '(Вы)' : ''}
-                            </div>
-                            <div class="participant-time">${timeString}</div>
-                        </div>
-                        <span class="participant-bet">${(participant.amount || 0).toFixed(9)} S</span>
-                    </div>
-                `;
-                tailsList.appendChild(item);
+                const item = createParticipantElement(participant, 'tails');
+                if (item) tailsList.appendChild(item);
             });
         } else if (tailsList) {
             tailsList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
@@ -259,7 +340,7 @@ function updateLotteryUI() {
         if (lastWinner && winnerTeam && lotteryData.last_winner) {
             lastWinner.style.display = 'block';
             const teamName = lotteryData.last_winner.team === 'eagle' ? '🦅 Орлы' : '🪙 Решки';
-            const winnerTime = lotteryData.last_winner.timestamp ? new Date(lotteryData.last_winner.timestamp).toLocaleDateString() : 'Недавно';
+            const winnerTime = lotteryData.last_winner.timestamp ? formatBetTime(lotteryData.last_winner.timestamp) : 'Недавно';
             winnerTeam.innerHTML = `
                 <div style="color: #FFD700; font-weight: bold;">${teamName}</div>
                 <div style="color: white;">${lotteryData.last_winner.username || 'Победитель'}</div>
@@ -269,6 +350,10 @@ function updateLotteryUI() {
         } else if (lastWinner) {
             lastWinner.style.display = 'none';
         }
+        
+        // Обновляем таймеры у всех ставок
+        updateAllBetTimers();
+        
     } catch (error) {
         console.error('❌ Ошибка обновления интерфейса лотереи:', error);
     }
@@ -655,23 +740,17 @@ window.updateTopWinners = updateTopWinners;
 // ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎮 Инициализация игровой системы...');
+    console.log('🎮 Инициализация улучшенной игровой системы...');
     
     setTimeout(() => {
         startLotteryAutoUpdate();
         startClassicLotteryUpdate();
+        startRealTimeUpdates(); // Запускаем обновление времени в реальном времени
         updateTopWinners();
         updateLeaderboard();
         updateSpeedLeaderboard();
         
-        // Периодическое обновление
-        setInterval(() => {
-            updateTopWinners();
-            updateLeaderboard();
-            updateSpeedLeaderboard();
-        }, 30000);
-        
-        console.log('✅ Игровая система полностью инициализирована');
+        console.log('✅ Улучшенная игровая система полностью инициализирована');
     }, 2000);
 });
 
