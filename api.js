@@ -41,11 +41,14 @@ window.apiRequest = async function(endpoint, options = {}) {
     }
 };
 
-// Улучшенные офлайн ответы
+// Улучшенные офлайн ответы с учетом текущего пользователя и скорости
 function getOfflineResponse(endpoint, options = {}) {
     const currentUserId = window.userData?.userId || 'default_user';
     const currentUsername = window.userData?.username || 'Текущий Игрок';
     const currentBalance = window.userData?.balance || 0.000000100;
+    const currentClickSpeed = window.calculateClickPower ? window.calculateClickPower() : 0.000000001;
+    const currentMineSpeed = window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000;
+    const currentTotalSpeed = currentClickSpeed + currentMineSpeed;
     
     const offlineResponses = {
         '/api/health': {
@@ -63,9 +66,10 @@ function getOfflineResponse(endpoint, options = {}) {
             timestamp: new Date().toISOString()
         },
         
-        '/api/transfer': {
+        '/api/sync/telegram': {
             success: true,
-            message: 'Перевод выполнен в офлайн режиме',
+            message: 'Офлайн режим для Telegram',
+            userId: currentUserId,
             offline: true
         },
         
@@ -78,6 +82,9 @@ function getOfflineResponse(endpoint, options = {}) {
                     balance: currentBalance,
                     totalEarned: window.userData?.totalEarned || 0.000000100,
                     totalClicks: window.userData?.totalClicks || 0,
+                    clickSpeed: currentClickSpeed,
+                    mineSpeed: currentMineSpeed,
+                    totalSpeed: currentTotalSpeed,
                     lastUpdate: new Date().toISOString()
                 },
                 {
@@ -86,6 +93,9 @@ function getOfflineResponse(endpoint, options = {}) {
                     balance: 0.000000050,
                     totalEarned: 0.000000200,
                     totalClicks: 25,
+                    clickSpeed: 0.000000002,
+                    mineSpeed: 0.000000001,
+                    totalSpeed: 0.000000003,
                     lastUpdate: new Date().toISOString()
                 }
             ],
@@ -96,18 +106,18 @@ function getOfflineResponse(endpoint, options = {}) {
             success: true,
             leaderboard: [
                 {
+                    rank: 1,
                     userId: currentUserId,
                     username: currentUsername,
                     balance: currentBalance,
                     totalEarned: window.userData?.totalEarned || 0.000000100,
                     totalClicks: window.userData?.totalClicks || 0,
-                    clickSpeed: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
-                    mineSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
-                    totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0.000000001) + 
-                               (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000),
-                    upgrades: window.upgrades || {}
+                    clickSpeed: currentClickSpeed,
+                    mineSpeed: currentMineSpeed,
+                    totalSpeed: currentTotalSpeed
                 },
                 {
+                    rank: 2,
                     userId: 'demo_player_2',
                     username: 'Демо Игрок 2',
                     balance: 0.000000080,
@@ -115,8 +125,7 @@ function getOfflineResponse(endpoint, options = {}) {
                     totalClicks: 45,
                     clickSpeed: 0.000000002,
                     mineSpeed: 0.000000001,
-                    totalSpeed: 0.000000003,
-                    upgrades: { mouse1: 1, gpu1: 1 }
+                    totalSpeed: 0.000000003
                 }
             ],
             offline: true
@@ -128,7 +137,7 @@ function getOfflineResponse(endpoint, options = {}) {
                 eagle: [],
                 tails: [],
                 last_winner: null,
-                timer: 60 - Math.floor((Date.now() / 1000) % 60),
+                timer: Math.floor(Math.random() * 60) + 30,
                 total_eagle: 0,
                 total_tails: 0,
                 participants_count: 0
@@ -148,7 +157,7 @@ function getOfflineResponse(endpoint, options = {}) {
             lottery: {
                 bets: [],
                 total_pot: 0,
-                timer: 120 - Math.floor((Date.now() / 1000) % 120),
+                timer: Math.floor(Math.random() * 120) + 60,
                 participants_count: 0,
                 history: []
             },
@@ -176,14 +185,12 @@ function getOfflineResponse(endpoint, options = {}) {
             success: true,
             winners: [
                 {
-                    userId: currentUserId,
                     username: currentUsername,
                     totalWinnings: 0.000001000,
                     totalLosses: 0.000000200,
                     netWinnings: 0.000000800
                 },
                 {
-                    userId: 'demo_player_2',
                     username: 'Демо Победитель',
                     totalWinnings: 0.000000500,
                     totalLosses: 0.000000100,
@@ -191,9 +198,25 @@ function getOfflineResponse(endpoint, options = {}) {
                 }
             ],
             offline: true
+        },
+        
+        '/api/player': {
+            success: true,
+            player: {
+                userId: currentUserId,
+                username: currentUsername,
+                balance: currentBalance,
+                totalEarned: window.userData?.totalEarned || 0.000000100,
+                totalClicks: window.userData?.totalClicks || 0,
+                clickSpeed: currentClickSpeed,
+                mineSpeed: currentMineSpeed,
+                totalSpeed: currentTotalSpeed
+            },
+            offline: true
         }
     };
 
+    // Для POST запросов возвращаем успешный ответ
     if (options.method === 'POST') {
         return {
             success: true,
@@ -204,12 +227,14 @@ function getOfflineResponse(endpoint, options = {}) {
         };
     }
     
+    // Ищем подходящий ответ
     for (const [key, value] of Object.entries(offlineResponses)) {
         if (endpoint.includes(key.replace('/:userId', '').replace('/:id', ''))) {
             return value;
         }
     }
     
+    // Ответ по умолчанию
     return { 
         success: true, 
         userId: currentUserId,
@@ -219,6 +244,7 @@ function getOfflineResponse(endpoint, options = {}) {
     };
 }
 
+// Функция проверки соединения
 window.checkApiConnection = async function() {
     console.log('🔍 Проверка соединения с API...');
     try {
@@ -235,6 +261,7 @@ window.checkApiConnection = async function() {
     return false;
 };
 
+// Функция для обновления статуса API
 window.updateApiStatus = function(status, message) {
     const apiStatus = document.getElementById('apiStatus');
     if (apiStatus) {
@@ -245,6 +272,7 @@ window.updateApiStatus = function(status, message) {
     console.log(`📡 Статус API: ${status} - ${message}`);
 };
 
+// Улучшенная функция синхронизации данных с API
 window.syncPlayerDataWithAPI = async function() {
     console.log('🔄 Синхронизация с API...');
     
@@ -274,6 +302,7 @@ window.syncPlayerDataWithAPI = async function() {
         if (response && response.success) {
             console.log('✅ Данные синхронизированы с API');
             
+            // Обновляем данные если сервер вернул лучший баланс
             if (response.bestBalance && response.bestBalance > window.userData.balance) {
                 console.log(`💰 Баланс обновлен: ${window.userData.balance} -> ${response.bestBalance}`);
                 window.userData.balance = response.bestBalance;
@@ -289,6 +318,7 @@ window.syncPlayerDataWithAPI = async function() {
     return false;
 };
 
+// Функция загрузки всех игроков
 window.loadAllPlayers = async function() {
     console.log('👥 Загрузка списка игроков...');
     try {
@@ -305,6 +335,7 @@ window.loadAllPlayers = async function() {
     return [];
 };
 
+// Функция загрузки топа игроков
 window.loadLeaderboard = async function() {
     console.log('🏆 Загрузка рейтинга...');
     try {
@@ -319,6 +350,7 @@ window.loadLeaderboard = async function() {
     return [];
 };
 
+// Функция загрузки топа победителей
 window.loadTopWinners = async function() {
     console.log('🎯 Загрузка топа победителей...');
     try {
@@ -333,6 +365,7 @@ window.loadTopWinners = async function() {
     return [];
 };
 
+// Функция загрузки статуса командной лотереи
 window.loadLotteryStatus = async function() {
     console.log('🎰 Загрузка статуса командной лотереи...');
     try {
@@ -347,6 +380,7 @@ window.loadLotteryStatus = async function() {
     return null;
 };
 
+// Функция загрузки статуса классической лотереи
 window.loadClassicLotteryStatus = async function() {
     console.log('🎲 Загрузка статуса классической лотереи...');
     try {
@@ -356,11 +390,12 @@ window.loadClassicLotteryStatus = async function() {
             return data.lottery;
         }
     } catch (error) {
-        console.log('📴 Ошибка загрузки статуса лотереи');
+        console.log('📴 Ошибка загрузки статуса классической лотереи');
     }
     return null;
 };
 
+// Функция загрузки реферальной статистики
 window.loadReferralStats = async function() {
     console.log('👥 Загрузка реферальной статистики...');
     try {
@@ -381,6 +416,7 @@ window.loadReferralStats = async function() {
     return null;
 };
 
+// Функция для ставки в командной лотерее
 window.placeLotteryBet = async function(team, amount) {
     console.log(`🎯 Ставка в лотерею: ${team}, ${amount}`);
     
@@ -407,6 +443,7 @@ window.placeLotteryBet = async function(team, amount) {
     }
 };
 
+// Функция для ставки в классической лотерее
 window.placeClassicLotteryBet = async function(amount) {
     console.log(`🎲 Ставка в классическую лотерею: ${amount}`);
     
@@ -432,6 +469,9 @@ window.placeClassicLotteryBet = async function(amount) {
     }
 };
 
+// ========== УНИВЕРСАЛЬНЫЕ ФУНКЦИИ СИНХРОНИЗАЦИИ ==========
+
+// Функция для получения улучшений для синхронизации
 if (typeof window.getUpgradesForSync === 'undefined') {
     window.getUpgradesForSync = function() {
         const upgradesData = {};
@@ -449,6 +489,7 @@ if (typeof window.getUpgradesForSync === 'undefined') {
     };
 }
 
+// Функция для загрузки синхронизированных данных
 if (typeof window.loadSyncedData === 'undefined') {
     window.loadSyncedData = async function() {
         console.log('📥 Загрузка синхронизированных данных...');
@@ -467,6 +508,7 @@ if (typeof window.loadSyncedData === 'undefined') {
                 
                 const serverData = response.userData;
                 
+                // Объединяем данные, сохраняя локальный прогресс
                 if (serverData.balance > window.userData.balance) {
                     window.userData.balance = serverData.balance;
                 }
@@ -477,8 +519,9 @@ if (typeof window.loadSyncedData === 'undefined') {
                     window.userData.totalClicks = serverData.totalClicks;
                 }
                 
-                window.userData.userId = serverData.userId;
-                window.userData.username = serverData.username;
+                // Обновляем другие данные с сервера
+                window.userData.userId = serverData.userId || window.userData.userId;
+                window.userData.username = serverData.username || window.userData.username;
                 window.userData.lotteryWins = serverData.lotteryWins || 0;
                 window.userData.totalBet = serverData.totalBet || 0;
                 window.userData.referralEarnings = serverData.referralEarnings || 0;
@@ -486,12 +529,23 @@ if (typeof window.loadSyncedData === 'undefined') {
                 window.userData.totalWinnings = serverData.totalWinnings || 0;
                 window.userData.totalLosses = serverData.totalLosses || 0;
                 
+                // Обновляем скорости с сервера (если есть)
+                if (serverData.clickSpeed || serverData.mineSpeed || serverData.totalSpeed) {
+                    console.log('📊 Получены скорости с сервера:', {
+                        click: serverData.clickSpeed,
+                        mine: serverData.mineSpeed,
+                        total: serverData.totalSpeed
+                    });
+                }
+                
+                // Синхронизируем улучшения
                 if (serverData.upgrades) {
                     console.log('🔄 Синхронизация улучшений с сервера:', serverData.upgrades);
                     for (const key in serverData.upgrades) {
                         const serverLevel = serverData.upgrades[key];
                         const localLevel = window.upgrades[key]?.level || window.upgrades[key] || 0;
                         
+                        // Берем максимальный уровень
                         if (serverLevel > localLevel) {
                             console.log(`📈 Обновление улучшения ${key}: ${localLevel} -> ${serverLevel}`);
                             if (!window.upgrades[key] || typeof window.upgrades[key] === 'number') {
@@ -521,6 +575,7 @@ if (typeof window.loadSyncedData === 'undefined') {
     };
 }
 
+// Функция для синхронизации данных
 if (typeof window.syncUserData === 'undefined') {
     window.syncUserData = async function(force = false) {
         console.log('🔄 Синхронизация данных...');
@@ -548,12 +603,14 @@ if (typeof window.syncUserData === 'undefined') {
             if (response && response.success) {
                 console.log('✅ Данные синхронизированы с сервером');
                 
+                // Если сервер вернул другой userId (при объединении записей)
                 if (response.userId && response.userId !== window.userData.userId) {
                     console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
                     window.userData.userId = response.userId;
                     if (window.saveUserData) window.saveUserData();
                 }
                 
+                // Если серверный баланс больше - используем его
                 if (response.bestBalance && response.bestBalance > window.userData.balance) {
                     console.log(`💰 Баланс обновлен: ${window.userData.balance} -> ${response.bestBalance}`);
                     window.userData.balance = response.bestBalance;
@@ -573,10 +630,14 @@ if (typeof window.syncUserData === 'undefined') {
     };
 }
 
+// ========== ФУНКЦИИ ДЛЯ УВЕДОМЛЕНИЙ И УТИЛИТ ==========
+
+// Функция для уведомлений
 if (typeof window.showNotification === 'undefined') {
     window.showNotification = function(message, type = 'info', duration = 3000) {
         console.log(`🔔 ${type.toUpperCase()}: ${message}`);
         
+        // Создаем уведомление
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
@@ -586,8 +647,10 @@ if (typeof window.showNotification === 'undefined') {
         
         document.body.appendChild(notification);
         
+        // Показываем с анимацией
         setTimeout(() => notification.classList.add('show'), 100);
         
+        // Убираем через указанное время
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => {
@@ -599,6 +662,7 @@ if (typeof window.showNotification === 'undefined') {
     };
 }
 
+// Функция для расчета силы клика
 if (typeof window.calculateClickPower === 'undefined') {
     window.calculateClickPower = function() {
         let power = 0.000000001;
@@ -619,6 +683,7 @@ if (typeof window.calculateClickPower === 'undefined') {
     };
 }
 
+// Функция для расчета скорости майнинга
 if (typeof window.calculateMiningSpeed === 'undefined') {
     window.calculateMiningSpeed = function() {
         let speed = 0.000000000;
@@ -639,6 +704,7 @@ if (typeof window.calculateMiningSpeed === 'undefined') {
     };
 }
 
+// Функция для обновления UI
 if (typeof window.updateUI === 'undefined') {
     window.updateUI = function() {
         if (!window.userData) return;
@@ -666,6 +732,7 @@ if (typeof window.updateUI === 'undefined') {
     };
 }
 
+// Функция для обновления баланса
 if (typeof window.updateBalanceImmediately === 'undefined') {
     window.updateBalanceImmediately = function() {
         if (!window.userData) return;
@@ -682,6 +749,7 @@ if (typeof window.updateBalanceImmediately === 'undefined') {
     };
 }
 
+// Функция для сохранения данных
 if (typeof window.saveUserData === 'undefined') {
     window.saveUserData = function() {
         try {
@@ -708,6 +776,7 @@ if (typeof window.saveUserData === 'undefined') {
     };
 }
 
+// Функция для генерации Device ID
 if (typeof window.generateDeviceId === 'undefined') {
     window.generateDeviceId = function() {
         let deviceId = localStorage.getItem('sparkcoin_device_id');
@@ -719,16 +788,20 @@ if (typeof window.generateDeviceId === 'undefined') {
     };
 }
 
+// ========== АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ ==========
+
+// Автоматическая проверка соединения при загрузке
 setTimeout(() => {
     if (window.checkApiConnection) {
         window.checkApiConnection();
     }
 }, 1000);
 
+// Периодическая проверка соединения
 setInterval(() => {
     if (window.checkApiConnection) {
         window.checkApiConnection();
     }
-}, 60000);
+}, 60000); // Каждую минуту
 
 console.log('✅ API для Sparkcoin загружен! ВСЕ ФУНКЦИИ ОПРЕДЕЛЕНЫ И ИСПРАВЛЕНЫ');
