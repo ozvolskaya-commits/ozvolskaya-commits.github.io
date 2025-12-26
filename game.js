@@ -1,4 +1,4 @@
-// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР С СИНХРОНИЗАЦИЕЙ
+// game.js - ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ И ВСЕМИ ИСПРАВЛЕНИЯМИ
 console.log('🎮 ЗАГРУЖАЕМ ПОЛНЫЙ ИСПРАВЛЕННЫЙ КОД ИГР...');
 
 // ========== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ ==========
@@ -35,15 +35,63 @@ let lotteryUpdateInterval;
 let classicLotteryInterval;
 let lastLotteryUpdate = 0;
 let lastClassicUpdate = 0;
+let currentLotteryTimer = 60;
+let currentClassicTimer = 120;
+let timerInterval;
+
+// ========== СИНХРОНИЗАЦИЯ ВРЕМЕНИ ЛОТЕРЕЙ (МГНОВЕННОЕ ОБНОВЛЕНИЕ) ==========
+function startTimerSync() {
+    console.log('⏱️ Запуск синхронизации времени лотерей');
+    clearInterval(timerInterval);
+    
+    // Получаем текущее время сервера для синхронизации
+    const now = Date.now();
+    const lotteryStart = now % (60 * 1000);
+    const classicStart = now % (120 * 1000);
+    
+    currentLotteryTimer = 60 - Math.floor(lotteryStart / 1000);
+    currentClassicTimer = 120 - Math.floor(classicStart / 1000);
+    
+    // Обновляем таймеры немедленно
+    const lotteryTimerElement = document.getElementById('lotteryTimer');
+    const classicTimerElement = document.getElementById('classicTimer');
+    
+    if (lotteryTimerElement) lotteryTimerElement.textContent = currentLotteryTimer;
+    if (classicTimerElement) classicTimerElement.textContent = currentClassicTimer;
+    
+    // Запускаем точное обновление каждую секунду
+    timerInterval = setInterval(() => {
+        // Обновляем таймер командной лотереи
+        if (currentLotteryTimer > 1) {
+            currentLotteryTimer--;
+        } else {
+            currentLotteryTimer = 60;
+            // Обновляем данные лотереи при сбросе таймера
+            setTimeout(() => loadLotteryStatus(), 100);
+        }
+        
+        // Обновляем таймер классической лотереи
+        if (currentClassicTimer > 1) {
+            currentClassicTimer--;
+        } else {
+            currentClassicTimer = 120;
+            // Обновляем данные лотереи при сбросе таймера
+            setTimeout(() => loadClassicLottery(), 100);
+        }
+        
+        // Немедленное обновление отображения
+        if (lotteryTimerElement) lotteryTimerElement.textContent = currentLotteryTimer;
+        if (classicTimerElement) classicTimerElement.textContent = currentClassicTimer;
+        
+    }, 1000);
+    
+    console.log('✅ Синхронизация времени запущена');
+}
 
 // ========== ФУНКЦИИ ДЛЯ АВАТАРОК И ТАЙМЕРОВ ==========
-
-// Функция для получения аватарки пользователя
 function getUserAvatar(userId, username) {
-    // Для Telegram пользователей
     if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user) {
         const user = Telegram.WebApp.initDataUnsafe.user;
-        // Проверяем, это текущий пользователь или другой
         const isCurrentUser = user.id && `tg_${user.id}` === userId;
         
         if (isCurrentUser && user.photo_url) {
@@ -51,24 +99,19 @@ function getUserAvatar(userId, username) {
         }
     }
     
-    // Для демо-пользователей генерируем аватарки через DiceBear
     const avatarSeed = userId || username || 'default';
     return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed)}&size=40`;
 }
 
-// Функция для получения ссылки на профиль
 function getUserProfileLink(userId, username) {
-    // Для Telegram пользователей
     if (userId.startsWith('tg_')) {
         const tgId = userId.replace('tg_', '');
         return `https://t.me/${username?.replace('@', '') || tgId}`;
     }
     
-    // Для веб-пользователей или если нет username
     return `https://t.me/${username?.replace('@', '') || 'sparkcoin'}`;
 }
 
-// Функция для форматирования времени ставки
 function formatBetTime(timestamp) {
     if (!timestamp) return 'только что';
     
@@ -82,10 +125,9 @@ function formatBetTime(timestamp) {
     if (diffSec < 60) return `${diffSec} сек назад`;
     if (diffMin < 60) return `${diffMin} мин назад`;
     
-    return betTime.toLocaleTimeString();
+    return betTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
-// Функция для создания элемента участника
 function createParticipantElement(participant, team) {
     if (!participant) return null;
     
@@ -119,7 +161,6 @@ function createParticipantElement(participant, team) {
         </div>
     `;
     
-    // Убираем анимацию через 2 секунды
     setTimeout(() => {
         item.classList.remove('new-bet');
     }, 2000);
@@ -127,7 +168,6 @@ function createParticipantElement(participant, team) {
     return item;
 }
 
-// Функция для обновления всех таймеров ставок
 function updateAllBetTimers() {
     const timeElements = document.querySelectorAll('.time-text');
     const now = new Date();
@@ -135,11 +175,9 @@ function updateAllBetTimers() {
     timeElements.forEach(element => {
         const participantItem = element.closest('.participant-item');
         if (participantItem) {
-            // Находим временную метку из данных
             const participantName = participantItem.querySelector('.participant-name').textContent;
             const team = participantItem.classList.contains('eagle') ? 'eagle' : 'tails';
             
-            // Ищем соответствующего участника в данных
             const participants = lotteryData[team] || [];
             const participant = participants.find(p => 
                 p.username && participantName.includes(p.username.replace('(Вы)', '').trim())
@@ -153,19 +191,17 @@ function updateAllBetTimers() {
     });
 }
 
-// Функция для обновления времени в реальном времени
 function startRealTimeUpdates() {
     setInterval(() => {
         updateAllBetTimers();
-    }, 1000); // Обновляем каждую секунду
+    }, 1000);
 }
 
-// ========== КОМАНДНАЯ ЛОТЕРЕЯ - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ==========
-
+// ========== КОМАНДНАЯ ЛОТЕРЕЯ ==========
 async function loadLotteryStatus() {
     try {
         const now = Date.now();
-        if (now - lastLotteryUpdate < 2000) return; // Защита от частых запросов
+        if (now - lastLotteryUpdate < 2000) return;
         
         console.log('🔄 Загрузка статуса командной лотереи...');
         const data = await apiRequest('/api/lottery/status');
@@ -174,16 +210,15 @@ async function loadLotteryStatus() {
             lotteryData.eagle = data.lottery.eagle || [];
             lotteryData.tails = data.lottery.tails || [];
             lotteryData.last_winner = data.lottery.last_winner || null;
-            lotteryData.timer = data.lottery.timer || 60;
+            currentLotteryTimer = data.lottery.timer || 60;
             lotteryData.total_eagle = data.lottery.total_eagle || 0;
             lotteryData.total_tails = data.lottery.total_tails || 0;
             lotteryData.participants_count = data.lottery.participants_count || 0;
             
-            console.log('✅ Данные командной лотереи загружены:', lotteryData.timer + 'сек');
+            console.log('✅ Данные командной лотереи загружены:', currentLotteryTimer + 'сек');
             updateLotteryUI();
             lastLotteryUpdate = now;
         } else {
-            console.log('⚠️ Нет данных лотереи, используем локальные');
             updateLotteryUI();
         }
     } catch (error) {
@@ -192,7 +227,6 @@ async function loadLotteryStatus() {
     }
 }
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ СТАВКИ
 async function placeLotteryBet(team, amount) {
     console.log(`🎯 Размещение ставки: ${team}, ${amount}`);
     
@@ -201,12 +235,11 @@ async function placeLotteryBet(team, amount) {
         return false;
     }
 
-    // Создаем объект ставки с текущим временем
     const betData = {
         userId: window.userData.userId,
         username: window.userData.username,
         amount: amount,
-        timestamp: new Date().toISOString(), // Точное время ставки
+        timestamp: new Date().toISOString(),
         team: team
     };
 
@@ -220,13 +253,11 @@ async function placeLotteryBet(team, amount) {
         });
         
         if (response && response.success) {
-            // Обновляем баланс
             window.userData.balance = parseFloat(window.userData.balance) - amount;
             window.userData.totalBet = (window.userData.totalBet || 0) + amount;
             window.userData.lastUpdate = Date.now();
             
-            // Добавляем ставку в локальные данные
-            lotteryData[team].unshift(betData); // Добавляем в начало массива
+            lotteryData[team].unshift(betData);
             
             if (team === 'eagle') {
                 lotteryData.total_eagle += amount;
@@ -249,11 +280,9 @@ async function placeLotteryBet(team, amount) {
     } catch (error) {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
-        // ЛОКАЛЬНЫЙ РЕЖИМ
         window.userData.balance = parseFloat(window.userData.balance) - amount;
         window.userData.totalBet = (window.userData.totalBet || 0) + amount;
         
-        // Добавляем ставку в локальные данные
         lotteryData[team].unshift(betData);
         
         if (team === 'eagle') {
@@ -273,7 +302,6 @@ async function placeLotteryBet(team, amount) {
     }
 }
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ ИНТЕРФЕЙСА ЛОТЕРЕИ
 function updateLotteryUI() {
     try {
         const eagleList = document.getElementById('teamEagle');
@@ -288,7 +316,7 @@ function updateLotteryUI() {
         const lastWinner = document.getElementById('lastWinner');
         const winnerTeam = document.getElementById('winnerTeam');
         
-        if (lotteryTimer) lotteryTimer.textContent = lotteryData.timer || 60;
+        if (lotteryTimer) lotteryTimer.textContent = currentLotteryTimer;
         if (eagleTotal) eagleTotal.textContent = (lotteryData.total_eagle || 0).toFixed(9) + ' S';
         if (tailsTotal) tailsTotal.textContent = (lotteryData.total_tails || 0).toFixed(9) + ' S';
         if (eagleParticipants) eagleParticipants.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
@@ -296,11 +324,9 @@ function updateLotteryUI() {
         if (eagleCountElement) eagleCountElement.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
         if (tailsCountElement) tailsCountElement.textContent = lotteryData.tails ? lotteryData.tails.length : 0;
         
-        // Очищаем списки
         if (eagleList) eagleList.innerHTML = '';
         if (tailsList) tailsList.innerHTML = '';
         
-        // Заполняем список Орлов
         if (eagleList && lotteryData.eagle && lotteryData.eagle.length > 0) {
             lotteryData.eagle.forEach((participant) => {
                 const item = createParticipantElement(participant, 'eagle');
@@ -310,7 +336,6 @@ function updateLotteryUI() {
             eagleList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
         }
         
-        // Заполняем список Решек
         if (tailsList && lotteryData.tails && lotteryData.tails.length > 0) {
             lotteryData.tails.forEach((participant) => {
                 const item = createParticipantElement(participant, 'tails');
@@ -320,7 +345,6 @@ function updateLotteryUI() {
             tailsList.innerHTML = '<div style="text-align: center; color: #666; padding: 15px; font-size: 12px;">Пока нет ставок</div>';
         }
         
-        // Обновляем шансы
         const totalBet = (lotteryData.total_eagle || 0) + (lotteryData.total_tails || 0);
         let eagleChance = 50;
         let tailsChance = 50;
@@ -336,7 +360,6 @@ function updateLotteryUI() {
         if (eagleChanceElement) eagleChanceElement.textContent = eagleChance + '%';
         if (tailsChanceElement) tailsChanceElement.textContent = tailsChance + '%';
         
-        // Показываем последнего победителя
         if (lastWinner && winnerTeam && lotteryData.last_winner) {
             lastWinner.style.display = 'block';
             const teamName = lotteryData.last_winner.team === 'eagle' ? '🦅 Орлы' : '🪙 Решки';
@@ -351,7 +374,6 @@ function updateLotteryUI() {
             lastWinner.style.display = 'none';
         }
         
-        // Обновляем таймеры у всех ставок
         updateAllBetTimers();
         
     } catch (error) {
@@ -422,12 +444,11 @@ async function playTeamLottery() {
     }
 }
 
-// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ==========
-
+// ========== КЛАССИЧЕСКАЯ ЛОТЕРЕЯ ==========
 async function loadClassicLottery() {
     try {
         const now = Date.now();
-        if (now - lastClassicUpdate < 2000) return; // Защита от частых запросов
+        if (now - lastClassicUpdate < 2000) return;
         
         console.log('🔄 Загрузка статуса классической лотереи...');
         const data = await apiRequest('/api/classic-lottery/status');
@@ -435,11 +456,11 @@ async function loadClassicLottery() {
         if (data && data.success && data.lottery) {
             classicLotteryData.bets = data.lottery.bets || [];
             classicLotteryData.total_pot = data.lottery.total_pot || 0;
-            classicLotteryData.timer = data.lottery.timer || 120;
+            currentClassicTimer = data.lottery.timer || 120;
             classicLotteryData.participants_count = data.lottery.participants_count || 0;
             classicLotteryData.history = data.lottery.history || [];
             
-            console.log('✅ Данные классической лотереи загружены:', classicLotteryData.timer + 'сек');
+            console.log('✅ Данные классической лотереи загружены:', currentClassicTimer + 'сек');
             updateClassicLotteryUI();
             lastClassicUpdate = now;
         } else {
@@ -509,7 +530,6 @@ async function playClassicLottery() {
     } catch (error) {
         console.warn('⚠️ Ошибка ставки, используем локальный режим:', error);
         
-        // ЛОКАЛЬНЫЙ РЕЖИМ ДЛЯ ОБЕСПЕЧЕНИЯ РАБОТОСПОСОБНОСТИ
         window.userData.balance = parseFloat(window.userData.balance) - bet;
         window.userData.totalBet = (window.userData.totalBet || 0) + bet;
         
@@ -539,7 +559,7 @@ function updateClassicLotteryUI() {
         const lotteryParticipants = document.getElementById('lotteryParticipants');
         const historyElement = document.getElementById('classicHistory');
         
-        if (classicTimer) classicTimer.textContent = classicLotteryData.timer || 120;
+        if (classicTimer) classicTimer.textContent = currentClassicTimer;
         if (lotteryPot) lotteryPot.textContent = (classicLotteryData.total_pot || 0).toFixed(9);
         if (lotteryParticipants) lotteryParticipants.textContent = classicLotteryData.participants_count || 0;
         
@@ -551,12 +571,16 @@ function updateClassicLotteryUI() {
                     if (!item) return;
                     
                     const historyItem = document.createElement('div');
-                    const isWinner = item.winner === (window.userData?.username);
-                    historyItem.className = `history-item ${isWinner ? '' : 'lost'}`;
+                    const isCurrentUser = window.userData?.username && 
+                        (item.winner === window.userData.username || 
+                         (item.winner && window.userData.username.includes(item.winner)) ||
+                         (item.winner && item.winner.includes(window.userData.username)));
+                    
+                    historyItem.className = `history-item ${isCurrentUser ? 'current-player' : 'lost'}`;
                     historyItem.innerHTML = `
-                        <div style="font-weight: bold;">${item.winner || 'Победитель'}</div>
-                        <div style="color: ${isWinner ? '#4CAF50' : '#f44336'};">
-                            ${isWinner ? 'Выиграл' : 'Проиграл'} ${(item.prize || 0).toFixed(9)} S
+                        <div style="font-weight: bold; color: ${isCurrentUser ? '#FFD700' : '#fff'};">${item.winner || 'Победитель'} ${isCurrentUser ? '👑' : ''}</div>
+                        <div style="color: ${isCurrentUser ? '#4CAF50' : '#f44336'};">
+                            ${isCurrentUser ? 'Выиграл' : 'Проиграл'} ${(item.prize || 0).toFixed(9)} S
                         </div>
                         <div style="font-size: 10px; color: #ccc;">Участников: ${item.participants || 0}</div>
                     `;
@@ -583,7 +607,6 @@ function startClassicLotteryUpdate() {
 }
 
 // ========== ТОП ПОБЕДИТЕЛЕЙ - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ ==========
-
 async function updateTopWinners() {
     try {
         console.log('🏆 Загрузка топа победителей...');
@@ -598,12 +621,17 @@ async function updateTopWinners() {
                     data.winners.forEach((winner, index) => {
                         if (!winner) return;
                         
+                        const isCurrentUser = window.userData?.username && 
+                            (winner.username === window.userData.username || 
+                             (winner.username && window.userData.username.includes(winner.username)) ||
+                             (winner.username && winner.username.includes(window.userData.username)));
+                        
                         const winnerItem = document.createElement('div');
-                        winnerItem.className = 'winner-item';
+                        winnerItem.className = `winner-item ${isCurrentUser ? 'current-player' : ''}`;
                         const netWinnings = winner.netWinnings || 0;
                         winnerItem.innerHTML = `
                             <div class="winner-rank">${index + 1}</div>
-                            <div class="winner-name">${winner.username || 'Игрок'}</div>
+                            <div class="winner-name ${isCurrentUser ? 'current-player' : ''}">${winner.username || 'Игрок'} ${isCurrentUser ? '👑' : ''}</div>
                             <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
                                 ${netWinnings.toFixed(9)} S
                             </div>
@@ -630,8 +658,7 @@ async function updateTopWinners() {
     }
 }
 
-// ========== ИСПРАВЛЕННЫЙ РЕЙТИНГ ==========
-
+// ========== ИСПРАВЛЕННЫЙ РЕЙТИНГ С ПРАВИЛЬНЫМ РАСЧЁТОМ СКОРОСТИ ==========
 async function updateLeaderboard() {
     try {
         console.log('📊 Загрузка рейтинга по балансу...');
@@ -656,7 +683,11 @@ async function updateLeaderboard() {
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
             const balance = typeof player.balance === 'number' ? player.balance : 0;
-            const isCurrent = player.userId === userId;
+            const isCurrent = player.userId === userId || 
+                (player.username && window.userData?.username && 
+                 (player.username === window.userData.username ||
+                  player.username.includes(window.userData.username) || 
+                  window.userData.username.includes(player.username)));
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
@@ -702,10 +733,61 @@ async function updateSpeedLeaderboard() {
             
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
-            const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
-            const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000000;
+            
+            // РАСЧЕТ СКОРОСТИ ДЛЯ КАЖДОГО ИГРОКА ИЗ ДАННЫХ УЛУЧШЕНИЙ
+            let mineSpeed = 0.000000000;
+            let clickSpeed = 0.000000000;
+            
+            if (player.upgrades) {
+                try {
+                    // Расчет скорости майнинга из улучшений GPU/CPU
+                    if (typeof player.upgrades === 'string') {
+                        try {
+                            player.upgrades = JSON.parse(player.upgrades);
+                        } catch (e) {
+                            console.error('Ошибка парсинга улучшений:', e);
+                        }
+                    }
+                    
+                    if (player.upgrades && typeof player.upgrades === 'object') {
+                        for (const key in player.upgrades) {
+                            if (key.startsWith('gpu') || key.startsWith('cpu')) {
+                                const level = typeof player.upgrades[key] === 'number' ? player.upgrades[key] : 
+                                            (player.upgrades[key]?.level || 0);
+                                const upgrade = window.UPGRADES ? window.UPGRADES[key] : null;
+                                if (upgrade && upgrade.baseBonus) {
+                                    mineSpeed += level * upgrade.baseBonus;
+                                }
+                            }
+                            if (key.startsWith('mouse')) {
+                                const level = typeof player.upgrades[key] === 'number' ? player.upgrades[key] : 
+                                            (player.upgrades[key]?.level || 0);
+                                const upgrade = window.UPGRADES ? window.UPGRADES[key] : null;
+                                if (upgrade && upgrade.baseBonus) {
+                                    clickSpeed += level * upgrade.baseBonus;
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка расчета скорости для игрока:', player.username, error);
+                }
+            }
+            
+            // Если у игрока нет данных об улучшениях, используем базовые значения
+            if (mineSpeed === 0 && player.mineSpeed) {
+                mineSpeed = parseFloat(player.mineSpeed) || 0.000000000;
+            }
+            if (clickSpeed === 0 && player.clickSpeed) {
+                clickSpeed = parseFloat(player.clickSpeed) || 0.000000001;
+            }
+            
             const totalSpeed = mineSpeed + clickSpeed;
-            const isCurrent = player.userId === userId;
+            const isCurrent = player.userId === userId || 
+                (player.username && window.userData?.username && 
+                 (player.username === window.userData.username ||
+                  player.username.includes(window.userData.username) || 
+                  window.userData.username.includes(player.username)));
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
@@ -729,7 +811,6 @@ async function updateSpeedLeaderboard() {
 }
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ==========
-
 window.selectTeam = selectTeam;
 window.playTeamLottery = playTeamLottery;
 window.playClassicLottery = playClassicLottery;
@@ -738,14 +819,14 @@ window.updateSpeedLeaderboard = updateSpeedLeaderboard;
 window.updateTopWinners = updateTopWinners;
 
 // ========== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ ==========
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎮 Инициализация улучшенной игровой системы...');
     
     setTimeout(() => {
+        startTimerSync(); // Запускаем синхронизацию времени ПЕРВЫМ
         startLotteryAutoUpdate();
         startClassicLotteryUpdate();
-        startRealTimeUpdates(); // Запускаем обновление времени в реальном времени
+        startRealTimeUpdates();
         updateTopWinners();
         updateLeaderboard();
         updateSpeedLeaderboard();
