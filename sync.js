@@ -1,4 +1,4 @@
-// sync.js - исправленная система синхронизации с мультисессией
+// sync.js - исправленная система синхронизации с мультисессией и скоростью
 console.log('🔗 Загружаем исправленную систему синхронизации...');
 
 let miningInterval = null;
@@ -6,7 +6,7 @@ let lastMiningTime = Date.now();
 let isSyncing = false;
 let currentSessionId = generateSessionId();
 
-// Основная функция синхронизации
+// Основная функция синхронизации с отправкой скорости
 window.syncUserData = async function(force = false) {
     if (isSyncing && !force) return false;
     
@@ -30,6 +30,11 @@ window.syncUserData = async function(force = false) {
     }
     
     try {
+        // Рассчитываем текущие скорости
+        const clickSpeed = typeof calculateClickPower === 'function' ? calculateClickPower() : 0.000000001;
+        const mineSpeed = typeof calculateMiningSpeed === 'function' ? calculateMiningSpeed() : 0.000000000;
+        const totalSpeed = clickSpeed + mineSpeed;
+        
         const syncData = {
             userId: window.userData.userId,
             username: window.userData.username,
@@ -39,7 +44,10 @@ window.syncUserData = async function(force = false) {
             upgrades: window.getUpgradesForSync(), // Используем новую функцию
             lastUpdate: Date.now(),
             telegramId: window.userData.telegramId,
-            deviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown'
+            deviceId: window.multiSessionDetector ? window.multiSessionDetector.generateDeviceId() : 'unknown',
+            clickSpeed: clickSpeed,
+            mineSpeed: mineSpeed,
+            totalSpeed: totalSpeed
         };
         
         const response = await window.apiRequest('/api/sync/unified', {
@@ -49,6 +57,11 @@ window.syncUserData = async function(force = false) {
         
         if (response && response.success) {
             console.log('✅ Данные синхронизированы с сервером');
+            console.log('📊 Отправленные скорости:', {
+                click: clickSpeed.toFixed(9),
+                mine: mineSpeed.toFixed(9),
+                total: totalSpeed.toFixed(9)
+            });
             
             // Если сервер вернул другой userId (при объединении записей)
             if (response.userId && response.userId !== window.userData.userId) {
@@ -78,7 +91,7 @@ window.syncUserData = async function(force = false) {
     return false;
 };
 
-// Загрузка данных с сервера с синхронизацией улучшений
+// Загрузка данных с сервера с синхронизацией улучшений и скорости
 window.loadSyncedData = async function() {
     console.log('📥 Загрузка синхронизированных данных...');
     
@@ -111,6 +124,15 @@ window.loadSyncedData = async function() {
             window.userData.referralsCount = serverData.referralsCount;
             window.userData.totalWinnings = serverData.totalWinnings;
             window.userData.totalLosses = serverData.totalLosses;
+            
+            // Обновляем скорости с сервера (если есть)
+            if (serverData.clickSpeed || serverData.mineSpeed || serverData.totalSpeed) {
+                console.log('📊 Получены скорости с сервера:', {
+                    click: serverData.clickSpeed,
+                    mine: serverData.mineSpeed,
+                    total: serverData.totalSpeed
+                });
+            }
             
             // СИНХРОНИЗИРУЕМ УЛУЧШЕНИЯ
             if (serverData.upgrades) {
