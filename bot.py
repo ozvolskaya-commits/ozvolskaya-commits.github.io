@@ -1,4 +1,4 @@
-# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ
+# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ И СКОРОСТЬЮ
 import os
 import json
 import logging
@@ -245,7 +245,10 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_ip TEXT,
                 version TEXT DEFAULT '2.0.0',
-                first_deposit_bonus BOOLEAN DEFAULT FALSE
+                first_deposit_bonus BOOLEAN DEFAULT FALSE,
+                click_speed REAL DEFAULT 0.000000001,
+                mine_speed REAL DEFAULT 0.000000000,
+                total_speed REAL DEFAULT 0.000000001
             )
         ''')
 
@@ -480,6 +483,9 @@ def sync_unified():
         upgrades = data.get('upgrades', {})
         device_id = data.get('deviceId', 'unknown')
         referral_code = data.get('referralCode')
+        click_speed = float(data.get('clickSpeed', 0.000000001))
+        mine_speed = float(data.get('mineSpeed', 0.000000000))
+        total_speed = click_speed + mine_speed
 
         if not user_id and not telegram_id:
             return jsonify({
@@ -540,6 +546,9 @@ def sync_unified():
         best_total_clicks = total_clicks
         best_upgrades = upgrades.copy() if upgrades else {}
         best_user_id = user_id or (f'tg_{telegram_id}' if telegram_id else f'user_{int(time.time())}')
+        best_click_speed = click_speed
+        best_mine_speed = mine_speed
+        best_total_speed = total_speed
 
         is_new_user = False
 
@@ -561,6 +570,11 @@ def sync_unified():
                 best_total_earned = max(total_earned, float(max_balance_record['total_earned'] or 0))
                 best_total_clicks = max(total_clicks, int(max_balance_record['total_clicks'] or 0))
                 best_user_id = max_balance_record['user_id']
+                
+                # Сохраняем лучшие скорости
+                best_click_speed = max(click_speed, float(max_balance_record['click_speed'] or 0))
+                best_mine_speed = max(mine_speed, float(max_balance_record['mine_speed'] or 0))
+                best_total_speed = best_click_speed + best_mine_speed
 
                 if max_balance_record['upgrades']:
                     try:
@@ -589,11 +603,13 @@ def sync_unified():
                     UPDATE players SET 
                     username=?, balance=?, total_earned=?, total_clicks=?,
                     upgrades=?, last_update=CURRENT_TIMESTAMP,
-                    telegram_id=?, telegram_username=?, last_device_id=?, last_ip=?
+                    telegram_id=?, telegram_username=?, last_device_id=?, last_ip=?,
+                    click_speed=?, mine_speed=?, total_speed=?
                     WHERE user_id=?
                 ''', (username, best_balance, best_total_earned, best_total_clicks,
                       json.dumps(best_upgrades), telegram_id, username, device_id, 
-                      request.remote_addr, record['user_id']))
+                      request.remote_addr, best_click_speed, best_mine_speed, best_total_speed,
+                      record['user_id']))
 
         else:
             is_new_user = True
@@ -609,11 +625,12 @@ def sync_unified():
             cursor.execute('''
                 INSERT INTO players 
                 (user_id, username, balance, total_earned, total_clicks, upgrades, 
-                 telegram_id, telegram_username, last_device_id, referral_code, last_ip, referred_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 telegram_id, telegram_username, last_device_id, referral_code, last_ip, 
+                 referred_by, click_speed, mine_speed, total_speed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (best_user_id, username, balance, total_earned, total_clicks,
                   json.dumps(upgrades), telegram_id, username, device_id, referral_code_new, 
-                  request.remote_addr, referrer_id))
+                  request.remote_addr, referrer_id, click_speed, mine_speed, total_speed))
 
         conn.commit()
         conn.close()
@@ -625,8 +642,11 @@ def sync_unified():
             'bestBalance': best_balance,
             'multisessionDetected': multisession_detected,
             'upgradesCount': len(best_upgrades),
-            'isNewUser': is_newUser,
-            'referralApplied': referrer_id is not None
+            'isNewUser': is_new_user,
+            'referralApplied': referrer_id is not None,
+            'clickSpeed': best_click_speed,
+            'mineSpeed': best_mine_speed,
+            'totalSpeed': best_total_speed
         })
 
     except Exception as e:
@@ -680,7 +700,10 @@ def get_unified_user(user_id):
                     'telegramUsername': player['telegram_username'],
                     'referralCode': player['referral_code'],
                     'referredBy': player['referred_by'],
-                    'version': player['version'] or '2.0.0'
+                    'version': player['version'] or '2.0.0',
+                    'clickSpeed': player['click_speed'] or 0.000000001,
+                    'mineSpeed': player['mine_speed'] or 0.000000000,
+                    'totalSpeed': player['total_speed'] or 0.000000001
                 }
             })
         else:
@@ -1138,7 +1161,8 @@ def all_players():
         cursor = conn.cursor()
 
         cursor.execute('''
-            SELECT user_id, username, balance, total_earned, total_clicks 
+            SELECT user_id, username, balance, total_earned, total_clicks,
+                   click_speed, mine_speed, total_speed
             FROM players 
             ORDER BY balance DESC 
             LIMIT 50
@@ -1151,7 +1175,10 @@ def all_players():
                 'username': row['username'],
                 'balance': row['balance'],
                 'totalEarned': row['total_earned'],
-                'totalClicks': row['total_clicks']
+                'totalClicks': row['total_clicks'],
+                'clickSpeed': row['click_speed'] or 0.000000001,
+                'mineSpeed': row['mine_speed'] or 0.000000000,
+                'totalSpeed': row['total_speed'] or 0.000000001
             })
 
         conn.close()
@@ -1181,14 +1208,24 @@ def leaderboard():
 
         if leaderboard_type == 'balance':
             cursor.execute('''
-                SELECT user_id, username, balance, total_earned, total_clicks
+                SELECT user_id, username, balance, total_earned, total_clicks,
+                       click_speed, mine_speed, total_speed
                 FROM players 
                 ORDER BY balance DESC 
                 LIMIT ?
             ''', (limit, ))
+        elif leaderboard_type == 'speed':
+            cursor.execute('''
+                SELECT user_id, username, balance, total_earned, total_clicks,
+                       click_speed, mine_speed, total_speed
+                FROM players 
+                ORDER BY total_speed DESC 
+                LIMIT ?
+            ''', (limit, ))
         else:
             cursor.execute('''
-                SELECT user_id, username, balance, total_earned, total_clicks
+                SELECT user_id, username, balance, total_earned, total_clicks,
+                       click_speed, mine_speed, total_speed
                 FROM players 
                 ORDER BY total_earned DESC 
                 LIMIT ?
@@ -1203,7 +1240,10 @@ def leaderboard():
                 'username': row['username'],
                 'balance': row['balance'],
                 'totalEarned': row['total_earned'],
-                'totalClicks': row['total_clicks']
+                'totalClicks': row['total_clicks'],
+                'clickSpeed': row['click_speed'] or 0.000000001,
+                'mineSpeed': row['mine_speed'] or 0.000000000,
+                'totalSpeed': row['total_speed'] or 0.000000001
             })
             rank += 1
 
@@ -1232,7 +1272,7 @@ def transfer():
         from_username = data.get('fromUsername')
         to_username = data.get('toUsername')
 
-        if not from_user_id or not to_user_id or not amount or not from_username:
+        if not from_user_id or not to_user_id or not amount:
             return jsonify({
                 'success': False,
                 'error': 'Missing required fields'
@@ -1259,7 +1299,11 @@ def transfer():
         if not receiver:
             return jsonify({'success': False, 'error': 'Recipient not found'})
 
-        to_username = receiver['username']
+        if from_user_id == to_user_id:
+            return jsonify({'success': False, 'error': 'Cannot transfer to yourself'})
+
+        to_username = receiver['username'] if not to_username else to_username
+        from_username = sender['username'] if not from_username else from_username
 
         cursor.execute('UPDATE players SET balance = balance - ? WHERE user_id = ?', (amount, from_user_id))
         cursor.execute('UPDATE players SET balance = balance + ? WHERE user_id = ?', (amount, to_user_id))
@@ -1276,9 +1320,11 @@ def transfer():
 
         return jsonify({
             'success': True,
-            'message': 'Transfer complete'
+            'message': 'Transfer complete',
+            'newBalance': sender['balance'] - amount
         })
     except Exception as e:
+        print(f"❌ Ошибка перевода: {e}")
         return jsonify({
             'success': False,
             'error': 'Transfer failed'
