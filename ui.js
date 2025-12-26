@@ -1,11 +1,11 @@
-// ui.js - полностью исправленная версия с разделением лотерей
+// ui.js - полностью исправленная версия с исправленными переводами и реферальными ссылками
 console.log('🖥️ Загружаем ui.js...');
 
 let allPlayers = [];
 let selectedTransferUser = null;
 let currentRatingTab = 'balance';
 
-// Глобальные функции для кнопок - ОБЯЗАТЕЛЬНО ОПРЕДЕЛИТЬ ПЕРВЫМИ
+// Глобальные функции для кнопок
 window.showSection = function(sectionName) {
     console.log('🎯 Показываем секцию:', sectionName);
     
@@ -41,7 +41,6 @@ window.showSection = function(sectionName) {
         }
     }
     
-    // Обновляем синхронизацию при смене секций
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
@@ -95,7 +94,7 @@ window.showGamesSection = function() {
     showSection('games');
 };
 
-// Функции для вкладок игр - ИСПРАВЛЕННЫЕ ДЛЯ РАЗДЕЛЕНИЯ ЛОТЕРЕЙ
+// Функции для вкладок игр
 window.showGameTab = function(tabName) {
     console.log('🎰 Показываем игровую вкладку:', tabName);
     
@@ -106,7 +105,6 @@ window.showGameTab = function(tabName) {
         section.classList.remove('active');
     });
     
-    // Активируем выбранную вкладку
     const activeTab = document.querySelector(`.game-tab[onclick*="${tabName}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
@@ -117,7 +115,6 @@ window.showGameTab = function(tabName) {
         targetSection.classList.add('active');
     }
     
-    // Загружаем соответствующие данные
     switch(tabName) {
         case 'team-lottery':
             if (typeof loadLotteryStatus === 'function') {
@@ -137,13 +134,12 @@ window.showGameTab = function(tabName) {
             break;
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Функции для вкладок рейтинга - ИСПРАВЛЕННЫЕ
+// Функции для вкладок рейтинга
 window.showTopTab = function(tabName) {
     console.log('🏆 Показываем вкладку рейтинга:', tabName);
     
@@ -154,7 +150,6 @@ window.showTopTab = function(tabName) {
         section.classList.remove('active');
     });
     
-    // Активируем выбранную вкладку
     const activeTab = document.querySelector(`.nav-tab[onclick*="${tabName}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
@@ -177,7 +172,6 @@ window.showTopTab = function(tabName) {
             break;
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
@@ -194,7 +188,6 @@ window.showShopTab = function(tabName) {
         category.classList.add('hidden');
     });
     
-    // Активируем выбранную вкладку
     const activeTab = document.querySelector(`.shop-tab[onclick*="${tabName}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
@@ -205,13 +198,12 @@ window.showShopTab = function(tabName) {
         targetCategory.classList.remove('hidden');
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Управление переводом
+// Управление переводом - ИСПРАВЛЕННАЯ ВЕРСИЯ
 async function updateUsersList() {
     const usersList = document.getElementById('usersList');
     const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
@@ -286,7 +278,6 @@ function selectUserForTransfer(user) {
         }
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
@@ -318,7 +309,6 @@ async function makeTransfer() {
         return;
     }
     
-    // Проверяем мультисессию перед переводом
     if (window.multiSessionDetector) {
         const status = window.multiSessionDetector.getStatus();
         if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
@@ -332,7 +322,9 @@ async function makeTransfer() {
             method: 'POST',
             body: JSON.stringify({
                 fromUserId: window.userData.userId,
+                fromUsername: window.userData.username,
                 toUserId: selectedTransferUser.userId,
+                toUsername: selectedTransferUser.username,
                 amount: amount
             })
         });
@@ -394,7 +386,11 @@ async function updateLeaderboard() {
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
             const balance = typeof player.balance === 'number' ? player.balance : 0;
-            const isCurrent = player.userId === userId;
+            const isCurrent = player.userId === userId || 
+                (player.username && window.userData?.username && 
+                 (player.username === window.userData.username ||
+                  player.username.includes(window.userData.username) || 
+                  window.userData.username.includes(player.username)));
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
@@ -439,10 +435,57 @@ async function updateSpeedLeaderboard() {
             
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
-            const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
-            const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000000;
+            let mineSpeed = 0.000000000;
+            let clickSpeed = 0.000000000;
+            
+            if (player.upgrades) {
+                try {
+                    if (typeof player.upgrades === 'string') {
+                        try {
+                            player.upgrades = JSON.parse(player.upgrades);
+                        } catch (e) {
+                            console.error('Ошибка парсинга улучшений:', e);
+                        }
+                    }
+                    
+                    if (player.upgrades && typeof player.upgrades === 'object') {
+                        for (const key in player.upgrades) {
+                            if (key.startsWith('gpu') || key.startsWith('cpu')) {
+                                const level = typeof player.upgrades[key] === 'number' ? player.upgrades[key] : 
+                                            (player.upgrades[key]?.level || 0);
+                                const upgrade = window.UPGRADES ? window.UPGRADES[key] : null;
+                                if (upgrade && upgrade.baseBonus) {
+                                    mineSpeed += level * upgrade.baseBonus;
+                                }
+                            }
+                            if (key.startsWith('mouse')) {
+                                const level = typeof player.upgrades[key] === 'number' ? player.upgrades[key] : 
+                                            (player.upgrades[key]?.level || 0);
+                                const upgrade = window.UPGRADES ? window.UPGRADES[key] : null;
+                                if (upgrade && upgrade.baseBonus) {
+                                    clickSpeed += level * upgrade.baseBonus;
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка расчета скорости для игрока:', player.username, error);
+                }
+            }
+            
+            if (mineSpeed === 0 && player.mineSpeed) {
+                mineSpeed = parseFloat(player.mineSpeed) || 0.000000000;
+            }
+            if (clickSpeed === 0 && player.clickSpeed) {
+                clickSpeed = parseFloat(player.clickSpeed) || 0.000000001;
+            }
+            
             const totalSpeed = mineSpeed + clickSpeed;
-            const isCurrent = player.userId === userId;
+            const isCurrent = player.userId === userId || 
+                (player.username && window.userData?.username && 
+                 (player.username === window.userData.username ||
+                  player.username.includes(window.userData.username) || 
+                  window.userData.username.includes(player.username)));
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
@@ -465,7 +508,6 @@ async function updateSpeedLeaderboard() {
     }
 }
 
-// ОБНОВЛЕНИЕ ИНТЕРФЕЙСА С ПРАВИЛЬНЫМИ СКОРОСТЯМИ И ЗАЩИТОЙ ОТ NaN
 function updateUI() {
     if (!window.userData) return;
     
@@ -484,17 +526,14 @@ function updateUI() {
     }
     
     if (clickSpeedElement) {
-        // СКОРОСТЬ КЛИКА = сила одного клика (так как клики вручную)
         const clickPower = typeof calculateClickPower === 'function' ? calculateClickPower() : 0.000000001;
         clickSpeedElement.textContent = clickPower.toFixed(9) + ' S/сек';
     }
     
     if (mineSpeedElement) {
-        // СКОРОСТЬ МАЙНИНГА = пассивный доход в секунду
         let miningSpeed = 0.000000000;
         try {
             miningSpeed = typeof calculateMiningSpeed === 'function' ? calculateMiningSpeed() : 0.000000000;
-            // Дополнительная защита от NaN
             if (isNaN(miningSpeed) || !isFinite(miningSpeed) || miningSpeed < 0) {
                 miningSpeed = 0.000000000;
             }
@@ -506,7 +545,6 @@ function updateUI() {
     }
 }
 
-// Уведомления и попапы
 function showNotification(message, type = 'info', duration = 3000) {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -537,7 +575,6 @@ function showNotification(message, type = 'info', duration = 3000) {
     
     document.body.appendChild(notification);
     
-    // Анимация появления
     setTimeout(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateX(-50%) translateY(0)';
@@ -578,7 +615,6 @@ function closeResultPopup() {
     }
 }
 
-// Функция для обновления топа победителей
 async function updateTopWinners() {
     try {
         const data = await apiRequest('/api/top/winners?limit=20');
@@ -601,11 +637,15 @@ async function updateTopWinners() {
             const rank = index + 1;
             const name = winner.username || `Игрок ${rank}`;
             const netWinnings = winner.netWinnings || 0;
+            const isCurrentUser = window.userData?.username && 
+                (winner.username === window.userData.username || 
+                 (winner.username && window.userData.username.includes(winner.username)) ||
+                 (winner.username && winner.username.includes(window.userData.username)));
             
             newHTML += `
-                <div class="winner-item">
+                <div class="winner-item ${isCurrentUser ? 'current-player' : ''}">
                     <div class="winner-rank">${rank}</div>
-                    <div class="winner-name">${name}</div>
+                    <div class="winner-name ${isCurrentUser ? 'current-player' : ''}">${name} ${isCurrentUser ? '👑' : ''}</div>
                     <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
                         ${netWinnings.toFixed(9)} S
                     </div>
@@ -624,7 +664,6 @@ async function updateTopWinners() {
     }
 }
 
-// Функция для загрузки реферальной статистики
 async function loadReferralStats() {
     try {
         const userId = window.userData?.userId;
@@ -640,7 +679,6 @@ async function loadReferralStats() {
     }
 }
 
-// Функция для обновления реферальной статистики (новая)
 window.updateReferralStats = async function() {
     try {
         const userId = window.userData?.userId;
@@ -657,15 +695,18 @@ window.updateReferralStats = async function() {
     }
 };
 
-// Обновление UI реферальной системы
 function updateReferralUI(data) {
+    // ИСПРАВЛЕННАЯ ССЫЛКА НА БОТА @bytecoinbeta_bot
+    const referralCode = data.referralCode || `REF-${window.userData?.userId?.slice(-8)?.toUpperCase() || 'DEFAULT'}`;
+    const referralLink = `https://t.me/bytecoinbeta_bot?start=${referralCode}`;
+    
     const elements = [
         { id: 'referralsCount', value: data.stats?.referralsCount || 0 },
         { id: 'referralEarnings', value: (data.stats?.totalEarnings || 0).toFixed(9) + ' S' },
         { id: 'referralsCountNew', value: data.stats?.referralsCount || 0 },
         { id: 'referralEarningsNew', value: (data.stats?.totalEarnings || 0).toFixed(9) + ' S' },
-        { id: 'referralLink', value: data.referralCode || `REF-${window.userData?.userId?.slice(-8)?.toUpperCase() || 'DEFAULT'}` },
-        { id: 'referralLinkCode', value: `https://t.me/your_bot?start=${data.referralCode || `REF-${window.userData?.userId?.slice(-8)?.toUpperCase() || 'DEFAULT'}`}` }
+        { id: 'referralLink', value: referralCode },
+        { id: 'referralLinkCode', value: referralLink }
     ];
     
     elements.forEach(element => {
@@ -674,7 +715,6 @@ function updateReferralUI(data) {
     });
 }
 
-// Функция для копирования реферальной ссылки (новая)
 window.copyReferralLink = function() {
     const linkElement = document.getElementById('referralLinkCode');
     if (linkElement) {
@@ -705,7 +745,6 @@ function fallbackCopy(text) {
     document.body.removeChild(textArea);
 }
 
-// Функция обновления магазина (улучшенная)
 window.updateShopUIFixed = function() {
     console.log('🛒 Обновляем интерфейс магазина (фиксированная версия)');
     
@@ -716,7 +755,6 @@ window.updateShopUIFixed = function() {
     }
     
     try {
-        // Обновляем все категории улучшений
         updateShopCategory('gpu');
         updateShopCategory('cpu'); 
         updateShopCategory('mouse');
@@ -738,14 +776,12 @@ function updateShopCategory(category) {
         const currentLevel = window.upgrades[upgradeId]?.level || 0;
         const price = upgrade.basePrice * Math.pow(2, currentLevel);
         
-        // Обновляем отображение
         const ownedElement = document.getElementById(upgradeId + '-owned');
         const priceElement = document.getElementById(upgradeId + '-price');
         
         if (ownedElement) ownedElement.textContent = currentLevel;
         if (priceElement) priceElement.textContent = price.toFixed(9);
         
-        // Обновляем кнопку
         const buyButton = document.querySelector(`button[onclick="buyUpgrade('${upgradeId}')"]`);
         if (buyButton) {
             const canAfford = window.userData && parseFloat(window.userData.balance) >= price;
@@ -758,7 +794,6 @@ function updateShopCategory(category) {
     });
 }
 
-// Функция для обновления баланса немедленно
 window.updateBalanceImmediately = function() {
     if (!window.userData) return;
     
