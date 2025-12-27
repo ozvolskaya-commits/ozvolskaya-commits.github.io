@@ -224,10 +224,18 @@ async function updateUsersList() {
         const data = await apiRequest('/api/all_players');
         const apiPlayers = data.players || [];
         
-        const filteredUsers = apiPlayers.filter(player => 
-            player.userId !== window.userData?.userId && 
-            player.username?.toLowerCase().includes(searchTerm)
-        );
+        // Фильтруем пользователей (исключаем текущего и по поиску)
+        const filteredUsers = apiPlayers.filter(player => {
+            // Исключаем текущего пользователя
+            if (player.userId === window.userData?.userId) return false;
+            
+            // Проверяем поиск по имени
+            if (searchTerm && player.username) {
+                return player.username.toLowerCase().includes(searchTerm);
+            }
+            
+            return true;
+        });
         
         usersList.innerHTML = '';
         
@@ -236,16 +244,27 @@ async function updateUsersList() {
             return;
         }
         
+        // Отображаем пользователей
         filteredUsers.forEach(player => {
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
+            
+            // Определяем общую скорость
+            let totalSpeed = 0;
+            if (typeof player.totalSpeed === 'number') {
+                totalSpeed = player.totalSpeed;
+            } else if (typeof player.total_speed === 'number') {
+                totalSpeed = player.total_speed;
+            }
+            
             userItem.innerHTML = `
                 <div class="user-name">${player.username || 'Игрок'}</div>
                 <div class="user-balance">${(player.balance || 0).toFixed(9)} S</div>
                 <div class="user-speed" style="font-size: 10px; color: #666;">
-                    ${(player.totalSpeed || 0).toFixed(9)} S/сек
+                    ${totalSpeed.toFixed(9)} S/сек
                 </div>
             `;
+            
             userItem.onclick = () => selectUserForTransfer(player);
             usersList.appendChild(userItem);
         });
@@ -311,7 +330,12 @@ async function makeTransfer() {
         return;
     }
     
-    if (!window.userData || amount > window.userData.balance) {
+    if (!window.userData) {
+        showNotification('Данные пользователя не загружены', 'error');
+        return;
+    }
+    
+    if (amount > parseFloat(window.userData.balance)) {
         showNotification('Недостаточно средств', 'error');
         return;
     }
@@ -336,8 +360,17 @@ async function makeTransfer() {
     }
     
     try {
+        console.log('🔄 Выполнение перевода:', {
+            from: window.userData.userId,
+            to: selectedTransferUser.userId,
+            amount: amount
+        });
+        
         const data = await apiRequest('/api/transfer', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 fromUserId: window.userData.userId,
                 toUserId: selectedTransferUser.userId,
@@ -347,11 +380,11 @@ async function makeTransfer() {
             })
         });
         
-        if (data.success) {
+        if (data && data.success) {
             // Обновляем баланс пользователя
-            window.userData.balance -= amount;
+            window.userData.balance = parseFloat(window.userData.balance) - amount;
             window.userData.transfers = window.userData.transfers || { sent: 0, received: 0 };
-            window.userData.transfers.sent += amount;
+            window.userData.transfers.sent = (window.userData.transfers.sent || 0) + amount;
             window.userData.lastUpdate = Date.now();
             
             updateUI();
@@ -378,7 +411,7 @@ async function makeTransfer() {
             // Синхронизируем с сервером
             setTimeout(() => window.syncUserData(), 1000);
         } else {
-            showNotification(`Ошибка перевода: ${data.error || 'Неизвестная ошибка'}`, 'error');
+            showNotification(`Ошибка перевода: ${data?.error || 'Неизвестная ошибка'}`, 'error');
         }
     } catch (error) {
         console.error('Ошибка перевода:', error);
@@ -459,9 +492,33 @@ async function updateSpeedLeaderboard() {
             
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
-            const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
-            const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000000;
-            const totalSpeed = player.totalSpeed || (mineSpeed + clickSpeed);
+            
+            // Убедимся, что у игрока есть данные о скорости
+            let mineSpeed = 0;
+            let clickSpeed = 0;
+            let totalSpeed = 0;
+            
+            if (typeof player.mineSpeed === 'number') {
+                mineSpeed = player.mineSpeed;
+            } else if (typeof player.mine_speed === 'number') {
+                mineSpeed = player.mine_speed;
+            }
+            
+            if (typeof player.clickSpeed === 'number') {
+                clickSpeed = player.clickSpeed;
+            } else if (typeof player.click_speed === 'number') {
+                clickSpeed = player.click_speed;
+            }
+            
+            if (typeof player.totalSpeed === 'number') {
+                totalSpeed = player.totalSpeed;
+            } else if (typeof player.total_speed === 'number') {
+                totalSpeed = player.total_speed;
+            } else {
+                totalSpeed = mineSpeed + clickSpeed;
+            }
+            
+            const displaySpeed = totalSpeed > 0 ? totalSpeed : 0.000000000;
             const isCurrent = player.userId === userId;
             const currentClass = isCurrent ? 'current-player' : '';
             
@@ -469,7 +526,7 @@ async function updateSpeedLeaderboard() {
                 <div class="leader-item ${currentClass}">
                     <div class="leader-rank">${rank} место</div>
                     <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>
+                    <div class="leader-speed">${displaySpeed.toFixed(9)} S/сек</div>
                 </div>
             `;
         });
@@ -613,7 +670,14 @@ async function updateTopWinners() {
         
         let newHTML = '';
         
-        data.winners.forEach((winner, index) => {
+        // Сортируем по чистым выигрышам
+        const sortedWinners = [...data.winners].sort((a, b) => {
+            const aNet = a.netWinnings || 0;
+            const bNet = b.netWinnings || 0;
+            return bNet - aNet;
+        });
+        
+        sortedWinners.forEach((winner, index) => {
             if (!winner || typeof winner !== 'object') {
                 return;
             }
@@ -679,7 +743,7 @@ window.updateReferralStats = async function() {
     }
 };
 
-// Обновление UI реферальной системы - ИСПРАВЛЕННАЯ ССЫЛКА
+// Обновление UI реферальной системы - ИСПРАВЛЕННАЯ ССЫЛКА НА БОТА @bytecoinbeta_bot
 function updateReferralUI(data) {
     // Формируем правильную реферальную ссылку для бота @bytecoinbeta_bot
     const referralCode = data.referralCode || `REF-${window.userData?.userId?.slice(-8)?.toUpperCase() || 'DEFAULT'}`;
@@ -690,21 +754,43 @@ function updateReferralUI(data) {
         { id: 'referralEarnings', value: (data.stats?.totalEarnings || 0).toFixed(9) + ' S' },
         { id: 'referralsCountNew', value: data.stats?.referralsCount || 0 },
         { id: 'referralEarningsNew', value: (data.stats?.totalEarnings || 0).toFixed(9) + ' S' },
-        { id: 'referralLink', value: referralCode },
-        { id: 'referralLinkCode', value: referralLink }
+        { id: 'referralLink', value: referralCode }
     ];
     
     elements.forEach(element => {
         const el = document.getElementById(element.id);
         if (el) el.textContent = element.value;
     });
+    
+    // Обновляем ссылку
+    const referralLinkElement = document.getElementById('referralLinkCode');
+    if (referralLinkElement) {
+        referralLinkElement.textContent = referralLink;
+        referralLinkElement.href = referralLink;
+    }
+    
+    // Обновляем кнопку копирования
+    const copyButton = document.querySelector('[onclick="copyReferralLink()"]');
+    if (copyButton) {
+        copyButton.onclick = function() {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(referralLink).then(() => {
+                    showNotification('Ссылка скопирована в буфер обмена!', 'success');
+                }).catch(() => {
+                    fallbackCopy(referralLink);
+                });
+            } else {
+                fallbackCopy(referralLink);
+            }
+        };
+    }
 }
 
 // Функция для копирования реферальной ссылки (новая)
 window.copyReferralLink = function() {
     const linkElement = document.getElementById('referralLinkCode');
     if (linkElement) {
-        const link = linkElement.textContent;
+        const link = linkElement.textContent || linkElement.href;
         if (navigator.clipboard) {
             navigator.clipboard.writeText(link).then(() => {
                 showNotification('Ссылка скопирована в буфер обмена!', 'success');
@@ -859,6 +945,11 @@ if (typeof saveUserData === 'undefined') {
         console.log('💾 Сохранение данных (заглушка)');
     };
 }
+
+// Глобальные функции для доступа из HTML
+window.makeTransfer = makeTransfer;
+window.searchUsers = searchUsers;
+window.selectUserForTransfer = selectUserForTransfer;
 
 // Инициализация интерфейса при загрузке
 document.addEventListener('DOMContentLoaded', function() {
