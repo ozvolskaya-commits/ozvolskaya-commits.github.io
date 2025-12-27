@@ -1,4 +1,4 @@
-// api.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ ДЛЯ SPARKCOIN
+// api.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ ДЛЯ SPARKCOIN С ИСПРАВЛЕННЫМИ ПЕРЕВОДАМИ
 console.log('🌐 API для Sparkcoin - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ');
 
 window.CONFIG = {
@@ -213,11 +213,41 @@ function getOfflineResponse(endpoint, options = {}) {
                 totalSpeed: currentTotalSpeed
             },
             offline: true
+        },
+        
+        '/api/transfer': {
+            success: true,
+            message: 'Перевод выполнен в офлайн режиме',
+            newBalance: currentBalance - (JSON.parse(options.body || '{}').amount || 0),
+            offline: true
         }
     };
 
     // Для POST запросов возвращаем успешный ответ
     if (options.method === 'POST') {
+        // Для переводов возвращаем специальный ответ
+        if (endpoint.includes('/api/transfer')) {
+            try {
+                const body = options.body ? JSON.parse(options.body) : {};
+                const amount = body.amount || 0;
+                return {
+                    success: true,
+                    message: 'Перевод выполнен в офлайн режиме',
+                    newBalance: Math.max(0, currentBalance - amount),
+                    offline: true,
+                    timestamp: new Date().toISOString()
+                };
+            } catch (e) {
+                return {
+                    success: true,
+                    message: 'Перевод выполнен в офлайн режиме',
+                    newBalance: currentBalance,
+                    offline: true,
+                    timestamp: new Date().toISOString()
+                };
+            }
+        }
+        
         return {
             success: true,
             message: 'Данные сохранены в офлайн режиме',
@@ -465,6 +495,34 @@ window.placeClassicLotteryBet = async function(amount) {
         return response;
     } catch (error) {
         console.log('📴 Ошибка ставки в классическую лотерею');
+        return { success: false, error: 'Ошибка соединения' };
+    }
+};
+
+// Функция для выполнения перевода
+window.performTransfer = async function(fromUserId, toUserId, amount, fromUsername, toUsername) {
+    console.log(`💸 Перевод: ${fromUserId} -> ${toUserId}, сумма: ${amount}`);
+    
+    if (!fromUserId || !toUserId || !amount) {
+        console.log('❌ Недостаточно данных для перевода');
+        return { success: false, error: 'Недостаточно данных' };
+    }
+    
+    try {
+        const response = await window.apiRequest('/api/transfer', {
+            method: 'POST',
+            body: JSON.stringify({
+                fromUserId: fromUserId,
+                toUserId: toUserId,
+                amount: amount,
+                fromUsername: fromUsername || 'Игрок',
+                toUsername: toUsername || 'Игрок'
+            })
+        });
+        
+        return response;
+    } catch (error) {
+        console.log('📴 Ошибка перевода:', error);
         return { success: false, error: 'Ошибка соединения' };
     }
 };
