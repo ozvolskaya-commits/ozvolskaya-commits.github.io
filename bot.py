@@ -1,4 +1,4 @@
-# bot.py - ПОЛНЫЙ УЛУЧШЕННЫЙ СЕРВЕР SPARKCOIN С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ И СКОРОСТЬЮ
+# bot.py - УЛУЧШЕННАЯ ВЕРСИЯ С ИСПРАВЛЕННЫМИ ПЕРЕВОДАМИ
 import os
 import json
 import logging
@@ -1108,7 +1108,8 @@ def referral_stats(user_id):
                     'referralsCount': 0,
                     'totalEarnings': 0
                 },
-                'referralCode': f'REF-{user_id[-8:].upper()}'
+                'referralCode': f'REF-{user_id[-8:].upper()}',
+                'referralsList': []
             })
 
         cursor = conn.cursor()
@@ -1269,7 +1270,7 @@ def all_players():
 
         cursor.execute('''
             SELECT user_id, username, balance, total_earned, total_clicks,
-                   click_speed, mine_speed, total_speed
+                   click_speed, mine_speed, (click_speed + mine_speed) as total_speed
             FROM players 
             ORDER BY balance DESC 
             LIMIT 50
@@ -1312,7 +1313,7 @@ def leaderboard():
             cursor.execute(
                 '''
                 SELECT user_id, username, balance, total_earned, total_clicks,
-                       click_speed, mine_speed, total_speed
+                       click_speed, mine_speed, (click_speed + mine_speed) as total_speed
                 FROM players 
                 ORDER BY balance DESC 
                 LIMIT ?
@@ -1321,7 +1322,7 @@ def leaderboard():
             cursor.execute(
                 '''
                 SELECT user_id, username, balance, total_earned, total_clicks,
-                       click_speed, mine_speed, total_speed
+                       click_speed, mine_speed, (click_speed + mine_speed) as total_speed
                 FROM players 
                 ORDER BY total_speed DESC 
                 LIMIT ?
@@ -1330,7 +1331,7 @@ def leaderboard():
             cursor.execute(
                 '''
                 SELECT user_id, username, balance, total_earned, total_clicks,
-                       click_speed, mine_speed, total_speed
+                       click_speed, mine_speed, (click_speed + mine_speed) as total_speed
                 FROM players 
                 ORDER BY total_earned DESC 
                 LIMIT ?
@@ -1396,63 +1397,85 @@ def transfer():
 
         cursor = conn.cursor()
 
+        # Проверяем баланс отправителя
         cursor.execute(
             'SELECT balance, username FROM players WHERE user_id = ?',
             (from_user_id, ))
         sender = cursor.fetchone()
 
-        if not sender or sender['balance'] < amount:
-            return jsonify({'success': False, 'error': 'Insufficient funds'})
+        if not sender:
+            return jsonify({'success': False, 'error': 'Отправитель не найден'})
 
+        if sender['balance'] < amount:
+            return jsonify({'success': False, 'error': 'Недостаточно средств'})
+
+        # Проверяем получателя
         cursor.execute(
             'SELECT user_id, username FROM players WHERE user_id = ?',
             (to_user_id, ))
         receiver = cursor.fetchone()
 
         if not receiver:
-            return jsonify({'success': False, 'error': 'Recipient not found'})
+            return jsonify({'success': False, 'error': 'Получатель не найден'})
 
         if from_user_id == to_user_id:
             return jsonify({
                 'success': False,
-                'error': 'Cannot transfer to yourself'
+                'error': 'Нельзя переводить самому себе'
             })
 
-        to_username = receiver['username'] if not to_username else to_username
-        from_username = sender[
-            'username'] if not from_username else from_username
+        # Выполняем перевод
+        try:
+            # Снимаем деньги у отправителя
+            cursor.execute(
+                'UPDATE players SET balance = balance - ? WHERE user_id = ?',
+                (amount, from_user_id))
 
-        cursor.execute(
-            'UPDATE players SET balance = balance - ? WHERE user_id = ?',
-            (amount, from_user_id))
-        cursor.execute(
-            'UPDATE players SET balance = balance + ? WHERE user_id = ?',
-            (amount, to_user_id))
-        cursor.execute(
-            'UPDATE players SET transfers_sent = transfers_sent + ? WHERE user_id = ?',
-            (amount, from_user_id))
-        cursor.execute(
-            'UPDATE players SET transfers_received = transfers_received + ? WHERE user_id = ?',
-            (amount, to_user_id))
+            # Добавляем деньги получателю
+            cursor.execute(
+                'UPDATE players SET balance = balance + ? WHERE user_id = ?',
+                (amount, to_user_id))
 
-        cursor.execute(
-            '''
-            INSERT INTO transfers (from_user_id, from_username, to_user_id, to_username, amount, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (from_user_id, from_username, to_user_id, to_username, amount,
-              request.remote_addr))
+            # Обновляем статистику переводов
+            cursor.execute(
+                'UPDATE players SET transfers_sent = COALESCE(transfers_sent, 0) + ? WHERE user_id = ?',
+                (amount, from_user_id))
+            cursor.execute(
+                'UPDATE players SET transfers_received = COALESCE(transfers_received, 0) + ? WHERE user_id = ?',
+                (amount, to_user_id))
 
-        conn.commit()
-        conn.close()
+            # Записываем перевод в историю
+            cursor.execute(
+                '''
+                INSERT INTO transfers (from_user_id, from_username, to_user_id, to_username, amount, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (from_user_id, sender['username'], to_user_id, receiver['username'], amount,
+                  request.remote_addr))
 
-        return jsonify({
-            'success': True,
-            'message': 'Transfer complete',
-            'newBalance': sender['balance'] - amount
-        })
+            conn.commit()
+            conn.close()
+
+            # Получаем обновленный баланс отправителя
+            new_balance = sender['balance'] - amount
+
+            return jsonify({
+                'success': True,
+                'message': 'Перевод выполнен успешно',
+                'newBalance': new_balance
+            })
+
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            print(f"❌ Ошибка при выполнении перевода: {e}")
+            return jsonify({
+                'success': False,
+                'error': 'Ошибка при выполнении перевода'
+            })
+
     except Exception as e:
-        print(f"❌ Ошибка перевода: {e}")
-        return jsonify({'success': False, 'error': 'Transfer failed'})
+        print(f"❌ Общая ошибка перевода: {e}")
+        return jsonify({'success': False, 'error': 'Ошибка перевода'})
 
 
 @flask_app.route('/api/top/winners', methods=['GET'])
@@ -1468,9 +1491,10 @@ def top_winners():
 
         cursor.execute(
             '''
-            SELECT username, total_winnings, total_losses, (total_winnings - total_losses) as net_winnings
+            SELECT username, total_winnings, total_losses, 
+                   (COALESCE(total_winnings, 0) - COALESCE(total_losses, 0)) as net_winnings
             FROM players 
-            WHERE total_winnings > 0 
+            WHERE COALESCE(total_winnings, 0) > 0 
             ORDER BY net_winnings DESC 
             LIMIT ?
         ''', (limit, ))
@@ -1577,5 +1601,6 @@ if __name__ == "__main__":
     print("   /api/classic-lottery/status - Классическая лотерея")
     print("   /api/referral/stats - Реферальная система")
     print("   /api/referral/apply - Применить реферальный код")
+    print("   /api/transfer - Перевод средств")
 
     flask_app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
