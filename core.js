@@ -497,7 +497,7 @@ window.calculateMiningSpeed = function() {
         }
         
     } catch (error) {
-        console.error('❌ Критическая ошибка расчета скорости майнинга:', error);
+        console.error('❌ Критическая ошибка расчета скорости майнига:', error);
         speed = 0.000000000;
     }
     
