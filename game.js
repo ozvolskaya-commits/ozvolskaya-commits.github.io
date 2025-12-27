@@ -38,7 +38,7 @@ let lastClassicUpdate = 0;
 let lotteryTimerInterval;
 let classicTimerInterval;
 
-// ========== НОВАЯ СИСТЕМА СИНХРОНИЗИРОВАННЫХ ТАЙМЕРОВ ==========
+// ========== УЛУЧШЕННАЯ СИСТЕМА СИНХРОНИЗИРОВАННЫХ ТАЙМЕРОВ ==========
 
 // Синхронизированные таймеры с мировым временем
 function startSyncedTimers() {
@@ -48,45 +48,50 @@ function startSyncedTimers() {
     if (lotteryTimerInterval) clearInterval(lotteryTimerInterval);
     if (classicTimerInterval) clearInterval(classicTimerInterval);
     
-    // Таймер командной лотереи (60 секунд)
+    // Начальная синхронизация
+    const now = Math.floor(Date.now() / 1000);
+    lotteryData.timer = 60 - (now % 60);
+    classicLotteryData.timer = 120 - (now % 120);
+    
+    // Таймер командной лотереи (60 секунд) - СИНХРОНИЗИРОВАН С МИРОВЫМ ВРЕМЕНЕМ
     lotteryTimerInterval = setInterval(() => {
-        if (lotteryData.timer > 0) {
-            lotteryData.timer--;
-            updateLotteryTimerUI();
-            
-            // Автоматическое обновление данных каждые 10 секунд
-            if (lotteryData.timer % 10 === 0) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        lotteryData.timer = 60 - (nowSec % 60);
+        
+        // Обновляем UI каждую секунду
+        updateLotteryTimerUI();
+        
+        // Когда таймер достигает 0 или 60, обновляем данные
+        if (lotteryData.timer === 1 || lotteryData.timer === 60) {
+            setTimeout(() => {
                 loadLotteryStatus();
-            }
-            
-            // Когда таймер достигает 0, обновляем данные
-            if (lotteryData.timer === 0) {
-                setTimeout(() => {
-                    lotteryData.timer = 60;
-                    loadLotteryStatus();
-                }, 1000);
-            }
+            }, 100);
+        }
+        
+        // Обновляем данные каждые 10 секунд
+        if (lotteryData.timer % 10 === 0) {
+            loadLotteryStatus();
         }
     }, 1000);
     
-    // Таймер классической лотереи (120 секунд)
+    // Таймер классической лотереи (120 секунд) - СИНХРОНИЗИРОВАН С МИРОВЫМ ВРЕМЕНЕМ
     classicTimerInterval = setInterval(() => {
-        if (classicLotteryData.timer > 0) {
-            classicLotteryData.timer--;
-            updateClassicTimerUI();
-            
-            // Автоматическое обновление данных каждые 15 секунд
-            if (classicLotteryData.timer % 15 === 0) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        classicLotteryData.timer = 120 - (nowSec % 120);
+        
+        // Обновляем UI каждую секунду
+        updateClassicTimerUI();
+        
+        // Когда таймер достигает 0 или 120, обновляем данные
+        if (classicLotteryData.timer === 1 || classicLotteryData.timer === 120) {
+            setTimeout(() => {
                 loadClassicLottery();
-            }
-            
-            // Когда таймер достигает 0, обновляем данные
-            if (classicLotteryData.timer === 0) {
-                setTimeout(() => {
-                    classicLotteryData.timer = 120;
-                    loadClassicLottery();
-                }, 1000);
-            }
+            }, 100);
+        }
+        
+        // Обновляем данные каждые 15 секунд
+        if (classicLotteryData.timer % 15 === 0) {
+            loadClassicLottery();
         }
     }, 1000);
     
@@ -98,6 +103,9 @@ function updateLotteryTimerUI() {
     const lotteryTimer = document.getElementById('lotteryTimer');
     if (lotteryTimer) {
         lotteryTimer.textContent = lotteryData.timer;
+        // Обновляем анимацию таймера
+        lotteryTimer.style.color = lotteryData.timer <= 10 ? '#FF5252' : '#4CAF50';
+        lotteryTimer.style.fontWeight = lotteryData.timer <= 5 ? 'bold' : 'normal';
     }
 }
 
@@ -106,6 +114,9 @@ function updateClassicTimerUI() {
     const classicTimer = document.getElementById('classicTimer');
     if (classicTimer) {
         classicTimer.textContent = classicLotteryData.timer;
+        // Обновляем анимацию таймера
+        classicTimer.style.color = classicLotteryData.timer <= 20 ? '#FF5252' : '#4CAF50';
+        classicTimer.style.fontWeight = classicLotteryData.timer <= 10 ? 'bold' : 'normal';
     }
 }
 
@@ -244,8 +255,7 @@ async function loadLotteryStatus() {
         const data = await apiRequest('/api/lottery/status');
         
         if (data && data.success && data.lottery) {
-            // Сохраняем таймер с сервера
-            lotteryData.timer = data.lottery.timer || 60;
+            // Сохраняем данные
             lotteryData.eagle = data.lottery.eagle || [];
             lotteryData.tails = data.lottery.tails || [];
             lotteryData.last_winner = data.lottery.last_winner || null;
@@ -253,7 +263,7 @@ async function loadLotteryStatus() {
             lotteryData.total_tails = data.lottery.total_tails || 0;
             lotteryData.participants_count = data.lottery.participants_count || 0;
             
-            console.log('✅ Данные командной лотереи загружены:', lotteryData.timer + 'сек');
+            console.log('✅ Данные командной лотереи загружены');
             updateLotteryUI();
             lastLotteryUpdate = now;
         } else {
@@ -358,12 +368,9 @@ function updateLotteryUI() {
         const tailsParticipants = document.getElementById('tailsParticipants');
         const eagleCountElement = document.getElementById('eagleParticipantsCount');
         const tailsCountElement = document.getElementById('tailsParticipantsCount');
-        const lotteryTimer = document.getElementById('lotteryTimer');
         const lastWinner = document.getElementById('lastWinner');
         const winnerTeam = document.getElementById('winnerTeam');
         
-        // Обновляем таймер (уже обновляется отдельным интервалом)
-        if (lotteryTimer) lotteryTimer.textContent = lotteryData.timer || 60;
         if (eagleTotal) eagleTotal.textContent = (lotteryData.total_eagle || 0).toFixed(9) + ' S';
         if (tailsTotal) tailsTotal.textContent = (lotteryData.total_tails || 0).toFixed(9) + ' S';
         if (eagleParticipants) eagleParticipants.textContent = lotteryData.eagle ? lotteryData.eagle.length : 0;
@@ -444,7 +451,7 @@ function startLotteryAutoUpdate() {
     // Обновляем данные каждые 10 секунд
     lotteryUpdateInterval = setInterval(() => {
         loadLotteryStatus();
-    }, 10000); // Увеличили интервал до 10 секунд, так как таймер теперь локальный
+    }, 10000);
 }
 
 function selectTeam(team) {
@@ -510,14 +517,13 @@ async function loadClassicLottery() {
         const data = await apiRequest('/api/classic-lottery/status');
         
         if (data && data.success && data.lottery) {
-            // Сохраняем таймер с сервера
-            classicLotteryData.timer = data.lottery.timer || 120;
+            // Сохраняем данные
             classicLotteryData.bets = data.lottery.bets || [];
             classicLotteryData.total_pot = data.lottery.total_pot || 0;
             classicLotteryData.participants_count = data.lottery.participants_count || 0;
             classicLotteryData.history = data.lottery.history || [];
             
-            console.log('✅ Данные классической лотереи загружены:', classicLotteryData.timer + 'сек');
+            console.log('✅ Данные классической лотереи загружены');
             updateClassicLotteryUI();
             lastClassicUpdate = now;
         } else {
@@ -612,13 +618,10 @@ async function playClassicLottery() {
 
 function updateClassicLotteryUI() {
     try {
-        const classicTimer = document.getElementById('classicTimer');
         const lotteryPot = document.getElementById('lotteryPot');
         const lotteryParticipants = document.getElementById('lotteryParticipants');
         const historyElement = document.getElementById('classicHistory');
         
-        // Обновляем таймер (уже обновляется отдельным интервалом)
-        if (classicTimer) classicTimer.textContent = classicLotteryData.timer || 120;
         if (lotteryPot) lotteryPot.textContent = (classicLotteryData.total_pot || 0).toFixed(9);
         if (lotteryParticipants) lotteryParticipants.textContent = classicLotteryData.participants_count || 0;
         
@@ -669,7 +672,7 @@ function startClassicLotteryUpdate() {
     
     classicLotteryInterval = setInterval(() => {
         loadClassicLottery();
-    }, 10000); // Увеличили интервал до 10 секунд, так как таймер теперь локальный
+    }, 10000);
 }
 
 // ========== ТОП ПОБЕДИТЕЛЕЙ - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ ==========
@@ -685,7 +688,14 @@ async function updateTopWinners() {
                 topWinnersElement.innerHTML = '';
                 
                 if (data.winners && Array.isArray(data.winners)) {
-                    data.winners.forEach((winner, index) => {
+                    // Сортируем по чистым выигрышам
+                    const sortedWinners = [...data.winners].sort((a, b) => {
+                        const aNet = a.netWinnings || 0;
+                        const bNet = b.netWinnings || 0;
+                        return bNet - aNet;
+                    });
+                    
+                    sortedWinners.forEach((winner, index) => {
                         if (!winner) return;
                         
                         const winnerItem = document.createElement('div');
@@ -797,14 +807,31 @@ async function updateSpeedLeaderboard() {
             const name = player.username || `Игрок ${rank}`;
             
             // Убедимся, что у игрока есть данные о скорости
-            const mineSpeed = typeof player.mineSpeed === 'number' ? player.mineSpeed : 0.000000000;
-            const clickSpeed = typeof player.clickSpeed === 'number' ? player.clickSpeed : 0.000000000;
-            const totalSpeed = mineSpeed + clickSpeed;
+            let mineSpeed = 0;
+            let clickSpeed = 0;
+            let totalSpeed = 0;
             
-            // Если скорость не определена (0), используем базовую
-            const displaySpeed = totalSpeed > 0 ? totalSpeed : 
-                (player.total_speed || 0.000000000);
+            if (typeof player.mineSpeed === 'number') {
+                mineSpeed = player.mineSpeed;
+            } else if (typeof player.mine_speed === 'number') {
+                mineSpeed = player.mine_speed;
+            }
             
+            if (typeof player.clickSpeed === 'number') {
+                clickSpeed = player.clickSpeed;
+            } else if (typeof player.click_speed === 'number') {
+                clickSpeed = player.click_speed;
+            }
+            
+            if (typeof player.totalSpeed === 'number') {
+                totalSpeed = player.totalSpeed;
+            } else if (typeof player.total_speed === 'number') {
+                totalSpeed = player.total_speed;
+            } else {
+                totalSpeed = mineSpeed + clickSpeed;
+            }
+            
+            const displaySpeed = totalSpeed > 0 ? totalSpeed : 0.000000000;
             const isCurrent = player.userId === userId;
             const currentClass = isCurrent ? 'current-player' : '';
             
