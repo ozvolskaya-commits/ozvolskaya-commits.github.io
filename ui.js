@@ -959,6 +959,114 @@ document.addEventListener('DOMContentLoaded', function() {
                 showSection('main');
             };
         }
+        // Улучшенная функция для обновления топа победителей
+window.updateTopWinnersImproved = async function() {
+    try {
+        console.log('🏆 Загрузка улучшенного топа победителей...');
+        const data = await apiRequest('/api/top/real_winners?limit=20');
+        
+        const topWinnersElement = document.getElementById('topWinners');
+        if (!topWinnersElement) return;
+        
+        topWinnersElement.innerHTML = '<div class="loading">Загрузка топа победителей...</div>';
+        
+        if (!data || !data.success || !data.winners || data.winners.length === 0) {
+            topWinnersElement.innerHTML = '<div class="empty-winners">🏆 Стань первым победителем!</div>';
+            return;
+        }
+        
+        let newHTML = '';
+        
+        data.winners.forEach((winner, index) => {
+            if (!winner || typeof winner !== 'object') return;
+            
+            const rank = index + 1;
+            const name = winner.username || `Игрок ${rank}`;
+            const netWinnings = winner.netWinnings || 0;
+            const totalPrizes = winner.totalPrizes || 0;
+            const lotteryWins = winner.lotteryWins || 0;
+            const isCurrent = winner.username === window.userData?.username;
+            const currentClass = isCurrent ? 'current-player' : '';
+            
+            const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(winner.userId || name)}&size=40`;
+            
+            newHTML += `
+                <div class="winner-item ${currentClass}">
+                    <div class="winner-rank">
+                        <div class="rank-number">${rank}</div>
+                        <div class="rank-medal">${getMedalEmoji(rank)}</div>
+                    </div>
+                    <div class="winner-avatar">
+                        <img src="${avatarUrl}" alt="${name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=default&size=40'">
+                    </div>
+                    <div class="winner-info">
+                        <div class="winner-name ${currentClass}">
+                            ${name} ${isCurrent ? '👑' : ''}
+                        </div>
+                        <div class="winner-stats">
+                            <span class="stat-wins" title="Выигрыши в лотереях">🏆 ${lotteryWins}</span>
+                            <span class="stat-prizes" title="Общий выигрыш">💰 ${totalPrizes.toFixed(9)} S</span>
+                        </div>
+                    </div>
+                    <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
+                        ${netWinnings >= 0 ? '+' : ''}${netWinnings.toFixed(9)} S
+                    </div>
+                </div>
+            `;
+        });
+        
+        topWinnersElement.innerHTML = newHTML;
+        
+    } catch (error) {
+        console.error('❌ Ошибка обновления топа победителей:', error);
+        const topWinnersElement = document.getElementById('topWinners');
+        if (topWinnersElement) {
+            topWinnersElement.innerHTML = '<div class="empty-winners">Ошибка загрузки топа</div>';
+        }
+    }
+};
+
+// Функция для получения эмодзи медали
+function getMedalEmoji(position) {
+    switch(position) {
+        case 1: return '🥇';
+        case 2: return '🥈';
+        case 3: return '🥉';
+        default: return '🎖️';
+    }
+}
+
+// Инициализация улучшенных лотерей
+document.addEventListener('DOMContentLoaded', function() {
+    // Обновляем функцию updateTopWinners
+    if (typeof updateTopWinners === 'function') {
+        window.updateTopWinners = window.updateTopWinnersImproved;
+    }
+    
+    // Инициализация прогресс-баров
+    setTimeout(() => {
+        initializeLotteryProgressBars();
+    }, 1000);
+});
+
+// Инициализация прогресс-баров лотерей
+function initializeLotteryProgressBars() {
+    // Прогресс-бары для командной лотереи
+    const teamProgressHTML = `
+        <div class="team-progress">
+            <div class="team-progress-bar eagle" id="eagleProgress" style="width: 50%"></div>
+            <div class="team-progress-bar tails" id="tailsProgress" style="width: 50%"></div>
+        </div>
+    `;
+    
+    // Добавляем прогресс-бары в интерфейс
+    const lotteryStats = document.querySelector('.lottery-stats');
+    if (lotteryStats) {
+        lotteryStats.insertAdjacentHTML('afterend', teamProgressHTML);
+    }
+}
+
+console.log('✅ Улучшенный интерфейс лотерей загружен!');
     });
     
     console.log('✅ UI полностью инициализирован!');
