@@ -1,11 +1,11 @@
-// ui.js - полностью исправленная версия с разделением лотерей
+// ui.js - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ И УЛУЧШЕННЫЙ
 console.log('🖥️ Загружаем ui.js...');
 
 let allPlayers = [];
 let selectedTransferUser = null;
-let currentRatingTab = 'balance';
+let currentRatingTab = 'winners';
 
-// Глобальные функции для кнопок - ОБЯЗАТЕЛЬНО ОПРЕДЕЛИТЬ ПЕРВЫМИ
+// ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ КНОПОК
 window.showSection = function(sectionName) {
     console.log('🎯 Показываем секцию:', sectionName);
     
@@ -19,9 +19,7 @@ window.showSection = function(sectionName) {
         
         switch(sectionName) {
             case 'top':
-                if (typeof updateTopWinners === 'function') updateTopWinners();
-                if (typeof updateLeaderboard === 'function') updateLeaderboard();
-                if (typeof updateSpeedLeaderboard === 'function') updateSpeedLeaderboard();
+                if (typeof updateTopTab === 'function') updateTopTab(currentRatingTab);
                 break;
             case 'transfer':
                 if (typeof updateUsersList === 'function') updateUsersList();
@@ -31,9 +29,7 @@ window.showSection = function(sectionName) {
                 break;
             case 'games':
                 if (typeof showGameTab === 'function') showGameTab('team-lottery');
-                if (typeof startLotteryAutoUpdate === 'function') startLotteryAutoUpdate();
-                if (typeof startClassicLotteryUpdate === 'function') startClassicLotteryUpdate();
-                if (typeof loadReferralStats === 'function') loadReferralStats();
+                if (typeof startSyncedTimers === 'function') startSyncedTimers();
                 break;
             case 'referral':
                 if (typeof updateReferralStats === 'function') updateReferralStats();
@@ -41,13 +37,12 @@ window.showSection = function(sectionName) {
         }
     }
     
-    // Обновляем синхронизацию при смене секций
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Функции для игрового попапа
+// ПОПАП ИГР
 window.showGamesPopup = function() {
     console.log('🎮 Открываем popup игр');
     const popup = document.getElementById('games-popup');
@@ -73,15 +68,11 @@ window.openGame = function(gameType) {
     switch(gameType) {
         case 'team-lottery':
             showSection('games');
-            if (typeof showGameTab === 'function') {
-                showGameTab('team-lottery');
-            }
+            if (typeof showGameTab === 'function') showGameTab('team-lottery');
             break;
         case 'classic-lottery':
             showSection('games');
-            if (typeof showGameTab === 'function') {
-                showGameTab('classic-lottery');
-            }
+            if (typeof showGameTab === 'function') showGameTab('classic-lottery');
             break;
         case 'plinko':
         case 'dice':
@@ -95,7 +86,7 @@ window.showGamesSection = function() {
     showSection('games');
 };
 
-// Функции для вкладок игр - ИСПРАВЛЕННЫЕ ДЛЯ РАЗДЕЛЕНИЯ ЛОТЕРЕЙ
+// ВКЛАДКИ ИГР
 window.showGameTab = function(tabName) {
     console.log('🎰 Показываем игровую вкладку:', tabName);
     
@@ -106,7 +97,6 @@ window.showGameTab = function(tabName) {
         section.classList.remove('active');
     });
     
-    // Активируем выбранную вкладку
     const activeTab = document.querySelector(`.game-tab[onclick*="${tabName}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
@@ -117,35 +107,24 @@ window.showGameTab = function(tabName) {
         targetSection.classList.add('active');
     }
     
-    // Загружаем соответствующие данные
     switch(tabName) {
         case 'team-lottery':
-            if (typeof loadLotteryStatus === 'function') {
-                loadLotteryStatus();
-            }
-            if (typeof startLotteryAutoUpdate === 'function') {
-                startLotteryAutoUpdate();
-            }
+            if (typeof loadLotteryStatus === 'function') loadLotteryStatus();
             break;
         case 'classic-lottery':
-            if (typeof loadClassicLottery === 'function') {
-                loadClassicLottery();
-            }
-            if (typeof startClassicLotteryUpdate === 'function') {
-                startClassicLotteryUpdate();
-            }
+            if (typeof loadClassicLottery === 'function') loadClassicLottery();
             break;
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Функции для вкладок рейтинга - ИСПРАВЛЕННЫЕ
+// ВКЛАДКИ РЕЙТИНГА - ИСПРАВЛЕННЫЕ
 window.showTopTab = function(tabName) {
     console.log('🏆 Показываем вкладку рейтинга:', tabName);
+    currentRatingTab = tabName;
     
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.classList.remove('active');
@@ -154,7 +133,6 @@ window.showTopTab = function(tabName) {
         section.classList.remove('active');
     });
     
-    // Активируем выбранную вкладку
     const activeTab = document.querySelector(`.nav-tab[onclick*="${tabName}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
@@ -165,25 +143,31 @@ window.showTopTab = function(tabName) {
         targetSection.classList.add('active');
     }
     
-    switch(tabName) {
-        case 'winners':
-            if (typeof updateTopWinners === 'function') updateTopWinners();
-            break;
-        case 'balance':
-            if (typeof updateLeaderboard === 'function') updateLeaderboard();
-            break;
-        case 'speed':
-            if (typeof updateSpeedLeaderboard === 'function') updateSpeedLeaderboard();
-            break;
-    }
+    updateTopTab(tabName);
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Функции для табов магазина
+// ОБНОВЛЕНИЕ ВКЛАДОК РЕЙТИНГА
+async function updateTopTab(tabName) {
+    console.log('📊 Обновление вкладки:', tabName);
+    
+    switch(tabName) {
+        case 'winners':
+            await updateTopWinners();
+            break;
+        case 'balance':
+            await updateLeaderboard();
+            break;
+        case 'speed':
+            await updateSpeedLeaderboard();
+            break;
+    }
+}
+
+// ВКЛАДКИ МАГАЗИНА
 window.showShopTab = function(tabName) {
     console.log('🛒 Показываем вкладку:', tabName);
     
@@ -194,7 +178,6 @@ window.showShopTab = function(tabName) {
         category.classList.add('hidden');
     });
     
-    // Активируем выбранную вкладку
     const activeTab = document.querySelector(`.shop-tab[onclick*="${tabName}"]`);
     if (activeTab) {
         activeTab.classList.add('active');
@@ -205,33 +188,36 @@ window.showShopTab = function(tabName) {
         targetCategory.classList.remove('hidden');
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
 };
 
-// Управление переводом - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ПЕРЕВОДЫ - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЕ
 async function updateUsersList() {
     const usersList = document.getElementById('usersList');
     const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
     
     if (!usersList) return;
     
-    usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
+    usersList.innerHTML = '<div class="loading">Загрузка игроков...</div>';
     
     try {
         const data = await apiRequest('/api/all_players');
         const apiPlayers = data.players || [];
         
-        // Фильтруем пользователей (исключаем текущего и по поиску)
+        allPlayers = apiPlayers;
+        
+        // Фильтруем пользователей
         const filteredUsers = apiPlayers.filter(player => {
             // Исключаем текущего пользователя
             if (player.userId === window.userData?.userId) return false;
             
-            // Проверяем поиск по имени
-            if (searchTerm && player.username) {
-                return player.username.toLowerCase().includes(searchTerm);
+            // Проверяем поиск
+            if (searchTerm) {
+                const username = (player.username || '').toLowerCase();
+                const userId = (player.userId || '').toLowerCase();
+                return username.includes(searchTerm) || userId.includes(searchTerm);
             }
             
             return true;
@@ -240,28 +226,31 @@ async function updateUsersList() {
         usersList.innerHTML = '';
         
         if (filteredUsers.length === 0) {
-            usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Игроки не найдены</div>';
+            usersList.innerHTML = '<div class="empty-placeholder">Игроки не найдены</div>';
             return;
         }
         
-        // Отображаем пользователей
+        // Функция для получения аватарки
+        const getAvatarUrl = (userId, username) => {
+            const avatarSeed = userId || username || 'default';
+            return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed)}&size=40`;
+        };
+        
         filteredUsers.forEach(player => {
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             
-            // Определяем общую скорость
-            let totalSpeed = 0;
-            if (typeof player.totalSpeed === 'number') {
-                totalSpeed = player.totalSpeed;
-            } else if (typeof player.total_speed === 'number') {
-                totalSpeed = player.total_speed;
-            }
+            const totalSpeed = player.totalSpeed || player.total_speed || 
+                             (player.clickSpeed || 0) + (player.mineSpeed || 0);
             
             userItem.innerHTML = `
-                <div class="user-name">${player.username || 'Игрок'}</div>
-                <div class="user-balance">${(player.balance || 0).toFixed(9)} S</div>
-                <div class="user-speed" style="font-size: 10px; color: #666;">
-                    ${totalSpeed.toFixed(9)} S/сек
+                <img src="${getAvatarUrl(player.userId, player.username)}" 
+                     alt="${player.username}" 
+                     class="user-avatar">
+                <div class="user-details">
+                    <div class="user-name">${player.username || 'Игрок'}</div>
+                    <div class="user-balance">${(player.balance || 0).toFixed(9)} S</div>
+                    <div class="user-speed">${totalSpeed.toFixed(9)} S/сек</div>
                 </div>
             `;
             
@@ -271,7 +260,7 @@ async function updateUsersList() {
         
     } catch (error) {
         console.error('Ошибка загрузки списка игроков:', error);
-        usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Ошибка загрузки</div>';
+        usersList.innerHTML = '<div class="empty-placeholder">Ошибка загрузки</div>';
     }
 }
 
@@ -292,12 +281,17 @@ function selectUserForTransfer(user) {
         
         const transferAmount = document.getElementById('transferAmount');
         if (transferAmount) {
-            transferAmount.value = '';
+            transferAmount.value = '0.000000001';
             transferAmount.addEventListener('input', function() {
                 const amount = parseFloat(this.value);
                 const transferButton = document.getElementById('transferButton');
                 if (transferButton) {
-                    transferButton.disabled = !amount || amount <= 0;
+                    const userBalance = window.userData?.balance || 0;
+                    const isValid = amount > 0 && amount <= userBalance && amount >= 0.000000001;
+                    transferButton.disabled = !isValid;
+                    transferButton.innerHTML = isValid ? 
+                        'Перевести' : 
+                        (amount > userBalance ? 'Недостаточно средств' : 'Введите сумму');
                 }
             });
         }
@@ -308,7 +302,6 @@ function selectUserForTransfer(user) {
         }
     }
     
-    // Обновляем синхронизацию
     if (window.multiSessionDetector) {
         window.multiSessionDetector.updateSync();
     }
@@ -350,7 +343,7 @@ async function makeTransfer() {
         return;
     }
     
-    // Проверяем мультисессию перед переводом
+    // Проверка мультисессии
     if (window.multiSessionDetector) {
         const status = window.multiSessionDetector.getStatus();
         if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
@@ -381,7 +374,7 @@ async function makeTransfer() {
         });
         
         if (data && data.success) {
-            // Обновляем баланс пользователя
+            // Обновляем баланс
             window.userData.balance = parseFloat(window.userData.balance) - amount;
             window.userData.transfers = window.userData.transfers || { sent: 0, received: 0 };
             window.userData.transfers.sent = (window.userData.transfers.sent || 0) + amount;
@@ -390,7 +383,7 @@ async function makeTransfer() {
             updateUI();
             saveUserData();
             
-            // Сбрасываем выбранного пользователя
+            // Сбрасываем
             const selectedUserElement = document.getElementById('selectedUser');
             if (selectedUserElement) {
                 selectedUserElement.style.display = 'none';
@@ -403,12 +396,12 @@ async function makeTransfer() {
                 userSearch.value = '';
             }
             
-            // Обновляем список пользователей
+            // Обновляем список
             setTimeout(updateUsersList, 500);
             
             showNotification(`Перевод ${amount.toFixed(9)} S выполнен успешно!`, 'success');
             
-            // Синхронизируем с сервером
+            // Синхронизация
             setTimeout(() => window.syncUserData(), 1000);
         } else {
             showNotification(`Ошибка перевода: ${data?.error || 'Неизвестная ошибка'}`, 'error');
@@ -423,7 +416,7 @@ function searchUsers() {
     updateUsersList();
 }
 
-// Таблицы лидеров
+// РЕЙТИНГИ - ИСПРАВЛЕННЫЕ
 async function updateLeaderboard() {
     try {
         const userId = window.userData?.userId;
@@ -432,29 +425,33 @@ async function updateLeaderboard() {
         const leaderboard = document.getElementById('leaderboard');
         if (!leaderboard) return;
         
-        if (!data || !data.success || !data.leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
+        leaderboard.innerHTML = '<div class="loading">Загрузка рейтинга...</div>';
+        
+        if (!data || !data.success || !data.leaderboard || data.leaderboard.length === 0) {
+            leaderboard.innerHTML = '<div class="empty-placeholder">🏆 Стань первым в рейтинге!</div>';
             return;
         }
         
         let newHTML = '';
         
         data.leaderboard.forEach((player, index) => {
-            if (!player || typeof player !== 'object') {
-                return;
-            }
+            if (!player || typeof player !== 'object') return;
             
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
-            const balance = typeof player.balance === 'number' ? player.balance : 0;
+            const balance = player.balance || 0;
             const isCurrent = player.userId === userId;
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
                 <div class="leader-item ${currentClass}">
-                    <div class="leader-rank">${rank} место</div>
-                    <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="leader-balance">${balance.toFixed(9)} S</div>
+                    <div class="leader-rank">${rank}</div>
+                    <div class="leader-info">
+                        <div class="leader-name ${currentClass}">
+                            ${name} ${isCurrent ? '👑' : ''}
+                        </div>
+                        <div class="leader-balance">${balance.toFixed(9)} S</div>
+                    </div>
                 </div>
             `;
         });
@@ -465,7 +462,7 @@ async function updateLeaderboard() {
         console.error('Ошибка обновления рейтинга:', error);
         const leaderboard = document.getElementById('leaderboard');
         if (leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+            leaderboard.innerHTML = '<div class="empty-placeholder">Ошибка загрузки рейтинга</div>';
         }
     }
 }
@@ -478,55 +475,35 @@ async function updateSpeedLeaderboard() {
         const leaderboard = document.getElementById('speedLeaderboard');
         if (!leaderboard) return;
         
-        if (!data || !data.success || !data.leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге скорости!</div>';
+        leaderboard.innerHTML = '<div class="loading">Загрузка рейтинга скорости...</div>';
+        
+        if (!data || !data.success || !data.leaderboard || data.leaderboard.length === 0) {
+            leaderboard.innerHTML = '<div class="empty-placeholder">⚡ Стань первым в рейтинге скорости!</div>';
             return;
         }
         
         let newHTML = '';
         
         data.leaderboard.forEach((player, index) => {
-            if (!player || typeof player !== 'object') {
-                return;
-            }
+            if (!player || typeof player !== 'object') return;
             
             const rank = index + 1;
             const name = player.username || `Игрок ${rank}`;
-            
-            // Убедимся, что у игрока есть данные о скорости
-            let mineSpeed = 0;
-            let clickSpeed = 0;
-            let totalSpeed = 0;
-            
-            if (typeof player.mineSpeed === 'number') {
-                mineSpeed = player.mineSpeed;
-            } else if (typeof player.mine_speed === 'number') {
-                mineSpeed = player.mine_speed;
-            }
-            
-            if (typeof player.clickSpeed === 'number') {
-                clickSpeed = player.clickSpeed;
-            } else if (typeof player.click_speed === 'number') {
-                clickSpeed = player.click_speed;
-            }
-            
-            if (typeof player.totalSpeed === 'number') {
-                totalSpeed = player.totalSpeed;
-            } else if (typeof player.total_speed === 'number') {
-                totalSpeed = player.total_speed;
-            } else {
-                totalSpeed = mineSpeed + clickSpeed;
-            }
-            
-            const displaySpeed = totalSpeed > 0 ? totalSpeed : 0.000000000;
+            const totalSpeed = player.totalSpeed || player.total_speed || 
+                             (player.clickSpeed || 0) + (player.mineSpeed || 0);
+            const displaySpeed = totalSpeed || 0.000000000;
             const isCurrent = player.userId === userId;
             const currentClass = isCurrent ? 'current-player' : '';
             
             newHTML += `
                 <div class="leader-item ${currentClass}">
-                    <div class="leader-rank">${rank} место</div>
-                    <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="leader-speed">${displaySpeed.toFixed(9)} S/сек</div>
+                    <div class="leader-rank">${rank}</div>
+                    <div class="leader-info">
+                        <div class="leader-name ${currentClass}">
+                            ${name} ${isCurrent ? '👑' : ''}
+                        </div>
+                        <div class="leader-speed">${displaySpeed.toFixed(9)} S/сек</div>
+                    </div>
                 </div>
             `;
         });
@@ -537,12 +514,12 @@ async function updateSpeedLeaderboard() {
         console.error('Ошибка обновления рейтинга скорости:', error);
         const leaderboard = document.getElementById('speedLeaderboard');
         if (leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
+            leaderboard.innerHTML = '<div class="empty-placeholder">Ошибка загрузки рейтинга</div>';
         }
     }
 }
 
-// ОБНОВЛЕНИЕ ИНТЕРФЕЙСА С ПРАВИЛЬНЫМИ СКОРОСТЯМИ И ЗАЩИТОЙ ОТ NaN
+// ОБНОВЛЕНИЕ ИНТЕРФЕЙСА С ПРАВИЛЬНЫМИ СКОРОСТЯМИ
 function updateUI() {
     if (!window.userData) return;
     
@@ -552,7 +529,8 @@ function updateUI() {
     const mineSpeedElement = document.getElementById('mineSpeed');
     
     if (balanceElement) {
-        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+        const balance = window.userData.balance || 0.000000100;
+        balanceElement.textContent = balance.toFixed(9) + ' S';
     }
     
     if (clickValueElement) {
@@ -561,17 +539,14 @@ function updateUI() {
     }
     
     if (clickSpeedElement) {
-        // СКОРОСТЬ КЛИКА = сила одного клика (так как клики вручную)
         const clickPower = typeof calculateClickPower === 'function' ? calculateClickPower() : 0.000000001;
         clickSpeedElement.textContent = clickPower.toFixed(9) + ' S/сек';
     }
     
     if (mineSpeedElement) {
-        // СКОРОСТЬ МАЙНИНГА = пассивный доход в секунду
         let miningSpeed = 0.000000000;
         try {
             miningSpeed = typeof calculateMiningSpeed === 'function' ? calculateMiningSpeed() : 0.000000000;
-            // Дополнительная защита от NaN
             if (isNaN(miningSpeed) || !isFinite(miningSpeed) || miningSpeed < 0) {
                 miningSpeed = 0.000000000;
             }
@@ -583,7 +558,7 @@ function updateUI() {
     }
 }
 
-// Уведомления и попапы
+// УВЕДОМЛЕНИЯ
 function showNotification(message, type = 'info', duration = 3000) {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -591,7 +566,7 @@ function showNotification(message, type = 'info', duration = 3000) {
         position: fixed;
         top: 20px;
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) translateY(-20px);
         background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196F3'};
         color: white;
         padding: 12px 20px;
@@ -601,6 +576,8 @@ function showNotification(message, type = 'info', duration = 3000) {
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         max-width: 90%;
         text-align: center;
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     `;
     
     const title = type === 'success' ? '✅ Успех' : 
@@ -614,7 +591,6 @@ function showNotification(message, type = 'info', duration = 3000) {
     
     document.body.appendChild(notification);
     
-    // Анимация появления
     setTimeout(() => {
         notification.style.opacity = '1';
         notification.style.transform = 'translateX(-50%) translateY(0)';
@@ -631,6 +607,7 @@ function showNotification(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
+// ПОПАП РЕЗУЛЬТАТА
 function showResultPopup(isWin, amount, emoji) {
     const popup = document.getElementById('resultPopup');
     const emojiElement = document.getElementById('resultEmoji');
@@ -641,7 +618,7 @@ function showResultPopup(isWin, amount, emoji) {
     
     popup.className = `result-popup ${isWin ? 'win' : 'lose'}`;
     emojiElement.textContent = emoji;
-    textElement.textContent = isWin ? 'Победа!' : 'Проигрыш';
+    textElement.textContent = isWin ? '🎉 Победа!' : '💸 Проигрыш';
     amountElement.textContent = `${amount >= 0 ? '+' : ''}${amount.toFixed(9)} S`;
     amountElement.style.color = isWin ? '#4CAF50' : '#f44336';
     
@@ -655,7 +632,7 @@ function closeResultPopup() {
     }
 }
 
-// Функция для обновления топа победителей
+// ТОП ПОБЕДИТЕЛЕЙ - ИСПРАВЛЕННЫЙ
 async function updateTopWinners() {
     try {
         const data = await apiRequest('/api/top/winners?limit=20');
@@ -663,8 +640,10 @@ async function updateTopWinners() {
         
         if (!topWinnersElement) return;
         
-        if (!data || !data.success || !data.winners) {
-            topWinnersElement.innerHTML = '<div class="winner-item">🏆 Стань первым победителем!</div>';
+        topWinnersElement.innerHTML = '<div class="loading">Загрузка топа победителей...</div>';
+        
+        if (!data || !data.success || !data.winners || data.winners.length === 0) {
+            topWinnersElement.innerHTML = '<div class="empty-placeholder">🏆 Стань первым победителем!</div>';
             return;
         }
         
@@ -678,21 +657,22 @@ async function updateTopWinners() {
         });
         
         sortedWinners.forEach((winner, index) => {
-            if (!winner || typeof winner !== 'object') {
-                return;
-            }
+            if (!winner || typeof winner !== 'object') return;
             
             const rank = index + 1;
             const name = winner.username || `Игрок ${rank}`;
             const netWinnings = winner.netWinnings || 0;
             const isCurrent = winner.username === window.userData?.username;
             const currentClass = isCurrent ? 'current-player' : '';
+            const amountClass = netWinnings >= 0 ? 'positive' : 'negative';
             
             newHTML += `
                 <div class="winner-item ${currentClass}">
                     <div class="winner-rank">${rank}</div>
-                    <div class="winner-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
+                    <div class="winner-name ${currentClass}">
+                        ${name} ${isCurrent ? '👑' : ''}
+                    </div>
+                    <div class="winner-amount ${amountClass}">
                         ${netWinnings.toFixed(9)} S
                     </div>
                 </div>
@@ -705,12 +685,12 @@ async function updateTopWinners() {
         console.error('Ошибка обновления топа победителей:', error);
         const topWinnersElement = document.getElementById('topWinners');
         if (topWinnersElement) {
-            topWinnersElement.innerHTML = '<div class="winner-item">Ошибка загрузки топа победителей</div>';
+            topWinnersElement.innerHTML = '<div class="empty-placeholder">Ошибка загрузки топа победителей</div>';
         }
     }
 }
 
-// Функция для загрузки реферальной статистики
+// РЕФЕРАЛЬНАЯ СИСТЕМА
 async function loadReferralStats() {
     try {
         const userId = window.userData?.userId;
@@ -726,7 +706,6 @@ async function loadReferralStats() {
     }
 }
 
-// Функция для обновления реферальной статистики (новая)
 window.updateReferralStats = async function() {
     try {
         const userId = window.userData?.userId;
@@ -743,9 +722,7 @@ window.updateReferralStats = async function() {
     }
 };
 
-// Обновление UI реферальной системы - ИСПРАВЛЕННАЯ ССЫЛКА НА БОТА @bytecoinbeta_bot
 function updateReferralUI(data) {
-    // Формируем правильную реферальную ссылку для бота @bytecoinbeta_bot
     const referralCode = data.referralCode || `REF-${window.userData?.userId?.slice(-8)?.toUpperCase() || 'DEFAULT'}`;
     const referralLink = `https://t.me/bytecoinbeta_bot?start=${referralCode}`;
     
@@ -762,14 +739,12 @@ function updateReferralUI(data) {
         if (el) el.textContent = element.value;
     });
     
-    // Обновляем ссылку
     const referralLinkElement = document.getElementById('referralLinkCode');
     if (referralLinkElement) {
         referralLinkElement.textContent = referralLink;
         referralLinkElement.href = referralLink;
     }
     
-    // Обновляем кнопку копирования
     const copyButton = document.querySelector('[onclick="copyReferralLink()"]');
     if (copyButton) {
         copyButton.onclick = function() {
@@ -786,7 +761,6 @@ function updateReferralUI(data) {
     }
 }
 
-// Функция для копирования реферальной ссылки (новая)
 window.copyReferralLink = function() {
     const linkElement = document.getElementById('referralLinkCode');
     if (linkElement) {
@@ -817,9 +791,9 @@ function fallbackCopy(text) {
     document.body.removeChild(textArea);
 }
 
-// Функция обновления магазина (улучшенная)
+// МАГАЗИН
 window.updateShopUIFixed = function() {
-    console.log('🛒 Обновляем интерфейс магазина (фиксированная версия)');
+    console.log('🛒 Обновляем интерфейс магазина');
     
     if (!window.userData || !window.isDataLoaded) {
         console.log('⏳ Данные не загружены, откладываем обновление магазина');
@@ -828,7 +802,6 @@ window.updateShopUIFixed = function() {
     }
     
     try {
-        // Обновляем все категории улучшений
         updateShopCategory('gpu');
         updateShopCategory('cpu'); 
         updateShopCategory('mouse');
@@ -850,14 +823,12 @@ function updateShopCategory(category) {
         const currentLevel = window.upgrades[upgradeId]?.level || 0;
         const price = upgrade.basePrice * Math.pow(2, currentLevel);
         
-        // Обновляем отображение
         const ownedElement = document.getElementById(upgradeId + '-owned');
         const priceElement = document.getElementById(upgradeId + '-price');
         
         if (ownedElement) ownedElement.textContent = currentLevel;
         if (priceElement) priceElement.textContent = price.toFixed(9);
         
-        // Обновляем кнопку
         const buyButton = document.querySelector(`button[onclick="buyUpgrade('${upgradeId}')"]`);
         if (buyButton) {
             const canAfford = window.userData && parseFloat(window.userData.balance) >= price;
@@ -870,7 +841,7 @@ function updateShopCategory(category) {
     });
 }
 
-// Функция для обновления баланса немедленно
+// ОБНОВЛЕНИЕ БАЛАНСА
 window.updateBalanceImmediately = function() {
     if (!window.userData) return;
     
@@ -886,7 +857,7 @@ window.updateBalanceImmediately = function() {
     }
 };
 
-// Заглушки для отсутствующих функций
+// ЗАГЛУШКИ ДЛЯ ОТСУТСТВУЮЩИХ ФУНКЦИЙ
 if (typeof updateTopWinners === 'undefined') {
     window.updateTopWinners = updateTopWinners;
 }
@@ -942,16 +913,17 @@ if (typeof calculateMiningSpeed === 'undefined') {
 
 if (typeof saveUserData === 'undefined') {
     window.saveUserData = function() {
-        console.log('💾 Сохранение данных (заглушка)');
+        console.log('💾 Сохранение данных');
     };
 }
 
-// Глобальные функции для доступа из HTML
+// ГЛОБАЛЬНЫЕ ФУНКЦИИ
 window.makeTransfer = makeTransfer;
 window.searchUsers = searchUsers;
 window.selectUserForTransfer = selectUserForTransfer;
+window.closeResultPopup = closeResultPopup;
 
-// Инициализация интерфейса при загрузке
+// ИНИЦИАЛИЗАЦИЯ
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Инициализация UI...');
     
@@ -959,7 +931,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const betInputs = document.querySelectorAll('.bet-input, .transfer-amount-input');
     betInputs.forEach(input => {
         input.addEventListener('input', function() {
-            // Ограничение минимального значения
             const minValue = parseFloat(this.getAttribute('min')) || 0.000000001;
             if (this.value < minValue) {
                 this.value = minValue;
@@ -980,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 2000);
     
-    // Инициализация кнопки "Назад" для всех секций
+    // Инициализация кнопок "Назад"
     const backButtons = document.querySelectorAll('.back-button');
     backButtons.forEach(button => {
         if (!button.onclick) {
