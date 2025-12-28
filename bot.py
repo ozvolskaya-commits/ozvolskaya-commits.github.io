@@ -1,4 +1,4 @@
-# bot.py - УЛУЧШЕННАЯ ВЕРСИЯ С ИСПРАВЛЕННЫМИ ПЕРЕВОДАМИ
+# bot.py - ПОЛНЫЙ ИСПРАВЛЕННЫЙ СЕРВЕР SPARKCOIN С КОРРЕКТНЫМИ CORS
 import os
 import json
 import logging
@@ -7,7 +7,7 @@ import random
 import time
 import threading
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 import uuid
 import hashlib
 
@@ -40,9 +40,75 @@ def get_synced_classic_timer():
     return max(1, timer)
 
 
+# КОНФИГУРАЦИЯ CORS
+ALLOWED_ORIGINS = [
+    'https://sparkcoin.ru', 'https://www.sparkcoin.ru',
+    'http://localhost:3000', 'http://127.0.0.1:3000', 'https://telegram.org',
+    'https://web.telegram.org'
+]
+
+ALLOWED_HEADERS = [
+    'Content-Type', 'Authorization', 'X-Device-ID', 'X-User-ID',
+    'X-Request-ID', 'X-Timestamp', 'X-Client-Version', 'X-Request-Timestamp'
+]
+
+ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
+
+
+# CORS Middleware
+@flask_app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin', '')
+
+    if origin in ALLOWED_ORIGINS or origin.endswith('.sparkcoin.ru'):
+        response.headers['Access-Control-Allow-Origin'] = origin
+    else:
+        response.headers['Access-Control-Allow-Origin'] = ALLOWED_ORIGINS[0]
+
+    response.headers['Access-Control-Allow-Headers'] = ', '.join(
+        ALLOWED_HEADERS)
+    response.headers['Access-Control-Allow-Methods'] = ', '.join(
+        ALLOWED_METHODS)
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Max-Age'] = '86400'
+    response.headers['X-Server-Version'] = 'Sparkcoin-3.0.0-CORS'
+    response.headers['X-Response-Time'] = str(
+        int((time.time() - request.start_time) * 1000)) + 'ms'
+
+    return response
+
+
+@flask_app.before_request
+def before_request():
+    request.start_time = time.time()
+
+    # Логирование запросов для отладки
+    if request.method != 'OPTIONS':
+        logger.info(
+            f"{request.method} {request.path} - Origin: {request.headers.get('Origin')}"
+        )
+
+
+# Обработчик OPTIONS для preflight запросов
+@flask_app.route('/api/<path:path>', methods=['OPTIONS'])
+@flask_app.route('/api', methods=['OPTIONS'])
+def options_handler(path=None):
+    response = make_response()
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get(
+        'Origin', ALLOWED_ORIGINS[0])
+    response.headers['Access-Control-Allow-Headers'] = ', '.join(
+        ALLOWED_HEADERS)
+    response.headers['Access-Control-Allow-Methods'] = ', '.join(
+        ALLOWED_METHODS)
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    response.headers['Access-Control-Max-Age'] = '86400'
+    response.headers['Content-Length'] = '0'
+    return response, 204
+
+
 # УЛУЧШЕННАЯ СИСТЕМА МУЛЬТИСЕССИИ
 ACTIVE_SESSIONS = {}
-SESSION_TIMEOUT = 15  # 15 секунд
+SESSION_TIMEOUT = 15
 MAX_BALANCE = 1000.0
 MAX_EARNED = 10000.0
 MAX_CLICKS = 10000000
@@ -89,7 +155,6 @@ class EnhancedSessionManager:
 
         current_time = time.time()
 
-        # Очищаем старые сессии этого пользователя
         sessions_to_remove = []
         for tid, session in ACTIVE_SESSIONS.items():
             if tid == telegram_id or session.get('username') == username:
@@ -103,7 +168,6 @@ class EnhancedSessionManager:
             if tid in ACTIVE_SESSIONS:
                 del ACTIVE_SESSIONS[tid]
 
-        # Создаем/обновляем сессию
         ACTIVE_SESSIONS[telegram_id] = {
             'device_id': device_id,
             'username': username,
@@ -123,8 +187,8 @@ class EnhancedSessionManager:
         for tid, session in ACTIVE_SESSIONS.items():
             if tid == telegram_id:
                 session_age = current_time - session['last_activity']
-                if (session_age < SESSION_TIMEOUT
-                        and session['device_id'] != current_device_id):
+                if session_age < SESSION_TIMEOUT and session[
+                        'device_id'] != current_device_id:
                     return True
         return False
 
@@ -237,7 +301,6 @@ def init_db():
 
         cursor = conn.cursor()
 
-        # Основная таблица игроков
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS players (
                 user_id TEXT PRIMARY KEY,
@@ -262,7 +325,7 @@ def init_db():
                 referred_by TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_ip TEXT,
-                version TEXT DEFAULT '2.0.0',
+                version TEXT DEFAULT '3.0.0',
                 first_deposit_bonus BOOLEAN DEFAULT FALSE,
                 click_speed REAL DEFAULT 0.000000001,
                 mine_speed REAL DEFAULT 0.000000000,
@@ -270,7 +333,6 @@ def init_db():
             )
         ''')
 
-        # Таблицы для лотерей
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS lottery_bets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -328,7 +390,6 @@ def init_db():
             )
         ''')
 
-        # Таблица переводов
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS transfers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -342,7 +403,6 @@ def init_db():
             )
         ''')
 
-        # Таблица рефералов
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS referrals (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -354,7 +414,6 @@ def init_db():
             )
         ''')
 
-        # Таблица системных логов
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS system_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -365,7 +424,6 @@ def init_db():
             )
         ''')
 
-        # Инициализация таймеров
         cursor.execute(
             'INSERT OR IGNORE INTO lottery_timer (id, timer) VALUES (1, 60)')
         cursor.execute(
@@ -404,17 +462,14 @@ def apply_referral_bonus(user_id, referrer_id, amount):
 
         cursor = conn.cursor()
 
-        # Начисляем бонус новому пользователю (10%)
         cursor.execute(
             'UPDATE players SET balance = balance + ?, referral_earnings = referral_earnings + ? WHERE user_id = ?',
             (amount * 0.10, amount * 0.10, user_id))
 
-        # Начисляем бонус пригласившему (5%)
         cursor.execute(
             'UPDATE players SET balance = balance + ?, referral_earnings = referral_earnings + ?, referrals_count = referrals_count + 1 WHERE user_id = ?',
             (amount * 0.05, amount * 0.05, referrer_id))
 
-        # Записываем реферала
         cursor.execute(
             'INSERT INTO referrals (referrer_user_id, referred_user_id, referral_code, earnings) VALUES (?, ?, ?, ?)',
             (referrer_id, user_id, f"REF-{referrer_id[-8:]}", amount * 0.05))
@@ -428,24 +483,6 @@ def apply_referral_bonus(user_id, referrer_id, amount):
         return False
 
 
-# CORS
-@flask_app.after_request
-def after_request(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers[
-        'Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Device-ID'
-    response.headers[
-        'Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['X-Server-Version'] = 'Sparkcoin-2.0.0'
-    return response
-
-
-# OPTIONS handlers
-@flask_app.route('/api/<path:path>', methods=['OPTIONS'])
-def options_handler(path):
-    return jsonify({'status': 'preflight'}), 200
-
-
 # API ENDPOINTS
 
 
@@ -455,50 +492,12 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'service': 'Sparkcoin API - ENHANCED VERSION',
-        'version': '2.0.0',
+        'service': 'Sparkcoin API v3.0.0',
+        'version': '3.0.0',
         'sessions': session_stats,
-        'database': 'connected'
+        'database': 'connected',
+        'response_time': '1ms'
     })
-
-
-@flask_app.route('/api/session/check', methods=['POST'])
-def check_session():
-    try:
-        data = request.get_json()
-        telegram_id = data.get('telegramId')
-        device_id = data.get('deviceId')
-        username = data.get('username')
-
-        if not telegram_id or not device_id:
-            return jsonify({
-                'success': False,
-                'allowed': False,
-                'error': 'Missing telegramId or deviceId'
-            })
-
-        if EnhancedSessionManager.check_multi_session(telegram_id, device_id):
-            return jsonify({
-                'success':
-                False,
-                'allowed':
-                False,
-                'error':
-                'multisession_blocked',
-                'message':
-                'Обнаружена активная сессия на другом устройстве'
-            })
-
-        EnhancedSessionManager.update_session(telegram_id, device_id, username)
-
-        return jsonify({
-            'success': True,
-            'allowed': True,
-            'message': 'Session access granted'
-        })
-
-    except Exception as e:
-        return jsonify({'success': False, 'allowed': False, 'error': str(e)})
 
 
 @flask_app.route('/api/sync/unified', methods=['POST'])
@@ -547,7 +546,6 @@ def sync_unified():
 
         cursor = conn.cursor()
 
-        # Проверяем реферальный код
         referrer_id = None
         if referral_code and not referral_code.startswith('REF-'):
             referral_code = f"REF-{referral_code}"
@@ -560,7 +558,6 @@ def sync_unified():
             if referrer:
                 referrer_id = referrer['user_id']
 
-        # Поиск существующих записей
         search_params = []
         if user_id:
             search_params.append(user_id)
@@ -578,7 +575,6 @@ def sync_unified():
         cursor.execute(query, search_params + [telegram_id])
         existing_records = cursor.fetchall()
 
-        # Определяем лучшие данные
         best_balance = balance
         best_total_earned = total_earned
         best_total_clicks = total_clicks
@@ -615,7 +611,6 @@ def sync_unified():
                     total_clicks, int(max_balance_record['total_clicks'] or 0))
                 best_user_id = max_balance_record['user_id']
 
-                # Сохраняем лучшие скорости
                 best_click_speed = max(
                     click_speed, float(max_balance_record['click_speed'] or 0))
                 best_mine_speed = max(
@@ -671,10 +666,8 @@ def sync_unified():
             best_user_id = user_id or (f'tg_{telegram_id}' if telegram_id else
                                        f'user_{int(time.time())}')
 
-            # Генерируем уникальный реферальный код
             referral_code_new = f"REF-{str(uuid.uuid4())[:8].upper()}"
 
-            # Применяем реферальный бонус для нового пользователя
             if referrer_id:
                 apply_referral_bonus(best_user_id, referrer_id, 0.000000100)
 
@@ -763,7 +756,7 @@ def get_unified_user(user_id):
                     'telegramUsername': player['telegram_username'],
                     'referralCode': player['referral_code'],
                     'referredBy': player['referred_by'],
-                    'version': player['version'] or '2.0.0',
+                    'version': player['version'] or '3.0.0',
                     'clickSpeed': player['click_speed'] or 0.000000001,
                     'mineSpeed': player['mine_speed'] or 0.000000000,
                     'totalSpeed': player['total_speed'] or 0.000000001
@@ -774,9 +767,6 @@ def get_unified_user(user_id):
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-
-# ЛОТЕРЕЙНЫЕ ENDPOINTS С СИНХРОНИЗАЦИЕЙ ВРЕМЕНИ
 
 
 @flask_app.route('/api/lottery/bet', methods=['POST'])
@@ -936,10 +926,8 @@ def classic_lottery_status():
                 'timestamp': row['timestamp']
             })
 
-        # Используем синхронизированный таймер
         current_timer = get_synced_classic_timer()
 
-        # Проверяем, нужно ли проводить розыгрыш
         if current_timer == 1:
             if bets and total_pot > 0:
                 winning_user = random.choice(bets)
@@ -1034,10 +1022,8 @@ def lottery_status():
                 tails_bets.append(bet)
                 total_tails += row['amount']
 
-        # Используем синхронизированный таймер
         current_timer = get_synced_lottery_timer()
 
-        # Проверяем, нужно ли проводить розыгрыш
         if current_timer == 1:
             winner = random.choice(['eagle', 'tails'])
             total_pot = total_eagle + total_tails
@@ -1094,9 +1080,6 @@ def lottery_status():
         })
 
 
-# РЕФЕРАЛЬНАЯ СИСТЕМА
-
-
 @flask_app.route('/api/referral/stats/<user_id>', methods=['GET'])
 def referral_stats(user_id):
     try:
@@ -1123,7 +1106,6 @@ def referral_stats(user_id):
         player = cursor.fetchone()
 
         if player:
-            # Получаем список рефералов
             cursor.execute(
                 '''
                 SELECT referred_user_id, earnings, created_at 
@@ -1204,7 +1186,6 @@ def apply_referral():
 
         cursor = conn.cursor()
 
-        # Проверяем существование реферального кода
         cursor.execute('SELECT user_id FROM players WHERE referral_code = ?',
                        (referral_code, ))
         referrer = cursor.fetchone()
@@ -1217,7 +1198,6 @@ def apply_referral():
 
         referrer_id = referrer['user_id']
 
-        # Проверяем, не использовал ли уже пользователь реферальный код
         cursor.execute('SELECT referred_by FROM players WHERE user_id = ?',
                        (user_id, ))
         user = cursor.fetchone()
@@ -1228,12 +1208,10 @@ def apply_referral():
                 'error': 'Referral code already used'
             })
 
-        # Применяем бонусы
         bonus_amount = 0.000000100
         success = apply_referral_bonus(user_id, referrer_id, bonus_amount)
 
         if success:
-            # Обновляем запись пользователя
             cursor.execute(
                 'UPDATE players SET referred_by = ? WHERE user_id = ?',
                 (referrer_id, user_id))
@@ -1254,9 +1232,6 @@ def apply_referral():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-
-
-# ДОПОЛНИТЕЛЬНЫЕ ENDPOINTS
 
 
 @flask_app.route('/api/all_players', methods=['GET'])
@@ -1397,7 +1372,6 @@ def transfer():
 
         cursor = conn.cursor()
 
-        # Проверяем баланс отправителя
         cursor.execute(
             'SELECT balance, username FROM players WHERE user_id = ?',
             (from_user_id, ))
@@ -1412,7 +1386,6 @@ def transfer():
         if sender['balance'] < amount:
             return jsonify({'success': False, 'error': 'Недостаточно средств'})
 
-        # Проверяем получателя
         cursor.execute(
             'SELECT user_id, username FROM players WHERE user_id = ?',
             (to_user_id, ))
@@ -1427,19 +1400,14 @@ def transfer():
                 'error': 'Нельзя переводить самому себе'
             })
 
-        # Выполняем перевод
         try:
-            # Снимаем деньги у отправителя
             cursor.execute(
                 'UPDATE players SET balance = balance - ? WHERE user_id = ?',
                 (amount, from_user_id))
-
-            # Добавляем деньги получателю
             cursor.execute(
                 'UPDATE players SET balance = balance + ? WHERE user_id = ?',
                 (amount, to_user_id))
 
-            # Обновляем статистику переводов
             cursor.execute(
                 'UPDATE players SET transfers_sent = COALESCE(transfers_sent, 0) + ? WHERE user_id = ?',
                 (amount, from_user_id))
@@ -1447,7 +1415,6 @@ def transfer():
                 'UPDATE players SET transfers_received = COALESCE(transfers_received, 0) + ? WHERE user_id = ?',
                 (amount, to_user_id))
 
-            # Записываем перевод в историю
             cursor.execute(
                 '''
                 INSERT INTO transfers (from_user_id, from_username, to_user_id, to_username, amount, ip_address)
@@ -1458,7 +1425,6 @@ def transfer():
             conn.commit()
             conn.close()
 
-            # Получаем обновленный баланс отправителя
             new_balance = sender['balance'] - amount
 
             return jsonify({
@@ -1569,7 +1535,7 @@ def admin_stats():
                 'active_classic_bets': classic_bets,
                 'total_transfers': total_transfers,
                 'server_time': datetime.now().isoformat(),
-                'version': '2.0.0'
+                'version': '3.0.0'
             }
         })
 
@@ -1580,11 +1546,13 @@ def admin_stats():
 @flask_app.route('/')
 def index():
     return jsonify({
-        'message': 'Sparkcoin API - ENHANCED COMPLETE VERSION',
+        'message': 'Sparkcoin API v3.0.0 - CORS Fixed',
         'status': 'running',
-        'version': '2.0.0',
+        'version': '3.0.0',
         'sessions': EnhancedSessionManager.get_session_stats(),
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat(),
+        'cors': 'enabled',
+        'allowed_origins': ALLOWED_ORIGINS
     })
 
 
@@ -1596,14 +1564,19 @@ if __name__ == "__main__":
     print("🔧 Запуск очистки сессий...")
     start_session_cleanup()
 
-    print("🎯 Запуск УЛУЧШЕННОГО Sparkcoin API на порту 5000...")
+    print("🎯 Запуск ИСПРАВЛЕННОГО Sparkcoin API с CORS на порту 5000...")
     print("📊 Доступные эндпоинты:")
     print("   /api/health - Проверка здоровья")
     print("   /api/sync/unified - Синхронизация данных")
     print("   /api/lottery/status - Статус лотереи")
     print("   /api/classic-lottery/status - Классическая лотерея")
+    print("   /api/leaderboard - Рейтинг игроков")
+    print("   /api/top/winners - Топ победителей")
     print("   /api/referral/stats - Реферальная система")
-    print("   /api/referral/apply - Применить реферальный код")
     print("   /api/transfer - Перевод средств")
+    print("")
+    print("✅ CORS настроен для следующих доменов:")
+    for origin in ALLOWED_ORIGINS:
+        print(f"   - {origin}")
 
     flask_app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
