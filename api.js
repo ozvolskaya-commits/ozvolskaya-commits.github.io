@@ -1,109 +1,240 @@
-// api.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ С УЛУЧШЕННОЙ СИСТЕМОЙ API
-console.log('🌐 API для Sparkcoin - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ');
+// api.js - ПОЛНОСТЬЮ ОПТИМИЗИРОВАННЫЙ API ДЛЯ SPARKCOIN С ЗАДЕРЖКОЙ 120МС
+console.log('🚀 Загрузка оптимизированного API для Sparkcoin...');
 
+// Конфигурация с минимальной задержкой
 window.CONFIG = {
     API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev',
-    API_TIMEOUT: 5000,
-    RETRY_ATTEMPTS: 3,
-    RETRY_DELAY: 1000
+    API_TIMEOUT: 120, // 120 миллисекунд максимум
+    RETRY_ATTEMPTS: 1, // Только одна попытка для скорости
+    RETRY_DELAY: 50, // Быстрая задержка при повторе
+    CACHE_DURATION: 3000, // Кэширование на 3 секунды
+    MAX_CONCURRENT_REQUESTS: 6, // Максимум параллельных запросов
+    USE_CACHE: true, // Использовать кэширование
+    USE_OFFLINE_FIRST: true // Приоритет офлайн данных
 };
 
-// Основная функция API запросов с улучшенной обработкой ошибок
+// Кэш для быстрых ответов
+window.API_CACHE = new Map();
+window.PENDING_REQUESTS = new Map();
+window.CONCURRENT_COUNTER = 0;
+
+// Генерация уникального ID для запросов
+window.generateRequestId = function() {
+    return 'req_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+};
+
+// Основная функция API запросов с оптимизацией
 window.apiRequest = async function(endpoint, options = {}) {
+    const requestId = generateRequestId();
     const url = `${window.CONFIG.API_BASE_URL}${endpoint}`;
-    console.log(`🔄 API запрос: ${url}`, options.method || 'GET');
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${url}`;
+    const now = Date.now();
     
-    const requestOptions = {
-        method: options.method || 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Device-ID': window.generateDeviceId ? window.generateDeviceId() : 'unknown',
-            'X-User-ID': window.userData?.userId || 'unknown',
-            'X-Request-Timestamp': Date.now(),
-            ...options.headers
-        },
-        mode: 'cors',
-        credentials: 'omit',
-        signal: AbortSignal.timeout(window.CONFIG.API_TIMEOUT)
-    };
+    console.log(`⚡ API запрос [${requestId}]: ${method} ${endpoint}`);
     
-    if (options.body) {
-        requestOptions.body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
-    }
-    
-    // Система повторных попыток
-    for (let attempt = 1; attempt <= window.CONFIG.RETRY_ATTEMPTS; attempt++) {
-        try {
-            console.log(`🔄 Попытка ${attempt}/${window.CONFIG.RETRY_ATTEMPTS}: ${endpoint}`);
-            const response = await fetch(url, requestOptions);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log(`✅ API успех: ${endpoint}`, data);
-                return { ...data, _attempts: attempt, _online: true };
-            } else {
-                console.warn(`⚠️ API ошибка ${response.status}: ${endpoint}`);
-                
-                // Для ошибок 4xx не повторяем
-                if (response.status >= 400 && response.status < 500) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                // Для 5xx ошибок повторяем
-                if (attempt < window.CONFIG.RETRY_ATTEMPTS) {
-                    await new Promise(resolve => setTimeout(resolve, window.CONFIG.RETRY_DELAY * attempt));
-                    continue;
-                }
-                
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-        } catch (error) {
-            console.log(`📴 Ошибка API (попытка ${attempt}):`, error.message);
-            
-            if (attempt < window.CONFIG.RETRY_ATTEMPTS) {
-                await new Promise(resolve => setTimeout(resolve, window.CONFIG.RETRY_DELAY * attempt));
-                continue;
-            }
-            
-            // Все попытки исчерпаны - переходим в офлайн режим
-            console.log('📴 Все попытки исчерпаны, переходим в офлайн режим');
-            return getOfflineResponse(endpoint, options);
+    // Проверяем кэш для GET запросов
+    if (method === 'GET' && window.CONFIG.USE_CACHE) {
+        const cached = window.API_CACHE.get(cacheKey);
+        if (cached && (now - cached.timestamp < window.CONFIG.CACHE_DURATION)) {
+            console.log(`📦 Используем кэшированный ответ для ${endpoint}`);
+            return Promise.resolve({ 
+                ...cached.data, 
+                _cached: true,
+                _timestamp: cached.timestamp,
+                _requestId: requestId
+            });
         }
     }
+    
+    // Проверяем есть ли уже такой запрос в процессе
+    if (window.PENDING_REQUESTS.has(cacheKey)) {
+        console.log(`🔄 Ожидание существующего запроса для ${endpoint}`);
+        return window.PENDING_REQUESTS.get(cacheKey);
+    }
+    
+    // Проверяем лимит параллельных запросов
+    if (window.CONCURRENT_COUNTER >= window.CONFIG.MAX_CONCURRENT_REQUESTS) {
+        console.log(`⏳ Достигнут лимит параллельных запросов, ожидание...`);
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    // Создаем промис запроса
+    const requestPromise = new Promise(async (resolve) => {
+        window.CONCURRENT_COUNTER++;
+        
+        const requestOptions = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Device-ID': window.generateDeviceId ? window.generateDeviceId() : 'device_unknown',
+                'X-User-ID': window.userData?.userId || 'user_unknown',
+                'X-Request-ID': requestId,
+                'X-Timestamp': now,
+                'X-Client-Version': 'sparkcoin_3.0',
+                ...options.headers
+            },
+            mode: 'cors',
+            credentials: 'omit',
+            signal: AbortSignal.timeout(window.CONFIG.API_TIMEOUT)
+        };
+        
+        if (options.body) {
+            requestOptions.body = typeof options.body === 'string' ? 
+                options.body : 
+                JSON.stringify(options.body);
+        }
+        
+        let responseData = null;
+        let attempt = 1;
+        
+        // Функция для быстрого возврата офлайн данных
+        const returnOfflineData = () => {
+            const offlineData = getOfflineResponse(endpoint, options);
+            console.log(`📴 Возвращаем офлайн данные для ${endpoint}`);
+            return {
+                ...offlineData,
+                _offline: true,
+                _attempts: attempt,
+                _timestamp: now,
+                _requestId: requestId
+            };
+        };
+        
+        // Проверяем соединение перед запросом
+        if (!navigator.onLine) {
+            console.log('📡 Нет интернет соединения');
+            window.CONCURRENT_COUNTER--;
+            window.PENDING_REQUESTS.delete(cacheKey);
+            resolve(returnOfflineData());
+            return;
+        }
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), window.CONFIG.API_TIMEOUT);
+            requestOptions.signal = controller.signal;
+            
+            const startTime = Date.now();
+            const response = await fetch(url, requestOptions);
+            clearTimeout(timeoutId);
+            const responseTime = Date.now() - startTime;
+            
+            console.log(`✅ API ответ [${requestId}]: ${response.status} (${responseTime}ms)`);
+            
+            if (response.ok) {
+                try {
+                    responseData = await response.json();
+                    
+                    // Сохраняем в кэш для GET запросов
+                    if (method === 'GET' && window.CONFIG.USE_CACHE) {
+                        window.API_CACHE.set(cacheKey, {
+                            data: responseData,
+                            timestamp: now
+                        });
+                    }
+                    
+                    const result = {
+                        ...responseData,
+                        _online: true,
+                        _responseTime: responseTime,
+                        _attempts: attempt,
+                        _timestamp: now,
+                        _requestId: requestId
+                    };
+                    
+                    // Обновляем статус API
+                    if (responseTime <= 50) {
+                        window.updateApiStatus?.('connected', `API (${responseTime}ms)`);
+                    } else if (responseTime <= 120) {
+                        window.updateApiStatus?.('connected', `API (${responseTime}ms)`);
+                    } else {
+                        window.updateApiStatus?.('connected', `API (${responseTime}ms)`);
+                    }
+                    
+                    window.CONCURRENT_COUNTER--;
+                    window.PENDING_REQUESTS.delete(cacheKey);
+                    resolve(result);
+                    return;
+                    
+                } catch (parseError) {
+                    console.warn(`⚠️ Ошибка парсинга JSON для ${endpoint}:`, parseError);
+                }
+            }
+            
+            // Если статус не ок или ошибка парсинга
+            if (attempt < window.CONFIG.RETRY_ATTEMPTS) {
+                attempt++;
+                console.log(`🔄 Повторная попытка ${attempt} для ${endpoint}`);
+                await new Promise(r => setTimeout(r, window.CONFIG.RETRY_DELAY));
+                
+                // Рекурсивно повторяем
+                const retryResult = await apiRequest(endpoint, options);
+                window.CONCURRENT_COUNTER--;
+                window.PENDING_REQUESTS.delete(cacheKey);
+                resolve(retryResult);
+                return;
+            }
+            
+            // Все попытки исчерпаны
+            console.warn(`❌ Все попытки исчерпаны для ${endpoint}`);
+            
+        } catch (error) {
+            console.warn(`❌ Ошибка API для ${endpoint}:`, error.name, error.message);
+        }
+        
+        // В случае ошибки возвращаем офлайн данные
+        window.CONCURRENT_COUNTER--;
+        window.PENDING_REQUESTS.delete(cacheKey);
+        resolve(returnOfflineData());
+    });
+    
+    // Сохраняем промис в pending requests
+    window.PENDING_REQUESTS.set(cacheKey, requestPromise);
+    
+    return requestPromise;
 };
 
-// Улучшенные офлайн ответы с учетом текущего пользователя и скорости
+// Улучшенные офлайн ответы
 function getOfflineResponse(endpoint, options = {}) {
-    const currentUserId = window.userData?.userId || 'default_user';
-    const currentUsername = window.userData?.username || 'Текущий Игрок';
+    const currentUserId = window.userData?.userId || `user_${Date.now()}`;
+    const currentUsername = window.userData?.username || 'Игрок';
     const currentBalance = window.userData?.balance || 0.000000100;
-    const currentClickSpeed = window.calculateClickPower ? window.calculateClickPower() : 0.000000001;
-    const currentMineSpeed = window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000;
-    const currentTotalSpeed = currentClickSpeed + currentMineSpeed;
     const currentTime = new Date().toISOString();
+    const now = Date.now();
+    
+    const baseResponse = {
+        success: true,
+        offline: true,
+        timestamp: currentTime,
+        serverTime: currentTime,
+        _local: true
+    };
     
     const offlineResponses = {
+        // Проверка здоровья
         '/api/health': {
+            ...baseResponse,
             status: 'healthy',
             mode: 'offline',
-            timestamp: currentTime,
             message: 'Работаем в офлайн режиме',
-            version: '1.0.0'
+            version: '3.0.0',
+            responseTime: 1
         },
         
+        // Синхронизация
         '/api/sync/unified': {
-            success: true,
+            ...baseResponse,
             message: 'Синхронизировано в офлайн режиме',
             userId: currentUserId,
             bestBalance: currentBalance,
-            offline: true,
-            timestamp: currentTime,
-            serverTime: currentTime,
-            syncStatus: 'offline_saved'
+            syncStatus: 'offline_saved',
+            upgradesCount: window.upgrades ? Object.keys(window.upgrades).length : 0
         },
         
+        // Все игроки
         '/api/all_players': {
-            success: true,
+            ...baseResponse,
             players: [
                 {
                     userId: currentUserId,
@@ -111,19 +242,20 @@ function getOfflineResponse(endpoint, options = {}) {
                     balance: currentBalance,
                     totalEarned: window.userData?.totalEarned || 0.000000100,
                     totalClicks: window.userData?.totalClicks || 0,
-                    clickSpeed: currentClickSpeed,
-                    mineSpeed: currentMineSpeed,
-                    totalSpeed: currentTotalSpeed,
+                    clickSpeed: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
+                    mineSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
+                    totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0) + 
+                               (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0),
                     lastUpdate: currentTime,
-                    online: false,
+                    online: true,
                     rank: 1
                 },
                 {
-                    userId: 'demo_player_2',
-                    username: 'Демо Игрок 2',
-                    balance: 0.000000050,
+                    userId: 'demo_1',
+                    username: 'Демо Игрок 1',
+                    balance: 0.000000080,
                     totalEarned: 0.000000200,
-                    totalClicks: 25,
+                    totalClicks: 50,
                     clickSpeed: 0.000000002,
                     mineSpeed: 0.000000001,
                     totalSpeed: 0.000000003,
@@ -132,26 +264,25 @@ function getOfflineResponse(endpoint, options = {}) {
                     rank: 2
                 },
                 {
-                    userId: 'demo_player_3',
-                    username: 'Демо Игрок 3',
-                    balance: 0.000000030,
-                    totalEarned: 0.000000150,
-                    totalClicks: 15,
+                    userId: 'demo_2',
+                    username: 'Демо Игрок 2',
+                    balance: 0.000000060,
+                    totalEarned: 0.000000180,
+                    totalClicks: 40,
                     clickSpeed: 0.000000001,
-                    mineSpeed: 0.000000000,
-                    totalSpeed: 0.000000001,
+                    mineSpeed: 0.000000001,
+                    totalSpeed: 0.000000002,
                     lastUpdate: currentTime,
                     online: false,
                     rank: 3
                 }
             ],
-            offline: true,
-            count: 3,
-            serverTime: currentTime
+            count: 3
         },
         
-        '/api/leaderboard': {
-            success: true,
+        // Рейтинг по балансу
+        '/api/leaderboard?type=balance': {
+            ...baseResponse,
             leaderboard: [
                 {
                     rank: 1,
@@ -160,126 +291,91 @@ function getOfflineResponse(endpoint, options = {}) {
                     balance: currentBalance,
                     totalEarned: window.userData?.totalEarned || 0.000000100,
                     totalClicks: window.userData?.totalClicks || 0,
-                    clickSpeed: currentClickSpeed,
-                    mineSpeed: currentMineSpeed,
-                    totalSpeed: currentTotalSpeed,
-                    lastWin: null,
+                    clickSpeed: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
+                    mineSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
+                    totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0) + 
+                               (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0),
                     isCurrent: true
                 },
                 {
                     rank: 2,
-                    userId: 'demo_player_2',
-                    username: 'Демо Игрок 2',
-                    balance: 0.000000080,
-                    totalEarned: 0.000000200,
-                    totalClicks: 45,
+                    userId: 'demo_1',
+                    username: 'Демо Игрок 1',
+                    balance: 0.000000090,
+                    totalEarned: 0.000000250,
+                    totalClicks: 60,
                     clickSpeed: 0.000000002,
                     mineSpeed: 0.000000001,
                     totalSpeed: 0.000000003,
-                    lastWin: new Date(Date.now() - 3600000).toISOString(),
                     isCurrent: false
                 },
                 {
                     rank: 3,
-                    userId: 'demo_player_3',
-                    username: 'Демо Игрок 3',
-                    balance: 0.000000060,
-                    totalEarned: 0.000000180,
-                    totalClicks: 30,
+                    userId: 'demo_2',
+                    username: 'Демо Игрок 2',
+                    balance: 0.000000070,
+                    totalEarned: 0.000000200,
+                    totalClicks: 45,
                     clickSpeed: 0.000000001,
                     mineSpeed: 0.000000001,
                     totalSpeed: 0.000000002,
-                    lastWin: new Date(Date.now() - 7200000).toISOString(),
                     isCurrent: false
                 }
             ],
-            offline: true,
-            type: 'balance',
-            updatedAt: currentTime
+            type: 'balance'
         },
         
-        '/api/lottery/status': {
-            success: true,
-            lottery: {
-                eagle: [],
-                tails: [],
-                last_winner: null,
-                timer: Math.floor(Math.random() * 60) + 30,
-                total_eagle: 0,
-                total_tails: 0,
-                participants_count: 0,
-                current_round: Math.floor(Math.random() * 1000) + 1,
-                round_start_time: new Date(Date.now() - 30000).toISOString(),
-                round_end_time: new Date(Date.now() + 30000).toISOString(),
-                status: 'waiting'
-            },
-            offline: true,
-            serverTime: currentTime
+        // Рейтинг по скорости
+        '/api/leaderboard?type=speed': {
+            ...baseResponse,
+            leaderboard: [
+                {
+                    rank: 1,
+                    userId: currentUserId,
+                    username: currentUsername,
+                    balance: currentBalance,
+                    clickSpeed: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
+                    mineSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
+                    totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0) + 
+                               (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0),
+                    isCurrent: true
+                },
+                {
+                    rank: 2,
+                    userId: 'demo_1',
+                    username: 'Демо Игрок 1',
+                    balance: 0.000000080,
+                    clickSpeed: 0.000000002,
+                    mineSpeed: 0.000000001,
+                    totalSpeed: 0.000000003,
+                    isCurrent: false
+                },
+                {
+                    rank: 3,
+                    userId: 'demo_2',
+                    username: 'Демо Игрок 2',
+                    balance: 0.000000060,
+                    clickSpeed: 0.000000001,
+                    mineSpeed: 0.000000001,
+                    totalSpeed: 0.000000002,
+                    isCurrent: false
+                }
+            ],
+            type: 'speed'
         },
         
-        '/api/lottery/bet': {
-            success: true,
-            message: 'Ставка принята в офлайн режиме',
-            bet_id: 'offline_' + Date.now(),
-            offline: true,
-            timestamp: currentTime,
-            newBalance: currentBalance - (JSON.parse(options.body || '{}').amount || 0),
-            team: JSON.parse(options.body || '{}').team || 'eagle'
-        },
-        
-        '/api/classic-lottery/status': {
-            success: true,
-            lottery: {
-                bets: [],
-                total_pot: 0,
-                timer: Math.floor(Math.random() * 120) + 60,
-                participants_count: 0,
-                history: [],
-                current_round: Math.floor(Math.random() * 1000) + 1,
-                round_start_time: new Date(Date.now() - 60000).toISOString(),
-                round_end_time: new Date(Date.now() + 60000).toISOString(),
-                status: 'collecting'
-            },
-            offline: true,
-            serverTime: currentTime
-        },
-        
-        '/api/classic-lottery/bet': {
-            success: true,
-            message: 'Ставка принята в офлайн режиме',
-            bet_id: 'offline_' + Date.now(),
-            offline: true,
-            timestamp: currentTime,
-            newBalance: currentBalance - (JSON.parse(options.body || '{}').amount || 0),
-            ticket_number: Math.floor(Math.random() * 1000) + 1
-        },
-        
-        '/api/referral/stats': {
-            success: true,
-            stats: {
-                referralsCount: 0,
-                totalEarnings: 0,
-                todayEarnings: 0,
-                topReferral: null,
-                earningsHistory: []
-            },
-            referralCode: 'REF-' + (currentUserId.slice(-8) || 'DEFAULT').toUpperCase(),
-            referralLink: `https://t.me/sparkcoin_bot?start=ref_${currentUserId}`,
-            offline: true,
-            timestamp: currentTime
-        },
-        
+        // Топ победителей
         '/api/top/winners': {
-            success: true,
+            ...baseResponse,
             winners: [
                 {
                     rank: 1,
                     username: currentUsername,
-                    totalWinnings: 0.000001000,
-                    totalLosses: 0.000000200,
-                    netWinnings: 0.000000800,
-                    lastWin: new Date().toISOString(),
-                    winStreak: 1,
+                    totalWinnings: window.userData?.totalWinnings || 0,
+                    totalLosses: window.userData?.totalLosses || 0,
+                    netWinnings: (window.userData?.totalWinnings || 0) - (window.userData?.totalLosses || 0),
+                    lastWin: window.userData?.lastWin || currentTime,
+                    winStreak: window.userData?.winStreak || 0,
                     isCurrent: true
                 },
                 {
@@ -288,136 +384,140 @@ function getOfflineResponse(endpoint, options = {}) {
                     totalWinnings: 0.000000500,
                     totalLosses: 0.000000100,
                     netWinnings: 0.000000400,
-                    lastWin: new Date(Date.now() - 86400000).toISOString(),
-                    winStreak: 3,
+                    lastWin: new Date(now - 86400000).toISOString(),
+                    winStreak: 2,
                     isCurrent: false
                 },
                 {
                     rank: 3,
-                    username: 'Счастливчик',
+                    username: 'Удачливый',
                     totalWinnings: 0.000000300,
                     totalLosses: 0.000000050,
                     netWinnings: 0.000000250,
-                    lastWin: new Date(Date.now() - 172800000).toISOString(),
-                    winStreak: 2,
+                    lastWin: new Date(now - 172800000).toISOString(),
+                    winStreak: 1,
                     isCurrent: false
                 }
             ],
-            offline: true,
-            period: 'all_time',
-            updatedAt: currentTime
+            period: 'all_time'
         },
         
-        '/api/player': {
-            success: true,
-            player: {
-                userId: currentUserId,
-                username: currentUsername,
-                balance: currentBalance,
-                totalEarned: window.userData?.totalEarned || 0.000000100,
-                totalClicks: window.userData?.totalClicks || 0,
-                clickSpeed: currentClickSpeed,
-                mineSpeed: currentMineSpeed,
-                totalSpeed: currentTotalSpeed,
-                rank: 1,
-                joinDate: new Date().toISOString(),
-                lastActive: currentTime
+        // Командная лотерея
+        '/api/lottery/status': {
+            ...baseResponse,
+            lottery: {
+                eagle: [],
+                tails: [],
+                last_winner: window.lotteryData?.last_winner || null,
+                timer: Math.floor((60000 - (now % 60000)) / 1000),
+                total_eagle: 0,
+                total_tails: 0,
+                participants_count: 0,
+                current_round: window.lotteryData?.current_round || 1,
+                round_start_time: new Date(now - (now % 60000)).toISOString(),
+                round_end_time: new Date(now - (now % 60000) + 60000).toISOString(),
+                status: 'waiting'
+            }
+        },
+        
+        // Классическая лотерея
+        '/api/classic-lottery/status': {
+            ...baseResponse,
+            lottery: {
+                bets: [],
+                total_pot: 0,
+                timer: Math.floor((120000 - (now % 120000)) / 1000),
+                participants_count: 0,
+                history: window.classicLotteryData?.history || [],
+                current_round: window.classicLotteryData?.current_round || 1,
+                round_start_time: new Date(now - (now % 120000)).toISOString(),
+                round_end_time: new Date(now - (now % 120000) + 120000).toISOString(),
+                status: 'collecting'
+            }
+        },
+        
+        // Реферальная статистика
+        '/api/referral/stats': {
+            ...baseResponse,
+            stats: {
+                referralsCount: window.userData?.referralsCount || 0,
+                totalEarnings: window.userData?.referralEarnings || 0,
+                todayEarnings: 0,
+                topReferral: null,
+                earningsHistory: []
             },
-            offline: true,
-            timestamp: currentTime
-        },
-        
-        '/api/transfer': {
-            success: true,
-            message: 'Перевод выполнен в офлайн режиме',
-            newBalance: currentBalance - (JSON.parse(options.body || '{}').amount || 0),
-            offline: true,
-            transactionId: 'offline_tx_' + Date.now(),
-            timestamp: currentTime
+            referralCode: window.userData?.referralCode || `REF-${currentUserId.slice(-8).toUpperCase()}`,
+            referralLink: `https://t.me/sparkcoin_bot?start=ref_${currentUserId}`,
+            referralsList: []
         }
     };
-
-    // Для POST запросов возвращаем успешный ответ
+    
+    // POST запросы
     if (options.method === 'POST') {
-        // Для переводов возвращаем специальный ответ
-        if (endpoint.includes('/api/transfer')) {
-            try {
-                const body = options.body ? JSON.parse(options.body) : {};
-                const amount = body.amount || 0;
+        const body = options.body ? JSON.parse(options.body) : {};
+        
+        switch (true) {
+            case endpoint.includes('/api/transfer'):
                 return {
+                    ...baseResponse,
                     success: true,
                     message: 'Перевод выполнен в офлайн режиме',
-                    newBalance: Math.max(0, currentBalance - amount),
-                    offline: true,
-                    timestamp: currentTime,
-                    transactionId: 'offline_tx_' + Date.now(),
+                    newBalance: Math.max(0, currentBalance - (body.amount || 0)),
+                    transactionId: `offline_tx_${now}`,
                     receiver: body.toUsername || 'Получатель'
                 };
-            } catch (e) {
+                
+            case endpoint.includes('/api/lottery/bet'):
                 return {
-                    success: true,
-                    message: 'Перевод выполнен в офлайн режиме',
-                    newBalance: currentBalance,
-                    offline: true,
-                    timestamp: currentTime
-                };
-            }
-        }
-        
-        // Для ставок в лотереях
-        if (endpoint.includes('/api/lottery/bet') || endpoint.includes('/api/classic-lottery/bet')) {
-            try {
-                const body = options.body ? JSON.parse(options.body) : {};
-                const amount = body.amount || 0;
-                return {
+                    ...baseResponse,
                     success: true,
                     message: 'Ставка принята в офлайн режиме',
-                    newBalance: Math.max(0, currentBalance - amount),
-                    offline: true,
-                    timestamp: currentTime,
-                    betId: 'offline_bet_' + Date.now()
+                    bet_id: `offline_bet_${now}`,
+                    newBalance: Math.max(0, currentBalance - (body.amount || 0)),
+                    team: body.team || 'eagle'
                 };
-            } catch (e) {
+                
+            case endpoint.includes('/api/classic-lottery/bet'):
                 return {
+                    ...baseResponse,
                     success: true,
                     message: 'Ставка принята в офлайн режиме',
-                    newBalance: currentBalance,
-                    offline: true,
-                    timestamp: currentTime
+                    bet_id: `offline_classic_${now}`,
+                    newBalance: Math.max(0, currentBalance - (body.amount || 0)),
+                    ticket_number: Math.floor(Math.random() * 1000) + 1
                 };
-            }
+                
+            case endpoint.includes('/api/referral/apply'):
+                return {
+                    ...baseResponse,
+                    success: true,
+                    message: 'Реферальный код применен в офлайн режиме',
+                    bonus: 0.000000100,
+                    applied: true
+                };
+                
+            default:
+                return {
+                    ...baseResponse,
+                    success: true,
+                    message: 'Операция выполнена в офлайн режиме',
+                    savedLocally: true
+                };
         }
-        
-        return {
-            success: true,
-            message: 'Данные сохранены в офлайн режиме',
-            userId: currentUserId,
-            offline: true,
-            timestamp: currentTime,
-            savedLocally: true
-        };
     }
     
     // Ищем подходящий ответ
-    for (const [key, value] of Object.entries(offlineResponses)) {
-        if (endpoint.includes(key.replace('/:userId', '').replace('/:id', ''))) {
-            return value;
+    for (const [key, response] of Object.entries(offlineResponses)) {
+        if (endpoint.includes(key.replace('?', '').replace('&limit=20', ''))) {
+            return response;
         }
     }
     
     // Ответ по умолчанию
-    return { 
-        success: true, 
-        userId: currentUserId,
-        offline: true,
-        message: 'Офлайн режим',
-        timestamp: currentTime,
-        mode: 'offline',
-        serverTime: currentTime
-    };
+    return baseResponse;
 }
 
-// Функция проверки соединения
+// Оптимизированная проверка соединения
 window.checkApiConnection = async function() {
     console.log('🔍 Проверка соединения с API...');
     
@@ -427,22 +527,25 @@ window.checkApiConnection = async function() {
         apiStatus.textContent = 'API: Проверка...';
     }
     
+    const startTime = Date.now();
+    
     try {
-        const startTime = Date.now();
-        const response = await window.apiRequest('/api/health');
+        const response = await Promise.race([
+            window.apiRequest('/api/health'),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 100))
+        ]);
+        
         const pingTime = Date.now() - startTime;
         
         if (response && (response.status === 'healthy' || response.offline)) {
-            console.log(`✅ API подключено! Пинг: ${pingTime}ms`);
+            console.log(`✅ API ${response.offline ? 'офлайн' : 'подключено'}! Пинг: ${pingTime}ms`);
             
-            let statusMessage = response.offline ? 'Офлайн режим' : 'Sparkcoin API';
-            if (!response.offline) {
-                statusMessage += ` (${pingTime}ms)`;
-            }
+            const statusMessage = response.offline ? 
+                `Офлайн (${pingTime}ms)` : 
+                `Sparkcoin (${pingTime}ms)`;
             
             window.updateApiStatus('connected', statusMessage);
             
-            // Сохраняем время последней успешной проверки
             localStorage.setItem('last_api_check', Date.now().toString());
             
             return {
@@ -456,7 +559,7 @@ window.checkApiConnection = async function() {
         console.log('📴 API недоступно:', error.message);
     }
     
-    window.updateApiStatus('disconnected', 'Офлайн режим');
+    window.updateApiStatus('disconnected', 'Офлайн');
     return {
         connected: false,
         offline: true,
@@ -465,127 +568,91 @@ window.checkApiConnection = async function() {
     };
 };
 
-// Функция для обновления статуса API
+// Обновление статуса API
 window.updateApiStatus = function(status, message) {
     const apiStatus = document.getElementById('apiStatus');
     if (apiStatus) {
         apiStatus.className = `api-status ${status}`;
         apiStatus.textContent = `API: ${message}`;
         apiStatus.title = `Обновлено: ${new Date().toLocaleTimeString()}`;
+        
+        // Анимация для быстрых ответов
+        if (status === 'connected' && message.includes('ms')) {
+            const ms = parseInt(message.match(/\d+/)?.[0] || 0);
+            if (ms < 50) {
+                apiStatus.style.background = 'rgba(76, 175, 80, 0.95)';
+            } else if (ms < 100) {
+                apiStatus.style.background = 'rgba(255, 152, 0, 0.95)';
+            } else {
+                apiStatus.style.background = 'rgba(244, 67, 54, 0.95)';
+            }
+        }
     }
     
     window.apiConnected = status === 'connected';
     window.isOnline = status !== 'disconnected';
-    
-    // Уведомление при изменении статуса
-    if (window.lastApiStatus !== status) {
-        console.log(`📡 Статус API изменен: ${window.lastApiStatus || 'unknown'} -> ${status}`);
-        window.lastApiStatus = status;
-        
-        if (window.showNotification && status === 'connected') {
-            setTimeout(() => {
-                window.showNotification('Подключение к API восстановлено!', 'success');
-            }, 1000);
-        }
-    }
 };
 
-// Улучшенная функция синхронизации данных с API
-window.syncPlayerDataWithAPI = async function() {
-    console.log('🔄 Синхронизация с API...');
+// Оптимизированная синхронизация
+window.syncUserData = async function(force = false) {
+    console.log('🔄 Быстрая синхронизация...');
     
-    if (!window.userData || !window.isDataLoaded) {
-        console.log('❌ Данные пользователя не загружены');
+    if (!window.userData) {
         return {
             success: false,
-            error: 'Данные не загружены',
+            error: 'Нет данных пользователя',
             offline: true
         };
     }
     
-    const syncStartTime = Date.now();
+    const now = Date.now();
+    const lastSync = window.lastSyncTime || 0;
+    
+    if (!force && (now - lastSync < 15000)) {
+        console.log('⏳ Синхронизация пропущена (слишком часто)');
+        return {
+            success: true,
+            skipped: true,
+            reason: 'too_frequent'
+        };
+    }
+    
+    const syncData = {
+        userId: window.userData.userId,
+        username: window.userData.username,
+        balance: parseFloat(window.userData.balance),
+        totalEarned: parseFloat(window.userData.totalEarned),
+        totalClicks: window.userData.totalClicks,
+        upgrades: window.getUpgradesForSync ? window.getUpgradesForSync() : {},
+        lastUpdate: now,
+        telegramId: window.userData.telegramId,
+        clickSpeed: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
+        mineSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
+        totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0) + 
+                   (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0)
+    };
     
     try {
-        const syncData = {
-            userId: window.userData.userId,
-            username: window.userData.username,
-            balance: parseFloat(window.userData.balance),
-            totalEarned: parseFloat(window.userData.totalEarned),
-            totalClicks: window.userData.totalClicks,
-            upgrades: window.getUpgradesForSync ? window.getUpgradesForSync() : (window.upgrades || {}),
-            lastUpdate: Date.now(),
-            telegramId: window.userData.telegramId,
-            deviceId: window.generateDeviceId ? window.generateDeviceId() : 'unknown',
-            gameData: {
-                clickPower: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
-                miningSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
-                totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0) + 
-                           (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0)
-            }
-        };
-        
         const response = await window.apiRequest('/api/sync/unified', {
             method: 'POST',
             body: JSON.stringify(syncData)
         });
         
-        const syncTime = Date.now() - syncStartTime;
-        
         if (response && response.success) {
-            console.log(`✅ Данные синхронизированы с API (${syncTime}ms)`);
+            console.log('✅ Данные синхронизированы');
             
-            // Обновляем данные если сервер вернул лучший баланс
             if (response.bestBalance && response.bestBalance > window.userData.balance) {
-                const oldBalance = window.userData.balance;
                 window.userData.balance = response.bestBalance;
-                console.log(`💰 Баланс обновлен: ${oldBalance.toFixed(9)} -> ${response.bestBalance.toFixed(9)}`);
-                
                 if (window.updateUI) window.updateUI();
-                if (window.showNotification) {
-                    window.showNotification(`Баланс синхронизирован! +${(response.bestBalance - oldBalance).toFixed(9)} S`, 'success');
-                }
             }
             
-            // Обновляем другие данные с сервера
-            if (response.userData) {
-                const serverData = response.userData;
-                ['totalEarned', 'totalClicks', 'lotteryWins', 'totalBet', 'referralEarnings', 
-                 'referralsCount', 'totalWinnings', 'totalLosses'].forEach(key => {
-                    if (serverData[key] !== undefined && serverData[key] > (window.userData[key] || 0)) {
-                        window.userData[key] = serverData[key];
-                    }
-                });
-                
-                // Синхронизируем улучшения
-                if (serverData.upgrades && window.upgrades) {
-                    Object.keys(serverData.upgrades).forEach(key => {
-                        const serverLevel = serverData.upgrades[key];
-                        const localLevel = window.upgrades[key]?.level || window.upgrades[key] || 0;
-                        
-                        if (serverLevel > localLevel) {
-                            if (!window.upgrades[key] || typeof window.upgrades[key] === 'number') {
-                                window.upgrades[key] = { level: serverLevel };
-                            } else {
-                                window.upgrades[key].level = serverLevel;
-                            }
-                            console.log(`📈 Улучшение ${key} синхронизировано: ${localLevel} -> ${serverLevel}`);
-                        }
-                    });
-                }
-            }
-            
-            // Сохраняем время синхронизации
             window.lastSyncTime = Date.now();
             localStorage.setItem('last_sync_time', window.lastSyncTime.toString());
-            
-            if (window.saveUserData) window.saveUserData();
             
             return {
                 success: true,
                 offline: response.offline || false,
-                syncTime: syncTime,
-                balanceUpdated: response.bestBalance > window.userData.balance,
-                timestamp: new Date().toISOString()
+                balanceUpdated: response.bestBalance > window.userData.balance
             };
         }
         
@@ -596,431 +663,345 @@ window.syncPlayerDataWithAPI = async function() {
     return {
         success: false,
         error: 'Ошибка синхронизации',
-        offline: true,
-        syncTime: Date.now() - syncStartTime
+        offline: true
     };
 };
 
-// Функция загрузки всех игроков
-window.loadAllPlayers = async function() {
-    console.log('👥 Загрузка списка игроков...');
+// Быстрая загрузка рейтинга
+window.loadLeaderboard = async function(type = 'balance', limit = 20) {
+    console.log(`⚡ Загрузка рейтинга ${type}...`);
     
-    try {
-        const data = await window.apiRequest('/api/all_players');
-        if (data && data.success) {
-            window.allPlayers = data.players || [];
-            console.log(`✅ Загружено ${window.allPlayers.length} игроков`);
-            
-            // Сортируем по балансу
-            window.allPlayers.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
-            
-            return {
-                players: window.allPlayers,
-                count: window.allPlayers.length,
-                offline: data.offline || false,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки игроков:', error.message);
-        window.allPlayers = [];
+    const cacheKey = `leaderboard_${type}`;
+    const cached = window.API_CACHE.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp < 5000)) {
+        console.log(`📦 Используем кэшированный рейтинг ${type}`);
+        return cached.data;
     }
     
-    return {
-        players: [],
-        count: 0,
-        offline: true,
-        timestamp: new Date().toISOString()
-    };
-};
-
-// Функция загрузки топа игроков
-window.loadLeaderboard = async function(type = 'balance', limit = 50) {
-    console.log(`🏆 Загрузка рейтинга (${type})...`);
-    
     try {
-        const data = await window.apiRequest(`/api/leaderboard?type=${type}&limit=${limit}`);
-        if (data && data.success) {
-            console.log(`✅ Загружен рейтинг из ${data.leaderboard.length} игроков`);
-            
-            // Добавляем флаг текущего игрока
-            const currentUserId = window.userData?.userId;
-            data.leaderboard.forEach(player => {
-                player.isCurrent = player.userId === currentUserId;
+        const response = await window.apiRequest(`/api/leaderboard?type=${type}&limit=${limit}`);
+        
+        if (response && response.success && response.leaderboard) {
+            const userId = window.userData?.userId;
+            response.leaderboard.forEach(player => {
+                player.isCurrent = player.userId === userId;
             });
             
-            return {
-                leaderboard: data.leaderboard,
-                type: type,
-                count: data.leaderboard.length,
-                offline: data.offline || false,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
+            // Кэшируем результат
+            window.API_CACHE.set(cacheKey, {
+                data: response,
+                timestamp: Date.now()
+            });
+            
+            return response;
         }
+        
     } catch (error) {
-        console.log('📴 Ошибка загрузки рейтинга:', error.message);
+        console.log(`📴 Ошибка загрузки рейтинга ${type}:`, error.message);
     }
     
     return {
+        success: true,
         leaderboard: [],
         type: type,
-        count: 0,
-        offline: true,
-        timestamp: new Date().toISOString()
+        offline: true
     };
 };
 
-// Функция загрузки топа победителей
+// Быстрая загрузка топа победителей
 window.loadTopWinners = async function(limit = 20) {
-    console.log('🎯 Загрузка топа победителей...');
+    console.log('⚡ Загрузка топа победителей...');
+    
+    const cacheKey = 'top_winners';
+    const cached = window.API_CACHE.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp < 5000)) {
+        console.log('📦 Используем кэшированный топ победителей');
+        return cached.data;
+    }
     
     try {
-        const data = await window.apiRequest(`/api/top/winners?limit=${limit}`);
-        if (data && data.success) {
-            console.log(`✅ Загружено ${data.winners.length} победителей`);
-            
-            // Добавляем флаг текущего игрока
-            const currentUsername = window.userData?.username;
-            data.winners.forEach(winner => {
-                winner.isCurrent = winner.username === currentUsername;
+        const response = await window.apiRequest(`/api/top/winners?limit=${limit}`);
+        
+        if (response && response.success && response.winners) {
+            const username = window.userData?.username;
+            response.winners.forEach(winner => {
+                winner.isCurrent = winner.username === username;
             });
             
-            return {
-                winners: data.winners,
-                count: data.winners.length,
-                period: data.period || 'all_time',
-                offline: data.offline || false,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
+            window.API_CACHE.set(cacheKey, {
+                data: response,
+                timestamp: Date.now()
+            });
+            
+            return response;
         }
+        
     } catch (error) {
         console.log('📴 Ошибка загрузки топа победителей:', error.message);
     }
     
     return {
+        success: true,
         winners: [],
-        count: 0,
-        period: 'all_time',
-        offline: true,
-        timestamp: new Date().toISOString()
+        offline: true
     };
 };
 
-// Функция загрузки статуса командной лотереи
+// Быстрая загрузка статуса лотереи
 window.loadLotteryStatus = async function() {
-    console.log('🎰 Загрузка статуса командной лотереи...');
+    console.log('⚡ Загрузка статуса командной лотереи...');
+    
+    const cacheKey = 'lottery_status';
+    const now = Date.now();
     
     try {
-        const data = await window.apiRequest('/api/lottery/status');
-        if (data && data.success) {
-            console.log('✅ Статус лотереи загружен');
+        const response = await window.apiRequest('/api/lottery/status');
+        
+        if (response && response.success) {
+            window.API_CACHE.set(cacheKey, {
+                data: response,
+                timestamp: now
+            });
             
-            // Обновляем таймер на клиенте
-            if (data.lottery && data.lottery.timer !== undefined) {
-                data.lottery.client_timer = data.lottery.timer;
-                data.lottery.client_update_time = Date.now();
-            }
-            
-            return {
-                lottery: data.lottery,
-                offline: data.offline || false,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
+            return response;
         }
+        
     } catch (error) {
         console.log('📴 Ошибка загрузки статуса лотереи:', error.message);
     }
     
     return {
-        lottery: null,
-        offline: true,
-        timestamp: new Date().toISOString()
+        success: true,
+        lottery: window.lotteryData || {
+            eagle: [],
+            tails: [],
+            timer: 60 - Math.floor((now % 60000) / 1000),
+            total_eagle: 0,
+            total_tails: 0,
+            participants_count: 0
+        },
+        offline: true
     };
 };
 
-// Функция загрузки статуса классической лотереи
-window.loadClassicLotteryStatus = async function() {
-    console.log('🎲 Загрузка статуса классической лотереи...');
+// Быстрая загрузка классической лотереи
+window.loadClassicLottery = async function() {
+    console.log('⚡ Загрузка статуса классической лотереи...');
+    
+    const cacheKey = 'classic_lottery_status';
+    const now = Date.now();
     
     try {
-        const data = await window.apiRequest('/api/classic-lottery/status');
-        if (data && data.success) {
-            console.log('✅ Статус классической лотереи загружен');
+        const response = await window.apiRequest('/api/classic-lottery/status');
+        
+        if (response && response.success) {
+            window.API_CACHE.set(cacheKey, {
+                data: response,
+                timestamp: now
+            });
             
-            // Обновляем таймер на клиенте
-            if (data.lottery && data.lottery.timer !== undefined) {
-                data.lottery.client_timer = data.lottery.timer;
-                data.lottery.client_update_time = Date.now();
-            }
-            
-            return {
-                lottery: data.lottery,
-                offline: data.offline || false,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
+            return response;
         }
+        
     } catch (error) {
-        console.log('📴 Ошибка загрузки статуса классической лотереи:', error.message);
+        console.log('📴 Ошибка загрузки классической лотереи:', error.message);
     }
     
     return {
-        lottery: null,
-        offline: true,
-        timestamp: new Date().toISOString()
+        success: true,
+        lottery: window.classicLotteryData || {
+            bets: [],
+            total_pot: 0,
+            timer: 120 - Math.floor((now % 120000) / 1000),
+            participants_count: 0,
+            history: []
+        },
+        offline: true
     };
 };
 
-// Функция загрузки реферальной статистики
+// Быстрая загрузка реферальной статистики
 window.loadReferralStats = async function() {
-    console.log('👥 Загрузка реферальной статистики...');
+    console.log('⚡ Загрузка реферальной статистики...');
+    
+    const userId = window.userData?.userId;
+    if (!userId) {
+        return {
+            success: false,
+            error: 'Нет данных пользователя',
+            offline: true
+        };
+    }
+    
+    const cacheKey = `referral_${userId}`;
+    const cached = window.API_CACHE.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp < 10000)) {
+        console.log('📦 Используем кэшированную реферальную статистику');
+        return cached.data;
+    }
     
     try {
-        const userId = window.userData?.userId;
-        if (!userId) {
-            console.log('❌ Нет userID для загрузки рефералов');
-            return {
-                stats: null,
-                offline: true,
-                error: 'Нет данных пользователя'
-            };
+        const response = await window.apiRequest(`/api/referral/stats/${userId}`);
+        
+        if (response && response.success) {
+            window.API_CACHE.set(cacheKey, {
+                data: response,
+                timestamp: Date.now()
+            });
+            
+            return response;
         }
         
-        const data = await window.apiRequest(`/api/referral/stats/${userId}`);
-        if (data && data.success) {
-            console.log('✅ Реферальная статистика загружена');
-            return {
-                stats: data.stats,
-                referralCode: data.referralCode,
-                referralLink: data.referralLink,
-                offline: data.offline || false,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
-        }
     } catch (error) {
         console.log('📴 Ошибка загрузки реферальной статистики:', error.message);
     }
     
     return {
-        stats: null,
-        offline: true,
-        timestamp: new Date().toISOString()
+        success: true,
+        stats: {
+            referralsCount: 0,
+            totalEarnings: 0
+        },
+        referralCode: `REF-${userId.slice(-8).toUpperCase()}`,
+        offline: true
     };
 };
 
-// Функция для ставки в командной лотерее
-window.placeLotteryBet = async function(team, amount) {
-    console.log(`🎯 Ставка в лотерею: ${team}, ${amount}`);
+// Функции для утилит
+window.showNotification = function(message, type = 'info', duration = 3000) {
+    console.log(`🔔 ${type.toUpperCase()}: ${message}`);
     
-    if (!window.userData) {
-        console.log('❌ Нет данных пользователя');
-        return { 
-            success: false, 
-            error: 'Нет данных пользователя',
-            offline: true 
-        };
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.notification');
+    if (oldNotifications.length > 3) {
+        oldNotifications[0].remove();
     }
     
-    if (parseFloat(window.userData.balance) < amount) {
-        return { 
-            success: false, 
-            error: 'Недостаточно средств',
-            offline: false 
-        };
-    }
+    // Создаем уведомление
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
     
-    try {
-        const response = await window.apiRequest('/api/lottery/bet', {
-            method: 'POST',
-            body: JSON.stringify({
-                userId: window.userData.userId,
-                team: team,
-                amount: amount,
-                username: window.userData.username,
-                timestamp: Date.now(),
-                deviceId: window.generateDeviceId ? window.generateDeviceId() : 'unknown'
-            })
-        });
-        
-        if (response && response.success) {
-            // Обновляем баланс
-            window.userData.balance = parseFloat(window.userData.balance) - amount;
-            window.userData.totalBet = (window.userData.totalBet || 0) + amount;
-            window.userData.lastUpdate = Date.now();
-            
-            if (window.updateUI) window.updateUI();
-            if (window.saveUserData) window.saveUserData();
-            
-            console.log(`✅ Ставка принята: ${amount.toFixed(9)} S за команду ${team}`);
-            
-            return {
-                ...response,
-                newBalance: window.userData.balance,
-                team: team,
-                amount: amount,
-                timestamp: new Date().toISOString()
-            };
-        } else {
-            return {
-                success: false,
-                error: response?.error || 'Ошибка сервера',
-                offline: response?.offline || false
-            };
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    notification.innerHTML = `
+        <div class="notification-header">
+            <span class="notification-icon">${icons[type] || 'ℹ️'}</span>
+            <span class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+            <button class="notification-close">×</button>
+        </div>
+        <div class="notification-body">
+            ${message}
+        </div>
+        <div class="notification-progress"></div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Показываем с анимацией
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Закрытие
+    const closeBtn = notification.querySelector('.notification-close');
+    closeBtn.onclick = () => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 400);
+    };
+    
+    // Автозакрытие
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 400);
         }
-    } catch (error) {
-        console.log('📴 Ошибка ставки в лотерею:', error.message);
-        return { 
-            success: false, 
-            error: 'Ошибка соединения',
-            offline: true 
-        };
+    }, duration);
+};
+
+window.calculateClickPower = function() {
+    let power = 0.000000001;
+    
+    if (window.upgrades) {
+        const mouseLevel = window.upgrades.mouse?.level || window.upgrades.mouse || 0;
+        power += mouseLevel * 0.000000001;
+    }
+    
+    return Math.max(0.000000001, power);
+};
+
+window.calculateMiningSpeed = function() {
+    let speed = 0.000000000;
+    
+    if (window.upgrades) {
+        const gpuLevel = window.upgrades.gpu?.level || window.upgrades.gpu || 0;
+        const cpuLevel = window.upgrades.cpu?.level || window.upgrades.cpu || 0;
+        speed += (gpuLevel + cpuLevel) * 0.0000000005;
+    }
+    
+    return Math.max(0.000000000, speed);
+};
+
+window.updateUI = function() {
+    if (!window.userData) return;
+    
+    const balanceElement = document.getElementById('balanceValue');
+    const clickValueElement = document.getElementById('clickValue');
+    const clickSpeedElement = document.getElementById('clickSpeed');
+    const mineSpeedElement = document.getElementById('mineSpeed');
+    const totalEarnedElement = document.getElementById('totalEarned');
+    const totalClicksElement = document.getElementById('totalClicks');
+    
+    if (balanceElement) {
+        const balance = parseFloat(window.userData.balance || 0.000000100);
+        balanceElement.textContent = balance.toFixed(9) + ' S';
+    }
+    
+    if (clickValueElement) {
+        const clickPower = window.calculateClickPower();
+        clickValueElement.textContent = clickPower.toFixed(9);
+    }
+    
+    if (clickSpeedElement) {
+        const clickPower = window.calculateClickPower();
+        clickSpeedElement.textContent = clickPower.toFixed(9) + ' S/сек';
+    }
+    
+    if (mineSpeedElement) {
+        const miningSpeed = window.calculateMiningSpeed();
+        mineSpeedElement.textContent = miningSpeed.toFixed(9) + ' S/сек';
+    }
+    
+    if (totalEarnedElement) {
+        const totalEarned = window.userData.totalEarned || 0.000000100;
+        totalEarnedElement.textContent = parseFloat(totalEarned).toFixed(9) + ' S';
+    }
+    
+    if (totalClicksElement) {
+        totalClicksElement.textContent = window.userData.totalClicks || 0;
     }
 };
 
-// Функция для ставки в классической лотерее
-window.placeClassicLotteryBet = async function(amount) {
-    console.log(`🎲 Ставка в классическую лотерею: ${amount}`);
-    
-    if (!window.userData) {
-        console.log('❌ Нет данных пользователя');
-        return { 
-            success: false, 
-            error: 'Нет данных пользователя',
-            offline: true 
-        };
-    }
-    
-    if (parseFloat(window.userData.balance) < amount) {
-        return { 
-            success: false, 
-            error: 'Недостаточно средств',
-            offline: false 
-        };
-    }
-    
+window.saveUserData = function() {
     try {
-        const response = await window.apiRequest('/api/classic-lottery/bet', {
-            method: 'POST',
-            body: JSON.stringify({
-                userId: window.userData.userId,
-                amount: amount,
-                username: window.userData.username,
-                timestamp: Date.now(),
-                deviceId: window.generateDeviceId ? window.generateDeviceId() : 'unknown'
-            })
-        });
+        if (!window.userData) return;
         
-        if (response && response.success) {
-            // Обновляем баланс
-            window.userData.balance = parseFloat(window.userData.balance) - amount;
-            window.userData.totalBet = (window.userData.totalBet || 0) + amount;
-            window.userData.lastUpdate = Date.now();
-            
-            if (window.updateUI) window.updateUI();
-            if (window.saveUserData) window.saveUserData();
-            
-            console.log(`✅ Ставка принята: ${amount.toFixed(9)} S`);
-            
-            return {
-                ...response,
-                newBalance: window.userData.balance,
-                amount: amount,
-                timestamp: new Date().toISOString()
-            };
-        } else {
-            return {
-                success: false,
-                error: response?.error || 'Ошибка сервера',
-                offline: response?.offline || false
-            };
-        }
-    } catch (error) {
-        console.log('📴 Ошибка ставки в классическую лотерею:', error.message);
-        return { 
-            success: false, 
-            error: 'Ошибка соединения',
-            offline: true 
-        };
-    }
-};
-
-// Функция для выполнения перевода
-window.performTransfer = async function(fromUserId, toUserId, amount, fromUsername, toUsername) {
-    console.log(`💸 Перевод: ${fromUserId} -> ${toUserId}, сумма: ${amount}`);
-    
-    if (!fromUserId || !toUserId || !amount) {
-        console.log('❌ Недостаточно данных для перевода');
-        return { 
-            success: false, 
-            error: 'Недостаточно данных',
-            offline: true 
-        };
-    }
-    
-    if (parseFloat(window.userData.balance) < amount) {
-        return { 
-            success: false, 
-            error: 'Недостаточно средств',
-            offline: false 
-        };
-    }
-    
-    try {
-        const response = await window.apiRequest('/api/transfer', {
-            method: 'POST',
-            body: JSON.stringify({
-                fromUserId: fromUserId,
-                toUserId: toUserId,
-                amount: amount,
-                fromUsername: fromUsername || 'Игрок',
-                toUsername: toUsername || 'Игрок',
-                timestamp: Date.now(),
-                deviceId: window.generateDeviceId ? window.generateDeviceId() : 'unknown'
-            })
-        });
+        window.userData.lastUpdate = Date.now();
+        window.userData.version = '3.0.0';
         
-        if (response && response.success) {
-            // Обновляем баланс
-            window.userData.balance = parseFloat(window.userData.balance) - amount;
-            window.userData.transfers = window.userData.transfers || { sent: 0, received: 0 };
-            window.userData.transfers.sent = (window.userData.transfers.sent || 0) + amount;
-            window.userData.lastUpdate = Date.now();
-            
-            if (window.updateUI) window.updateUI();
-            if (window.saveUserData) window.saveUserData();
-            
-            console.log(`✅ Перевод выполнен: ${amount.toFixed(9)} S`);
-            
-            return {
-                ...response,
-                newBalance: window.userData.balance,
-                amount: amount,
-                receiver: toUsername,
-                timestamp: new Date().toISOString()
-            };
-        } else {
-            return {
-                success: false,
-                error: response?.error || 'Ошибка сервера',
-                offline: response?.offline || false
-            };
-        }
-    } catch (error) {
-        console.log('📴 Ошибка перевода:', error.message);
-        return { 
-            success: false, 
-            error: 'Ошибка соединения',
-            offline: true 
-        };
-    }
-};
-
-// ========== УНИВЕРСАЛЬНЫЕ ФУНКЦИИ СИНХРОНИЗАЦИИ ==========
-
-// Функция для получения улучшений для синхронизации
-if (typeof window.getUpgradesForSync === 'undefined') {
-    window.getUpgradesForSync = function() {
-        const upgradesData = {};
+        localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
+        
         if (window.upgrades) {
+            const upgradesData = {};
             for (const key in window.upgrades) {
                 if (window.upgrades[key] && typeof window.upgrades[key].level !== 'undefined') {
                     upgradesData[key] = window.upgrades[key].level;
@@ -1028,457 +1009,55 @@ if (typeof window.getUpgradesForSync === 'undefined') {
                     upgradesData[key] = window.upgrades[key];
                 }
             }
+            localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(upgradesData));
         }
-        return upgradesData;
-    };
-}
+        
+        localStorage.setItem('sparkcoin_last_save', Date.now().toString());
+        
+        console.log('💾 Данные сохранены');
+        
+    } catch (error) {
+        console.error('❌ Ошибка сохранения:', error);
+    }
+};
 
-// Функция для загрузки синхронизированных данных
-if (typeof window.loadSyncedData === 'undefined') {
-    window.loadSyncedData = async function() {
-        console.log('📥 Загрузка синхронизированных данных...');
-        
-        try {
-            const userId = window.userData?.userId;
-            if (!userId) {
-                console.log('❌ Нет userID для загрузки');
-                return {
-                    success: false,
-                    error: 'Нет данных пользователя',
-                    offline: true
-                };
-            }
-            
-            const response = await window.apiRequest(`/api/sync/unified/${userId}`);
-            
-            if (response && response.success && response.userData) {
-                console.log('✅ Данные загружены с сервера');
-                
-                const serverData = response.userData;
-                
-                // Объединяем данные, сохраняя локальный прогресс
-                if (serverData.balance > window.userData.balance) {
-                    window.userData.balance = serverData.balance;
-                }
-                if (serverData.totalEarned > window.userData.totalEarned) {
-                    window.userData.totalEarned = serverData.totalEarned;
-                }
-                if (serverData.totalClicks > window.userData.totalClicks) {
-                    window.userData.totalClicks = serverData.totalClicks;
-                }
-                
-                // Обновляем другие данные с сервера
-                Object.keys(serverData).forEach(key => {
-                    if (key !== 'balance' && key !== 'totalEarned' && key !== 'totalClicks') {
-                        if (serverData[key] !== undefined) {
-                            window.userData[key] = serverData[key];
-                        }
-                    }
-                });
-                
-                // Синхронизируем улучшения
-                if (serverData.upgrades && window.upgrades) {
-                    Object.keys(serverData.upgrades).forEach(key => {
-                        const serverLevel = serverData.upgrades[key];
-                        const localLevel = window.upgrades[key]?.level || window.upgrades[key] || 0;
-                        
-                        if (serverLevel > localLevel) {
-                            if (!window.upgrades[key] || typeof window.upgrades[key] === 'number') {
-                                window.upgrades[key] = { level: serverLevel };
-                            } else {
-                                window.upgrades[key].level = serverLevel;
-                            }
-                        }
-                    });
-                }
-                
-                if (window.saveUserData) window.saveUserData();
-                if (window.updateUI) window.updateUI();
-                if (window.updateShopUI) window.updateShopUI();
-                
-                if (window.showNotification) {
-                    window.showNotification('Данные синхронизированы с сервером!', 'success');
-                }
-                
-                return {
-                    success: true,
-                    dataSynced: true,
-                    balanceUpdated: serverData.balance > window.userData.balance,
-                    timestamp: new Date().toISOString()
-                };
-            }
-            
-        } catch (error) {
-            console.log('📴 Ошибка загрузки данных:', error.message);
-        }
-        
-        return {
-            success: false,
-            error: 'Ошибка загрузки данных',
-            offline: true,
-            timestamp: new Date().toISOString()
-        };
-    };
-}
+window.generateDeviceId = function() {
+    let deviceId = localStorage.getItem('sparkcoin_device_id');
+    if (!deviceId) {
+        deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('sparkcoin_device_id', deviceId);
+    }
+    return deviceId;
+};
 
-// Функция для синхронизации данных
-if (typeof window.syncUserData === 'undefined') {
-    window.syncUserData = async function(force = false) {
-        console.log('🔄 Синхронизация данных...');
-        
-        if (!window.userData) {
-            return {
-                success: false,
-                error: 'Нет данных пользователя',
-                offline: true
-            };
-        }
-        
-        // Проверяем, нужно ли синхронизировать
-        const now = Date.now();
-        const lastSync = window.lastSyncTime || 0;
-        
-        if (!force && (now - lastSync < 30000)) { // 30 секунд между синхронизациями
-            console.log('⏳ Синхронизация не требуется (слишком часто)');
-            return {
-                success: true,
-                skipped: true,
-                reason: 'too_frequent',
-                timestamp: new Date().toISOString()
-            };
-        }
-        
-        try {
-            const syncData = {
-                userId: window.userData.userId,
-                username: window.userData.username,
-                balance: parseFloat(window.userData.balance),
-                totalEarned: parseFloat(window.userData.totalEarned),
-                totalClicks: window.userData.totalClicks,
-                upgrades: window.getUpgradesForSync(),
-                lastUpdate: Date.now(),
-                telegramId: window.userData.telegramId,
-                deviceId: window.generateDeviceId ? window.generateDeviceId() : 'unknown',
-                gameStats: {
-                    clickPower: window.calculateClickPower ? window.calculateClickPower() : 0.000000001,
-                    miningSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
-                    totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0) + 
-                               (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0)
-                }
-            };
-            
-            const response = await window.apiRequest('/api/sync/unified', {
-                method: 'POST',
-                body: JSON.stringify(syncData)
-            });
-            
-            if (response && response.success) {
-                console.log('✅ Данные синхронизированы с сервером');
-                
-                // Если сервер вернул другой userId (при объединении записей)
-                if (response.userId && response.userId !== window.userData.userId) {
-                    console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
-                    window.userData.userId = response.userId;
-                    if (window.saveUserData) window.saveUserData();
-                }
-                
-                // Если серверный баланс больше - используем его
-                if (response.bestBalance && response.bestBalance > window.userData.balance) {
-                    console.log(`💰 Баланс обновлен: ${window.userData.balance.toFixed(9)} -> ${response.bestBalance.toFixed(9)}`);
-                    window.userData.balance = response.bestBalance;
-                    if (window.updateUI) window.updateUI();
-                    if (window.saveUserData) window.saveUserData();
-                }
-                
-                window.lastSyncTime = Date.now();
-                localStorage.setItem('last_sync_time', window.lastSyncTime.toString());
-                
-                return {
-                    success: true,
-                    offline: response.offline || false,
-                    userIdUpdated: response.userId && response.userId !== window.userData.userId,
-                    balanceUpdated: response.bestBalance > window.userData.balance,
-                    timestamp: new Date().toISOString()
-                };
-            }
-            
-        } catch (error) {
-            console.log('📴 Ошибка синхронизации:', error.message);
-        }
-        
-        return {
-            success: false,
-            error: 'Ошибка синхронизации',
-            offline: true,
-            timestamp: new Date().toISOString()
-        };
-    };
-}
-
-// ========== ФУНКЦИИ ДЛЯ УВЕДОМЛЕНИЙ И УТИЛИТ ==========
-
-// Функция для уведомлений
-if (typeof window.showNotification === 'undefined') {
-    window.showNotification = function(message, type = 'info', duration = 3000) {
-        console.log(`🔔 ${type.toUpperCase()}: ${message}`);
-        
-        // Удаляем старые уведомления
-        const oldNotifications = document.querySelectorAll('.notification');
-        if (oldNotifications.length > 3) {
-            oldNotifications[0].remove();
-        }
-        
-        // Создаем уведомление
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        
-        const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
-        };
-        
-        notification.innerHTML = `
-            <div class="notification-header">
-                <span class="notification-icon">${icons[type] || 'ℹ️'}</span>
-                <span class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-            </div>
-            <div class="notification-body">
-                ${message}
-            </div>
-            <div class="notification-progress"></div>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Показываем с анимацией
-        setTimeout(() => notification.classList.add('show'), 10);
-        
-        // Анимация прогресс-бара
-        const progressBar = notification.querySelector('.notification-progress');
-        if (progressBar) {
-            progressBar.style.animation = `progress ${duration}ms linear`;
-        }
-        
-        // Убираем через указанное время
-        const removeTimer = setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 400);
-        }, duration);
-        
-        // Останавливаем таймер при наведении
-        notification.addEventListener('mouseenter', () => {
-            clearTimeout(removeTimer);
-            if (progressBar) {
-                progressBar.style.animationPlayState = 'paused';
-            }
-        });
-        
-        notification.addEventListener('mouseleave', () => {
-            if (progressBar) {
-                progressBar.style.animationPlayState = 'running';
-            }
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 400);
-            }, duration);
-        });
-    };
-}
-
-// Функция для расчета силы клика
-if (typeof window.calculateClickPower === 'undefined') {
-    window.calculateClickPower = function() {
-        let power = 0.000000001;
-        
-        if (window.upgrades && window.UPGRADES) {
-            for (const key in window.upgrades) {
-                if (key.startsWith('mouse')) {
-                    const level = window.upgrades[key]?.level || window.upgrades[key] || 0;
-                    const upgrade = window.UPGRADES[key];
-                    if (upgrade && upgrade.baseBonus) {
-                        power += level * upgrade.baseBonus;
-                    }
-                }
-            }
-        }
-        
-        return Math.max(0.000000001, power);
-    };
-}
-
-// Функция для расчета скорости майнинга
-if (typeof window.calculateMiningSpeed === 'undefined') {
-    window.calculateMiningSpeed = function() {
-        let speed = 0.000000000;
-        
-        if (window.upgrades && window.UPGRADES) {
-            for (const key in window.upgrades) {
-                if (key.startsWith('gpu') || key.startsWith('cpu')) {
-                    const level = window.upgrades[key]?.level || window.upgrades[key] || 0;
-                    const upgrade = window.UPGRADES[key];
-                    if (upgrade && upgrade.baseBonus) {
-                        speed += level * upgrade.baseBonus;
-                    }
-                }
-            }
-        }
-        
-        return Math.max(0.000000000, speed);
-    };
-}
-
-// Функция для обновления UI
-if (typeof window.updateUI === 'undefined') {
-    window.updateUI = function() {
-        if (!window.userData) return;
-        
-        const balanceElement = document.getElementById('balanceValue');
-        const clickValueElement = document.getElementById('clickValue');
-        const clickSpeedElement = document.getElementById('clickSpeed');
-        const mineSpeedElement = document.getElementById('mineSpeed');
-        
-        if (balanceElement) {
-            const balance = parseFloat(window.userData.balance || 0.000000100);
-            balanceElement.textContent = balance.toFixed(9) + ' S';
-            
-            // Анимация изменения баланса
-            if (balanceElement.dataset.lastValue) {
-                const lastValue = parseFloat(balanceElement.dataset.lastValue);
-                if (balance > lastValue) {
-                    balanceElement.classList.add('balance-increase');
-                    setTimeout(() => balanceElement.classList.remove('balance-increase'), 500);
-                } else if (balance < lastValue) {
-                    balanceElement.classList.add('balance-decrease');
-                    setTimeout(() => balanceElement.classList.remove('balance-decrease'), 500);
-                }
-            }
-            balanceElement.dataset.lastValue = balance;
-        }
-        
-        if (clickValueElement) {
-            const clickPower = window.calculateClickPower ? window.calculateClickPower() : 0.000000001;
-            clickValueElement.textContent = clickPower.toFixed(9);
-        }
-        
-        if (clickSpeedElement) {
-            const clickPower = window.calculateClickPower ? window.calculateClickPower() : 0.000000001;
-            clickSpeedElement.textContent = clickPower.toFixed(9) + ' S/сек';
-        }
-        
-        if (mineSpeedElement) {
-            const miningSpeed = window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000;
-            mineSpeedElement.textContent = miningSpeed.toFixed(9) + ' S/сек';
-        }
-    };
-}
-
-// Функция для обновления баланса
-if (typeof window.updateBalanceImmediately === 'undefined') {
-    window.updateBalanceImmediately = function() {
-        if (!window.userData) return;
-        
-        const balanceElement = document.getElementById('balanceValue');
-        if (balanceElement) {
-            balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
-        }
-        
-        const clickValueElement = document.getElementById('clickValue');
-        if (clickValueElement) {
-            clickValueElement.textContent = (window.calculateClickPower ? window.calculateClickPower() : 0.000000001).toFixed(9);
-        }
-    };
-}
-
-// Функция для сохранения данных
-if (typeof window.saveUserData === 'undefined') {
-    window.saveUserData = function() {
-        try {
-            if (!window.userData) return;
-            
-            window.userData.lastUpdate = Date.now();
-            window.userData.version = '1.0.0';
-            
-            // Сохраняем данные пользователя
-            localStorage.setItem('sparkcoin_user_data', JSON.stringify(window.userData));
-            
-            // Сохраняем улучшения
-            if (window.upgrades) {
-                const upgradesData = {};
-                for (const key in window.upgrades) {
-                    if (window.upgrades[key] && typeof window.upgrades[key].level !== 'undefined') {
-                        upgradesData[key] = window.upgrades[key].level;
-                    } else if (typeof window.upgrades[key] === 'number') {
-                        upgradesData[key] = window.upgrades[key];
-                    }
-                }
-                localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(upgradesData));
-            }
-            
-            // Сохраняем время последнего сохранения
-            localStorage.setItem('sparkcoin_last_save', Date.now().toString());
-            
-            console.log('💾 Данные сохранены');
-            
-        } catch (error) {
-            console.error('❌ Ошибка сохранения:', error);
-        }
-    };
-}
-
-// Функция для генерации Device ID
-if (typeof window.generateDeviceId === 'undefined') {
-    window.generateDeviceId = function() {
-        let deviceId = localStorage.getItem('sparkcoin_device_id');
-        if (!deviceId) {
-            deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + 
-                       navigator.userAgent.substring(0, 20).replace(/\s+/g, '_');
-            localStorage.setItem('sparkcoin_device_id', deviceId);
-        }
-        return deviceId;
-    };
-}
-
-// ========== АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ ==========
-
-// Автоматическая проверка соединения при загрузке
+// Автоматическая инициализация
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         if (window.checkApiConnection) {
             window.checkApiConnection();
         }
-    }, 1500);
+    }, 1000);
 });
 
-// Периодическая проверка соединения
+// Периодические проверки
 setInterval(() => {
     if (window.checkApiConnection) {
         window.checkApiConnection();
     }
-}, 60000); // Каждую минуту
+}, 30000);
 
-// Периодическая синхронизация данных
+// Периодическая синхронизация
 setInterval(() => {
-    if (window.syncUserData && window.userData && window.isDataLoaded) {
+    if (window.syncUserData && window.userData) {
         window.syncUserData();
     }
-}, 30000); // Каждые 30 секунд
+}, 60000);
 
-// Автосохранение каждые 10 секунд
+// Автосохранение
 setInterval(() => {
-    if (window.saveUserData && window.userData && window.isDataLoaded) {
+    if (window.saveUserData && window.userData) {
         window.saveUserData();
     }
-}, 10000);
+}, 15000);
 
-console.log('✅ API для Sparkcoin загружен! ВСЕ ФУНКЦИИ ОПРЕДЕЛЕНЫ И ИСПРАВЛЕНЫ');
+console.log('✅ Оптимизированный API загружен! Максимальная задержка: 120мс');
