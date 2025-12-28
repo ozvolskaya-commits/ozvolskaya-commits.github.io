@@ -6,8 +6,111 @@
     <title>Sparkcoin - Крипто-кликер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Стили для верхнего меню */
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            overflow-x: auto;
+            z-index: 1000;
+            padding: 10px 5px;
+            border-bottom: 1px solid rgba(76, 201, 240, 0.3);
+        }
+        
+        .top-menu-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        
+        .top-menu-btn:hover {
+            background: rgba(76, 201, 240, 0.3);
+        }
+        
+        .top-menu-btn.active {
+            background: #2196F3;
+            font-weight: bold;
+        }
+        
+        /* Сдвигаем контейнер вниз, чтобы не перекрывалось верхним меню */
+        .container {
+            max-width: 400px;
+            margin: 60px auto 20px;
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Адаптивность для верхнего меню */
+        @media (max-width: 480px) {
+            .top-menu {
+                padding: 8px 3px;
+            }
+            .top-menu-btn {
+                padding: 6px 8px;
+                font-size: 11px;
+                margin: 0 3px;
+            }
+            .container {
+                margin-top: 50px;
+            }
+        }
+        
+        /* Дополнительные стили для игр */
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .balance-change {
+            position: absolute;
+            font-size: 18px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+            animation: floatUp 1s ease-out forwards;
+        }
+        
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+    </style>
 </head>
 <body>
+    <!-- Верхнее меню -->
+    <div class="top-menu">
+        <button class="top-menu-btn" onclick="showSection('main')">Главная</button>
+        <button class="top-menu-btn" onclick="showSection('games')">Игры</button>
+        <button class="top-menu-btn" onclick="showSection('top')">Топ</button>
+        <button class="top-menu-btn" onclick="showSection('shop')">Магазин</button>
+        <button class="top-menu-btn" onclick="showSection('transfer')">Переводы</button>
+        <button class="top-menu-btn" onclick="showSection('referral')">Рефералы</button>
+        <button class="top-menu-btn" onclick="showSection('rating')">Рейтинг</button>
+    </div>
+
     <div class="api-status disconnected" id="apiStatus">API: Отключен</div>
 
     <div class="container">
@@ -388,7 +491,7 @@
             </div>
         </div>
         
-        <!-- Игры - УБРАНЫ ДУБЛИРУЮЩИЕСЯ ВКЛАДКИ -->
+        <!-- Игры -->
         <div id="games-section" class="section">
             <button class="back-button" onclick="showSection('main')">← Назад</button>
             
@@ -397,7 +500,7 @@
                 <button class="game-tab" onclick="showGameTab('classic-lottery')">🎰 Классическая</button>
             </div>
             
-            <!-- Командная лотерея - ТОЛЬКО КОМАНДНАЯ -->
+            <!-- Командная лотерея -->
             <div id="team-lottery-game" class="game-section active">
                 <div class="lottery-section">
                     <h2 class="lottery-title">🎯 Командная Лотерея</h2>
@@ -441,7 +544,6 @@
                         <div id="winnerTeam"></div>
                     </div>
 
-                    <!-- ДОБАВЛЕНЫ НЕДОСТАЮЩИЕ ЭЛЕМЕНТЫ -->
                     <h4>🦅 Орлы (<span id="eagleParticipantsCount">0</span> игроков)</h4>
                     <div class="participants" id="teamEagle">
                         <div style="text-align: center; color: #666; padding: 15px;">
@@ -458,7 +560,7 @@
                 </div>
             </div>
             
-            <!-- Классическая лотерея - ТОЛЬКО КЛАССИЧЕСКАЯ -->
+            <!-- Классическая лотерея -->
             <div id="classic-lottery-game" class="game-section">
                 <div class="lottery-section">
                     <h2 class="lottery-title">🎰 Классическая Лотерея</h2>
@@ -672,6 +774,12 @@
     window.showSection = function(sectionName) {
         console.log('🎯 Показываем секцию:', sectionName);
         
+        // Обновляем активные кнопки верхнего меню
+        document.querySelectorAll('.top-menu-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Обновляем активные кнопки в секции
         document.querySelectorAll('.section').forEach(section => {
             section.classList.remove('active');
         });
@@ -679,6 +787,16 @@
         const targetSection = document.getElementById(sectionName + '-section');
         if (targetSection) {
             targetSection.classList.add('active');
+        }
+        
+        // Активируем соответствующую кнопку в верхнем меню
+        const activeBtn = Array.from(document.querySelectorAll('.top-menu-btn')).find(btn => {
+            return btn.textContent.toLowerCase().includes(sectionName.toLowerCase()) || 
+                   (sectionName === 'main' && btn.textContent.includes('Главная'));
+        });
+        
+        if (activeBtn) {
+            activeBtn.classList.add('active');
         }
     };
 
@@ -748,9 +866,61 @@
         }
     };
 
+    // Функции для вкладок
+    window.showShopTab = function(tabName) {
+        console.log('🛒 Переключаем вкладку магазина:', tabName);
+        document.querySelectorAll('.shop-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.shop-category').forEach(category => {
+            category.classList.add('hidden');
+        });
+        
+        const activeTab = document.querySelector(`.shop-tab[onclick*="${tabName}"]`);
+        const activeCategory = document.getElementById(`shop-${tabName}`);
+        
+        if (activeTab) activeTab.classList.add('active');
+        if (activeCategory) activeCategory.classList.remove('hidden');
+    };
+
+    window.showGameTab = function(tabName) {
+        console.log('🎮 Переключаем вкладку игры:', tabName);
+        document.querySelectorAll('.game-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.game-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const activeTab = document.querySelector(`.game-tab[onclick*="${tabName}"]`);
+        const activeSection = document.getElementById(`${tabName}-game`);
+        
+        if (activeTab) activeTab.classList.add('active');
+        if (activeSection) activeSection.classList.add('active');
+    };
+
+    window.showTopTab = function(tabName) {
+        console.log('🏆 Переключаем вкладку топа:', tabName);
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.game-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const activeTab = document.querySelector(`.nav-tab[onclick*="${tabName}"]`);
+        const activeSection = document.getElementById(`${tabName}-tab`);
+        
+        if (activeTab) activeTab.classList.add('active');
+        if (activeSection) activeSection.classList.add('active');
+    };
+
     // ПРОВЕРКА МУЛЬТИСЕССИИ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
     document.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 Проверка мультисессии при загрузке...');
+        
+        // Активируем кнопку главной страницы
+        document.querySelector('.top-menu-btn').classList.add('active');
         
         setTimeout(() => {
             const blockedSession = localStorage.getItem('sparkcoin_blocked_session');
