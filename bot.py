@@ -1001,8 +1001,7 @@ def lottery_status():
                     'timer': get_synced_lottery_timer(),
                     'total_eagle': 0,
                     'total_tails': 0,
-                    'participants_count': 0,
-                    'current_winner': None
+                    'participants_count': 0
                 }
             })
 
@@ -1035,10 +1034,10 @@ def lottery_status():
                 tails_bets.append(bet)
                 total_tails += row['amount']
 
+        # Используем синхронизированный таймер
         current_timer = get_synced_lottery_timer()
-        current_winner = None
 
-        # Розыгрыш
+        # Проверяем, нужно ли проводить розыгрыш
         if current_timer == 1:
             winner = random.choice(['eagle', 'tails'])
             total_pot = total_eagle + total_tails
@@ -1049,7 +1048,6 @@ def lottery_status():
                     winning_user = random.choice(winning_bets)
                     prize = total_pot * 0.9
 
-                    # Обновляем баланс победителя
                     cursor.execute(
                         'UPDATE players SET balance = balance + ?, total_winnings = total_winnings + ? WHERE user_id = ?',
                         (prize, prize, winning_user['user_id']))
@@ -1062,38 +1060,11 @@ def lottery_status():
                           winning_user['username'], prize, len(eagle_bets) +
                           len(tails_bets), request.remote_addr))
 
-                    current_winner = {
-                        'userId': winning_user['user_id'],
-                        'username': winning_user['username'],
-                        'prize': prize,
-                        'team': winner
-                    }
-
-                # Очищаем ставки
                 cursor.execute(
                     "DELETE FROM lottery_bets WHERE timestamp < datetime('now', '-1 hour')"
                 )
 
         conn.commit()
-
-        # Получаем историю победителей
-        cursor.execute('''
-            SELECT winner_username, prize, timestamp
-            FROM lottery_history 
-            WHERE lottery_type = 'team'
-            ORDER BY timestamp DESC
-            LIMIT 1
-        ''')
-
-        last_winner_row = cursor.fetchone()
-        last_winner = None
-        if last_winner_row:
-            last_winner = {
-                'username': last_winner_row['winner_username'],
-                'prize': last_winner_row['prize'],
-                'timestamp': last_winner_row['timestamp']
-            }
-
         conn.close()
 
         return jsonify({
@@ -1101,8 +1072,7 @@ def lottery_status():
             'lottery': {
                 'eagle': eagle_bets,
                 'tails': tails_bets,
-                'last_winner': last_winner,
-                'current_winner': current_winner,
+                'last_winner': None,
                 'timer': current_timer,
                 'total_eagle': total_eagle,
                 'total_tails': total_tails,
@@ -1110,14 +1080,12 @@ def lottery_status():
             }
         })
     except Exception as e:
-        print(f"❌ Ошибка лотереи: {e}")
         return jsonify({
             'success': True,
             'lottery': {
                 'eagle': [],
                 'tails': [],
                 'last_winner': None,
-                'current_winner': None,
                 'timer': get_synced_lottery_timer(),
                 'total_eagle': 0,
                 'total_tails': 0,
@@ -1436,14 +1404,12 @@ def transfer():
         sender = cursor.fetchone()
 
         if not sender:
-            conn.close()
             return jsonify({
                 'success': False,
                 'error': 'Отправитель не найден'
             })
 
         if sender['balance'] < amount:
-            conn.close()
             return jsonify({'success': False, 'error': 'Недостаточно средств'})
 
         # Проверяем получателя
@@ -1453,26 +1419,27 @@ def transfer():
         receiver = cursor.fetchone()
 
         if not receiver:
-            conn.close()
             return jsonify({'success': False, 'error': 'Получатель не найден'})
 
         if from_user_id == to_user_id:
-            conn.close()
             return jsonify({
                 'success': False,
                 'error': 'Нельзя переводить самому себе'
             })
 
+        # Выполняем перевод
         try:
-            # Обновляем балансы
+            # Снимаем деньги у отправителя
             cursor.execute(
                 'UPDATE players SET balance = balance - ? WHERE user_id = ?',
                 (amount, from_user_id))
+
+            # Добавляем деньги получателю
             cursor.execute(
                 'UPDATE players SET balance = balance + ? WHERE user_id = ?',
                 (amount, to_user_id))
 
-            # Обновляем статистику
+            # Обновляем статистику переводов
             cursor.execute(
                 'UPDATE players SET transfers_sent = COALESCE(transfers_sent, 0) + ? WHERE user_id = ?',
                 (amount, from_user_id))
@@ -1480,7 +1447,7 @@ def transfer():
                 'UPDATE players SET transfers_received = COALESCE(transfers_received, 0) + ? WHERE user_id = ?',
                 (amount, to_user_id))
 
-            # Записываем перевод
+            # Записываем перевод в историю
             cursor.execute(
                 '''
                 INSERT INTO transfers (from_user_id, from_username, to_user_id, to_username, amount, ip_address)
@@ -1489,11 +1456,10 @@ def transfer():
                   receiver['username'], amount, request.remote_addr))
 
             conn.commit()
-
-            # Получаем обновленный баланс
-            new_balance = sender['balance'] - amount
-
             conn.close()
+
+            # Получаем обновленный баланс отправителя
+            new_balance = sender['balance'] - amount
 
             return jsonify({
                 'success': True,
