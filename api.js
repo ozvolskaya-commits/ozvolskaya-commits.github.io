@@ -933,7 +933,9 @@ window.calculateClickPower = function() {
     
     if (window.upgrades) {
         const mouseLevel = window.upgrades.mouse?.level || window.upgrades.mouse || 0;
+        const gamepadLevel = window.upgrades.gamepad?.level || window.upgrades.gamepad || 0;
         power += mouseLevel * 0.000000001;
+        power += gamepadLevel * 0.000000002;
     }
     
     return Math.max(0.000000001, power);
@@ -943,9 +945,10 @@ window.calculateMiningSpeed = function() {
     let speed = 0.000000000;
     
     if (window.upgrades) {
+        const pickaxeLevel = window.upgrades.pickaxe?.level || window.upgrades.pickaxe || 0;
         const gpuLevel = window.upgrades.gpu?.level || window.upgrades.gpu || 0;
-        const cpuLevel = window.upgrades.cpu?.level || window.upgrades.cpu || 0;
-        speed += (gpuLevel + cpuLevel) * 0.0000000005;
+        speed += pickaxeLevel * 0.0000000005;
+        speed += gpuLevel * 0.000000001;
     }
     
     return Math.max(0.000000000, speed);
@@ -964,6 +967,19 @@ window.updateUI = function() {
     if (balanceElement) {
         const balance = parseFloat(window.userData.balance || 0.000000100);
         balanceElement.textContent = balance.toFixed(9) + ' S';
+        
+        // Анимация изменения баланса
+        const oldBalance = parseFloat(balanceElement.dataset.oldBalance || 0);
+        if (oldBalance !== balance) {
+            if (balance > oldBalance) {
+                balanceElement.classList.add('balance-increase');
+                setTimeout(() => balanceElement.classList.remove('balance-increase'), 800);
+            } else if (balance < oldBalance) {
+                balanceElement.classList.add('balance-decrease');
+                setTimeout(() => balanceElement.classList.remove('balance-decrease'), 800);
+            }
+            balanceElement.dataset.oldBalance = balance;
+        }
     }
     
     if (clickValueElement) {
