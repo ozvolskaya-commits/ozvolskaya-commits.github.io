@@ -1067,6 +1067,49 @@ function initializeLotteryProgressBars() {
 }
 
 console.log('✅ Улучшенный интерфейс лотерей загружен!');
+}
+
+// Глобальные функции для лотерей
+if (typeof selectTeam === 'undefined') {
+    window.selectTeam = function(team) {
+        console.log('🎯 Выбрана команда:', team);
+        // Эта функция будет переопределена в game.js
+    };
+}
+
+if (typeof playTeamLottery === 'undefined') {
+    window.playTeamLottery = function() {
+        console.log('🎮 Игра в командную лотерею');
+        // Эта функция будет переопределена в game.js
+    };
+}
+
+if (typeof playClassicLottery === 'undefined') {
+    window.playClassicLottery = function() {
+        console.log('🎮 Игра в классическую лотерею');
+        // Эта функция будет переопределена в game.js
+    };
+}
+
+if (typeof updateLeaderboard === 'undefined') {
+    window.updateLeaderboard = function() {
+        console.log('📊 Обновление рейтинга');
+    };
+}
+
+if (typeof updateSpeedLeaderboard === 'undefined') {
+    window.updateSpeedLeaderboard = function() {
+        console.log('⚡ Обновление рейтинга скорости');
+    };
+}
+
+if (typeof updateTopWinners === 'undefined') {
+    window.updateTopWinners = function() {
+        console.log('🏆 Обновление топа победителей');
+    };
+}
+
+console.log('✅ Все функции UI инициализированы!');
     });
     
     console.log('✅ UI полностью инициализирован!');
