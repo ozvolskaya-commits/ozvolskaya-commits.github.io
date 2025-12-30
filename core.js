@@ -1,5 +1,3 @@
-[file name]: core.js
-[file content begin]
 // core.js - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ С МНОГОЯЗЫЧНОЙ ПОДДЕРЖКОЙ
 console.log('🎮 Загружаем оптимизированный core.js...');
 
