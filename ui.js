@@ -1,996 +1,1087 @@
-// ui.js - полностью исправленная версия с разделением лотерей
-console.log('🖥️ Загружаем ui.js...');
+// mobile-optimized-ui.js
+// Полностью переработанная и оптимизированная версия для мобильных устройств
+// Версия: 1.0.0 Production Ready
 
-let allPlayers = [];
-let selectedTransferUser = null;
-let currentRatingTab = 'balance';
+"use strict";
 
-// Глобальные функции для кнопок - ОБЯЗАТЕЛЬНО ОПРЕДЕЛИТЬ ПЕРВЫМИ
-window.showSection = function(sectionName) {
-    console.log('🎯 Показываем секцию:', sectionName);
-    
-    document.querySelectorAll('.section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    const targetSection = document.getElementById(sectionName + '-section');
-    if (targetSection) {
-        targetSection.classList.add('active');
+/**
+ * МОБИЛЬНЫЙ ОПТИМИЗИРОВАННЫЙ ИНТЕРФЕЙС SPARKCOIN
+ * 
+ * Архитектурные принципы:
+ * 1. Минимальное потребление памяти
+ * 2. Отложенная загрузка компонентов
+ * 3. Кэширование повторяющихся операций
+ * 4. Оптимизация анимаций и переходов
+ * 5. Проактивное управление состоянием
+ */
+
+// ============================================
+// КОНФИГУРАЦИЯ И НАСТРОЙКИ
+// ============================================
+
+const MobileUISettings = {
+    animationDuration: 300,
+    debounceDelay: 150,
+    throttleDelay: 16,
+    cacheTTL: 30000,
+    lazyLoadThreshold: 100,
+    touchSensitivity: 10,
+    maxRetryAttempts: 3,
+    retryDelay: 1000
+};
+
+const ApplicationState = {
+    currentSection: 'main',
+    previousSection: null,
+    isAnimating: false,
+    isOnline: navigator.onLine,
+    lastUpdateTimestamp: Date.now(),
+    cachedData: new Map(),
+    pendingRequests: new Map(),
+    touchStartPosition: { x: 0, y: 0 },
+    gestureHistory: []
+};
+
+// ============================================
+// ОСНОВНЫЕ КОМПОНЕНТЫ ИНТЕРФЕЙСА
+// ============================================
+
+class MobileInterfaceManager {
+    constructor() {
+        this.initializeInterface();
+        this.setupEventListeners();
+        this.setupPerformanceMonitoring();
+    }
+
+    initializeInterface() {
+        console.log('🎨 Инициализация мобильного интерфейса...');
         
-        switch(sectionName) {
-            case 'top':
-                if (typeof updateTopWinners === 'function') updateTopWinners();
-                if (typeof updateLeaderboard === 'function') updateLeaderboard();
-                if (typeof updateSpeedLeaderboard === 'function') updateSpeedLeaderboard();
-                break;
-            case 'transfer':
-                if (typeof updateUsersList === 'function') updateUsersList();
-                break;
-            case 'shop':
-                if (typeof updateShopUI === 'function') updateShopUI();
-                break;
-            case 'games':
-                if (typeof showGameTab === 'function') showGameTab('team-lottery');
-                if (typeof startLotteryAutoUpdate === 'function') startLotteryAutoUpdate();
-                if (typeof startClassicLotteryUpdate === 'function') startClassicLotteryUpdate();
-                if (typeof loadReferralStats === 'function') loadReferralStats();
-                break;
-            case 'referral':
-                if (typeof updateReferralStats === 'function') updateReferralStats();
-                break;
-        }
-    }
-    
-    // Обновляем синхронизацию при смене секций
-    if (window.multiSessionDetector) {
-        window.multiSessionDetector.updateSync();
-    }
-};
-
-// Функции для игрового попапа
-window.showGamesPopup = function() {
-    console.log('🎮 Открываем popup игр');
-    const popup = document.getElementById('games-popup');
-    if (popup) {
-        popup.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-    }
-};
-
-window.closeGamesPopup = function() {
-    console.log('🎮 Закрываем popup игр');
-    const popup = document.getElementById('games-popup');
-    if (popup) {
-        popup.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-};
-
-window.openGame = function(gameType) {
-    console.log('🎮 Открываем игру:', gameType);
-    closeGamesPopup();
-    
-    switch(gameType) {
-        case 'team-lottery':
-            showSection('games');
-            if (typeof showGameTab === 'function') {
-                showGameTab('team-lottery');
-            }
-            break;
-        case 'classic-lottery':
-            showSection('games');
-            if (typeof showGameTab === 'function') {
-                showGameTab('classic-lottery');
-            }
-            break;
-        case 'plinko':
-        case 'dice':
-            showNotification('Игра скоро будет доступна!', 'info');
-            break;
-    }
-};
-
-window.showGamesSection = function() {
-    console.log('🎮 Показываем секцию игр');
-    showSection('games');
-};
-
-// Функции для вкладок игр - ИСПРАВЛЕННЫЕ ДЛЯ РАЗДЕЛЕНИЯ ЛОТЕРЕЙ
-window.showGameTab = function(tabName) {
-    console.log('🎰 Показываем игровую вкладку:', tabName);
-    
-    document.querySelectorAll('.game-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.game-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    // Активируем выбранную вкладку
-    const activeTab = document.querySelector(`.game-tab[onclick*="${tabName}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    const targetSection = document.getElementById(tabName + '-game');
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
-    
-    // Загружаем соответствующие данные
-    switch(tabName) {
-        case 'team-lottery':
-            if (typeof loadLotteryStatus === 'function') {
-                loadLotteryStatus();
-            }
-            if (typeof startLotteryAutoUpdate === 'function') {
-                startLotteryAutoUpdate();
-            }
-            break;
-        case 'classic-lottery':
-            if (typeof loadClassicLottery === 'function') {
-                loadClassicLottery();
-            }
-            if (typeof startClassicLotteryUpdate === 'function') {
-                startClassicLotteryUpdate();
-            }
-            break;
-    }
-    
-    // Обновляем синхронизацию
-    if (window.multiSessionDetector) {
-        window.multiSessionDetector.updateSync();
-    }
-};
-
-// Функции для вкладок рейтинга - ИСПРАВЛЕННЫЕ
-window.showTopTab = function(tabName) {
-    console.log('🏆 Показываем вкладку рейтинга:', tabName);
-    
-    document.querySelectorAll('.nav-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.game-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    // Активируем выбранную вкладку
-    const activeTab = document.querySelector(`.nav-tab[onclick*="${tabName}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    const targetSection = document.getElementById(tabName + '-tab');
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
-    
-    switch(tabName) {
-        case 'winners':
-            if (typeof updateTopWinners === 'function') updateTopWinners();
-            break;
-        case 'balance':
-            if (typeof updateLeaderboard === 'function') updateLeaderboard();
-            break;
-        case 'speed':
-            if (typeof updateSpeedLeaderboard === 'function') updateSpeedLeaderboard();
-            break;
-    }
-    
-    // Обновляем синхронизацию
-    if (window.multiSessionDetector) {
-        window.multiSessionDetector.updateSync();
-    }
-};
-
-// Функции для табов магазина
-window.showShopTab = function(tabName) {
-    console.log('🛒 Показываем вкладку:', tabName);
-    
-    document.querySelectorAll('.shop-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.shop-category').forEach(category => {
-        category.classList.add('hidden');
-    });
-    
-    // Активируем выбранную вкладку
-    const activeTab = document.querySelector(`.shop-tab[onclick*="${tabName}"]`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    const targetCategory = document.getElementById('shop-' + tabName);
-    if (targetCategory) {
-        targetCategory.classList.remove('hidden');
-    }
-    
-    // Обновляем синхронизацию
-    if (window.multiSessionDetector) {
-        window.multiSessionDetector.updateSync();
-    }
-};
-
-// Управление переводом - ИСПРАВЛЕННАЯ ВЕРСИЯ
-async function updateUsersList() {
-    const usersList = document.getElementById('usersList');
-    const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
-    
-    if (!usersList) return;
-    
-    usersList.innerHTML = '<div style="text-align: center; padding: 10px; color: #ccc;">Загрузка игроков...</div>';
-    
-    try {
-        const data = await apiRequest('/api/all_players');
-        const apiPlayers = data.players || [];
+        // Оптимизированная инициализация DOM элементов
+        this.cacheDomElements();
+        this.setupTouchGestures();
+        this.initializeVirtualScroll();
+        this.setupImageLazyLoading();
         
-        // Фильтруем пользователей (исключаем текущего и по поиску)
-        const filteredUsers = apiPlayers.filter(player => {
-            // Исключаем текущего пользователя
-            if (player.userId === window.userData?.userId) return false;
-            
-            // Проверяем поиск по имени
-            if (searchTerm && player.username) {
-                return player.username.toLowerCase().includes(searchTerm);
-            }
-            
-            return true;
+        // Приоритизация критического рендеринга
+        requestAnimationFrame(() => {
+            this.renderCriticalComponents();
+            setTimeout(() => {
+                this.renderNonCriticalComponents();
+            }, MobileUISettings.animationDuration);
         });
+    }
+
+    cacheDomElements() {
+        this.domCache = {
+            sections: document.querySelectorAll('.section'),
+            navigationButtons: document.querySelectorAll('.nav-button'),
+            gameTabs: document.querySelectorAll('.game-tab'),
+            shopTabs: document.querySelectorAll('.shop-tab'),
+            userItems: document.querySelectorAll('.user-item'),
+            leaderItems: document.querySelectorAll('.leader-item'),
+            notificationContainer: document.querySelector('#notification-container') || this.createNotificationContainer()
+        };
         
-        usersList.innerHTML = '';
+        // Кэширование часто используемых элементов
+        this.frequentlyUsedElements = {
+            balanceValue: document.getElementById('balanceValue'),
+            clickValue: document.getElementById('clickValue'),
+            clickSpeed: document.getElementById('clickSpeed'),
+            mineSpeed: document.getElementById('mineSpeed'),
+            usersList: document.getElementById('usersList'),
+            leaderboard: document.getElementById('leaderboard'),
+            topWinners: document.getElementById('topWinners')
+        };
+    }
+
+    createNotificationContainer() {
+        const container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 300px;
+        `;
+        document.body.appendChild(container);
+        return container;
+    }
+
+    setupEventListeners() {
+        // Оптимизированные обработчики с делегированием событий
+        document.addEventListener('click', this.handleDelegatedClick.bind(this), { passive: true });
+        document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+        document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+        document.addEventListener('input', this.handleDelegatedInput.bind(this), { passive: true });
         
-        if (filteredUsers.length === 0) {
-            usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Игроки не найдены</div>';
+        // Оптимизированные обработчики скролла
+        window.addEventListener('scroll', this.throttle(this.handleScroll.bind(this), MobileUISettings.throttleDelay), { passive: true });
+        
+        // Слушатели состояния сети
+        window.addEventListener('online', this.handleOnlineStatus.bind(this));
+        window.addEventListener('offline', this.handleOfflineStatus.bind(this));
+        
+        // Предотвращение стандартных жестов браузера на мобильных устройствах
+        document.addEventListener('touchmove', (event) => {
+            if (event.scale !== 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+    }
+
+    // ============================================
+    // ОПТИМИЗИРОВАННЫЕ ОБРАБОТЧИКИ СОБЫТИЙ
+    // ============================================
+
+    handleDelegatedClick(event) {
+        const target = event.target;
+        const button = target.closest('button');
+        
+        if (!button) return;
+        
+        // Предотвращение быстрых повторных кликов
+        if (Date.now() - (button.lastClickTime || 0) < 500) {
+            event.preventDefault();
+            event.stopPropagation();
             return;
         }
+        button.lastClickTime = Date.now();
         
-        // Отображаем пользователей
-        filteredUsers.forEach(player => {
-            const userItem = document.createElement('div');
-            userItem.className = 'user-item';
-            
-            // Определяем общую скорость
-            let totalSpeed = 0;
-            if (typeof player.totalSpeed === 'number') {
-                totalSpeed = player.totalSpeed;
-            } else if (typeof player.total_speed === 'number') {
-                totalSpeed = player.total_speed;
+        // Обработка навигационных кнопок
+        if (button.classList.contains('nav-button')) {
+            const section = button.dataset.section;
+            if (section) {
+                this.showSection(section);
             }
-            
-            userItem.innerHTML = `
-                <div class="user-name">${player.username || 'Игрок'}</div>
-                <div class="user-balance">${(player.balance || 0).toFixed(9)} S</div>
-                <div class="user-speed" style="font-size: 10px; color: #666;">
-                    ${totalSpeed.toFixed(9)} S/сек
-                </div>
-            `;
-            
-            userItem.onclick = () => selectUserForTransfer(player);
-            usersList.appendChild(userItem);
-        });
+        }
         
-    } catch (error) {
-        console.error('Ошибка загрузки списка игроков:', error);
-        usersList.innerHTML = '<div style="text-align: center; color: #ccc; padding: 20px;">Ошибка загрузки</div>';
+        // Обработка игровых вкладок
+        if (button.classList.contains('game-tab')) {
+            const gameTab = button.dataset.gameTab;
+            if (gameTab) {
+                this.showGameTab(gameTab);
+            }
+        }
+        
+        // Обработка кнопок магазина
+        if (button.classList.contains('shop-tab')) {
+            const shopTab = button.dataset.shopTab;
+            if (shopTab) {
+                this.showShopTab(shopTab);
+            }
+        }
     }
-}
 
-function selectUserForTransfer(user) {
-    selectedTransferUser = user;
-    
-    document.querySelectorAll('.user-item').forEach(item => {
-        item.classList.remove('selected');
-    });
-    
-    event.target.closest('.user-item').classList.add('selected');
-    
-    const selectedUserElement = document.getElementById('selectedUser');
-    if (selectedUserElement) {
-        selectedUserElement.style.display = 'block';
-        document.getElementById('selectedUserName').textContent = user.username || 'Игрок';
-        document.getElementById('selectedUserBalance').textContent = `Баланс: ${(user.balance || 0).toFixed(9)} S`;
+    handleDelegatedInput(event) {
+        const target = event.target;
         
-        const transferAmount = document.getElementById('transferAmount');
-        if (transferAmount) {
-            transferAmount.value = '';
-            transferAmount.addEventListener('input', function() {
-                const amount = parseFloat(this.value);
-                const transferButton = document.getElementById('transferButton');
-                if (transferButton) {
-                    transferButton.disabled = !amount || amount <= 0;
-                }
-            });
-        }
-        
-        const transferButton = document.getElementById('transferButton');
-        if (transferButton) {
-            transferButton.disabled = true;
+        // Оптимизированный дебаунс для полей ввода
+        if (target.classList.contains('search-input') || 
+            target.classList.contains('bet-input') || 
+            target.classList.contains('transfer-input')) {
+            this.debounce(() => {
+                this.handleInputChange(target);
+            }, MobileUISettings.debounceDelay)();
         }
     }
-    
-    // Обновляем синхронизацию
-    if (window.multiSessionDetector) {
-        window.multiSessionDetector.updateSync();
-    }
-}
 
-async function makeTransfer() {
-    if (!selectedTransferUser) {
-        showNotification('Выберите пользователя для перевода', 'error');
-        return;
+    handleTouchStart(event) {
+        const touch = event.touches[0];
+        ApplicationState.touchStartPosition = {
+            x: touch.clientX,
+            y: touch.clientY
+        };
     }
-    
-    const amountInput = document.getElementById('transferAmount');
-    if (!amountInput) return;
-    
-    const amount = parseFloat(amountInput.value);
-    
-    if (!amount || amount <= 0) {
-        showNotification('Введите корректную сумму', 'error');
-        return;
-    }
-    
-    if (!window.userData) {
-        showNotification('Данные пользователя не загружены', 'error');
-        return;
-    }
-    
-    if (amount > parseFloat(window.userData.balance)) {
-        showNotification('Недостаточно средств', 'error');
-        return;
-    }
-    
-    if (amount < 0.000000001) {
-        showNotification('Минимальная сумма перевода: 0.000000001 S', 'error');
-        return;
-    }
-    
-    if (selectedTransferUser.userId === window.userData.userId) {
-        showNotification('Нельзя переводить самому себе', 'error');
-        return;
-    }
-    
-    // Проверяем мультисессию перед переводом
-    if (window.multiSessionDetector) {
-        const status = window.multiSessionDetector.getStatus();
-        if (status.isMultiSession && status.timeSinceLastActivity < 10000) {
-            showNotification('Переводы временно недоступны из-за мультисессии', 'warning');
-            return;
-        }
-    }
-    
-    try {
-        console.log('🔄 Выполнение перевода:', {
-            from: window.userData.userId,
-            to: selectedTransferUser.userId,
-            amount: amount
-        });
-        
-        const data = await apiRequest('/api/transfer', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                fromUserId: window.userData.userId,
-                toUserId: selectedTransferUser.userId,
-                amount: amount,
-                fromUsername: window.userData.username,
-                toUsername: selectedTransferUser.username
-            })
-        });
-        
-        if (data && data.success) {
-            // Обновляем баланс пользователя
-            window.userData.balance = parseFloat(window.userData.balance) - amount;
-            window.userData.transfers = window.userData.transfers || { sent: 0, received: 0 };
-            window.userData.transfers.sent = (window.userData.transfers.sent || 0) + amount;
-            window.userData.lastUpdate = Date.now();
-            
-            updateUI();
-            saveUserData();
-            
-            // Сбрасываем выбранного пользователя
-            const selectedUserElement = document.getElementById('selectedUser');
-            if (selectedUserElement) {
-                selectedUserElement.style.display = 'none';
-            }
-            selectedTransferUser = null;
-            
-            // Очищаем поиск
-            const userSearch = document.getElementById('userSearch');
-            if (userSearch) {
-                userSearch.value = '';
-            }
-            
-            // Обновляем список пользователей
-            setTimeout(updateUsersList, 500);
-            
-            showNotification(`Перевод ${amount.toFixed(9)} S выполнен успешно!`, 'success');
-            
-            // Синхронизируем с сервером
-            setTimeout(() => window.syncUserData(), 1000);
-        } else {
-            showNotification(`Ошибка перевода: ${data?.error || 'Неизвестная ошибка'}`, 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка перевода:', error);
-        showNotification('Ошибка соединения с сервером', 'warning');
-    }
-}
 
-function searchUsers() {
-    updateUsersList();
-}
-
-// Таблицы лидеров
-async function updateLeaderboard() {
-    try {
-        const userId = window.userData?.userId;
-        const data = await apiRequest(`/api/leaderboard?type=balance&limit=20`);
+    handleTouchEnd(event) {
+        const touch = event.changedTouches[0];
+        const deltaX = touch.clientX - ApplicationState.touchStartPosition.x;
+        const deltaY = touch.clientY - ApplicationState.touchStartPosition.y;
         
-        const leaderboard = document.getElementById('leaderboard');
-        if (!leaderboard) return;
-        
-        if (!data || !data.success || !data.leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге!</div>';
-            return;
-        }
-        
-        let newHTML = '';
-        
-        data.leaderboard.forEach((player, index) => {
-            if (!player || typeof player !== 'object') {
-                return;
-            }
-            
-            const rank = index + 1;
-            const name = player.username || `Игрок ${rank}`;
-            const balance = typeof player.balance === 'number' ? player.balance : 0;
-            const isCurrent = player.userId === userId;
-            const currentClass = isCurrent ? 'current-player' : '';
-            
-            newHTML += `
-                <div class="leader-item ${currentClass}">
-                    <div class="leader-rank">${rank} место</div>
-                    <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="leader-balance">${balance.toFixed(9)} S</div>
-                </div>
-            `;
-        });
-        
-        leaderboard.innerHTML = newHTML;
-        
-    } catch (error) {
-        console.error('Ошибка обновления рейтинга:', error);
-        const leaderboard = document.getElementById('leaderboard');
-        if (leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
-        }
-    }
-}
-
-async function updateSpeedLeaderboard() {
-    try {
-        const userId = window.userData?.userId;
-        const data = await apiRequest(`/api/leaderboard?type=speed&limit=20`);
-        
-        const leaderboard = document.getElementById('speedLeaderboard');
-        if (!leaderboard) return;
-        
-        if (!data || !data.success || !data.leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">🏆 Стань первым в рейтинге скорости!</div>';
-            return;
-        }
-        
-        let newHTML = '';
-        
-        data.leaderboard.forEach((player, index) => {
-            if (!player || typeof player !== 'object') {
-                return;
-            }
-            
-            const rank = index + 1;
-            const name = player.username || `Игрок ${rank}`;
-            
-            // Убедимся, что у игрока есть данные о скорости
-            let mineSpeed = 0;
-            let clickSpeed = 0;
-            let totalSpeed = 0;
-            
-            if (typeof player.mineSpeed === 'number') {
-                mineSpeed = player.mineSpeed;
-            } else if (typeof player.mine_speed === 'number') {
-                mineSpeed = player.mine_speed;
-            }
-            
-            if (typeof player.clickSpeed === 'number') {
-                clickSpeed = player.clickSpeed;
-            } else if (typeof player.click_speed === 'number') {
-                clickSpeed = player.click_speed;
-            }
-            
-            if (typeof player.totalSpeed === 'number') {
-                totalSpeed = player.totalSpeed;
-            } else if (typeof player.total_speed === 'number') {
-                totalSpeed = player.total_speed;
+        // Определение жеста свайпа
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > MobileUISettings.touchSensitivity) {
+            if (deltaX > 0) {
+                this.handleSwipe('right');
             } else {
-                totalSpeed = mineSpeed + clickSpeed;
+                this.handleSwipe('left');
             }
+        }
+    }
+
+    handleSwipe(direction) {
+        console.log(`🔄 Свайп ${direction}`);
+        
+        const sectionOrder = ['main', 'top', 'transfer', 'shop', 'games', 'referral'];
+        const currentIndex = sectionOrder.indexOf(ApplicationState.currentSection);
+        
+        if (direction === 'left' && currentIndex < sectionOrder.length - 1) {
+            this.showSection(sectionOrder[currentIndex + 1]);
+        } else if (direction === 'right' && currentIndex > 0) {
+            this.showSection(sectionOrder[currentIndex - 1]);
+        }
+    }
+
+    // ============================================
+    // ОСНОВНЫЕ ФУНКЦИИ ИНТЕРФЕЙСА
+    // ============================================
+
+    async showSection(sectionName) {
+        if (ApplicationState.isAnimating || ApplicationState.currentSection === sectionName) {
+            return;
+        }
+        
+        console.log(`🎯 Переход к секции: ${sectionName}`);
+        
+        ApplicationState.isAnimating = true;
+        ApplicationState.previousSection = ApplicationState.currentSection;
+        ApplicationState.currentSection = sectionName;
+        
+        // Анимация перехода
+        await this.performSectionTransition(sectionName);
+        
+        // Загрузка данных для секции
+        this.loadSectionData(sectionName);
+        
+        ApplicationState.isAnimating = false;
+        
+        // Обновление синхронизации
+        if (window.multiSessionDetector) {
+            window.multiSessionDetector.updateSync();
+        }
+    }
+
+    performSectionTransition(sectionName) {
+        return new Promise((resolve) => {
+            // Скрытие всех секций
+            this.domCache.sections.forEach(section => {
+                section.classList.remove('active');
+                section.classList.add('hidden');
+            });
             
-            const displaySpeed = totalSpeed > 0 ? totalSpeed : 0.000000000;
-            const isCurrent = player.userId === userId;
-            const currentClass = isCurrent ? 'current-player' : '';
-            
-            newHTML += `
-                <div class="leader-item ${currentClass}">
-                    <div class="leader-rank">${rank} место</div>
-                    <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="leader-speed">${displaySpeed.toFixed(9)} S/сек</div>
-                </div>
-            `;
+            // Показ целевой секции
+            const targetSection = document.getElementById(`${sectionName}-section`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    targetSection.classList.add('active');
+                    setTimeout(resolve, MobileUISettings.animationDuration);
+                });
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    loadSectionData(sectionName) {
+        const dataLoaders = {
+            'top': () => {
+                this.loadWithCache('topWinners', updateTopWinners);
+                this.loadWithCache('leaderboard', updateLeaderboard);
+                this.loadWithCache('speedLeaderboard', updateSpeedLeaderboard);
+            },
+            'transfer': () => {
+                this.loadWithCache('usersList', updateUsersList);
+            },
+            'shop': () => {
+                this.loadWithCache('shopData', updateShopUI);
+            },
+            'games': () => {
+                this.showGameTab('team-lottery');
+                this.startLotteryAutoUpdate();
+                this.startClassicLotteryUpdate();
+                this.loadWithCache('referralStats', loadReferralStats);
+            },
+            'referral': () => {
+                this.loadWithCache('referralData', updateReferralStats);
+            }
+        };
+        
+        const loader = dataLoaders[sectionName];
+        if (loader) {
+            // Отложенная загрузка данных
+            setTimeout(loader, 50);
+        }
+    }
+
+    async showGameTab(tabName) {
+        console.log(`🎰 Переход к игровой вкладке: ${tabName}`);
+        
+        // Анимация переключения вкладок
+        this.domCache.gameTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.gameTab === tabName);
         });
         
-        leaderboard.innerHTML = newHTML;
+        const gameSections = document.querySelectorAll('.game-section');
+        gameSections.forEach(section => {
+            section.classList.toggle('active', section.id === `${tabName}-game`);
+        });
         
-    } catch (error) {
-        console.error('Ошибка обновления рейтинга скорости:', error);
-        const leaderboard = document.getElementById('speedLeaderboard');
-        if (leaderboard) {
-            leaderboard.innerHTML = '<div class="leader-item">Ошибка загрузки рейтинга</div>';
-        }
-    }
-}
-
-// ОБНОВЛЕНИЕ ИНТЕРФЕЙСА С ПРАВИЛЬНЫМИ СКОРОСТЯМИ И ЗАЩИТОЙ ОТ NaN
-function updateUI() {
-    if (!window.userData) return;
-    
-    const balanceElement = document.getElementById('balanceValue');
-    const clickValueElement = document.getElementById('clickValue');
-    const clickSpeedElement = document.getElementById('clickSpeed');
-    const mineSpeedElement = document.getElementById('mineSpeed');
-    
-    if (balanceElement) {
-        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
-    }
-    
-    if (clickValueElement) {
-        const clickPower = typeof calculateClickPower === 'function' ? calculateClickPower() : 0.000000001;
-        clickValueElement.textContent = clickPower.toFixed(9);
-    }
-    
-    if (clickSpeedElement) {
-        // СКОРОСТЬ КЛИКА = сила одного клика (так как клики вручную)
-        const clickPower = typeof calculateClickPower === 'function' ? calculateClickPower() : 0.000000001;
-        clickSpeedElement.textContent = clickPower.toFixed(9) + ' S/сек';
-    }
-    
-    if (mineSpeedElement) {
-        // СКОРОСТЬ МАЙНИНГА = пассивный доход в секунду
-        let miningSpeed = 0.000000000;
-        try {
-            miningSpeed = typeof calculateMiningSpeed === 'function' ? calculateMiningSpeed() : 0.000000000;
-            // Дополнительная защита от NaN
-            if (isNaN(miningSpeed) || !isFinite(miningSpeed) || miningSpeed < 0) {
-                miningSpeed = 0.000000000;
+        // Загрузка данных для вкладки
+        const tabDataLoaders = {
+            'team-lottery': () => {
+                this.loadWithCache('lotteryStatus', loadLotteryStatus);
+                this.startLotteryAutoUpdate();
+            },
+            'classic-lottery': () => {
+                this.loadWithCache('classicLottery', loadClassicLottery);
+                this.startClassicLotteryUpdate();
             }
-        } catch (error) {
-            console.error('Ошибка получения скорости майнинга:', error);
-            miningSpeed = 0.000000000;
+        };
+        
+        const loader = tabDataLoaders[tabName];
+        if (loader) {
+            setTimeout(loader, 100);
         }
-        mineSpeedElement.textContent = miningSpeed.toFixed(9) + ' S/сек';
     }
-}
 
-// Уведомления и попапы
-function showNotification(message, type = 'info', duration = 3000) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196F3'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: bold;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        max-width: 90%;
-        text-align: center;
-    `;
-    
-    const title = type === 'success' ? '✅ Успех' : 
-                 type === 'error' ? '❌ Ошибка' :
-                 type === 'warning' ? '⚠️ Внимание' : 'ℹ️ Информация';
-    
-    notification.innerHTML = `
-        <div style="font-size: 14px; margin-bottom: 5px;">${title}</div>
-        <div style="font-size: 12px;">${message}</div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Анимация появления
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(-50%) translateY(0)';
-    }, 100);
-    
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(-50%) translateY(-20px)';
+    async showShopTab(tabName) {
+        console.log(`🛒 Переход к вкладке магазина: ${tabName}`);
+        
+        this.domCache.shopTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.shopTab === tabName);
+        });
+        
+        const shopCategories = document.querySelectorAll('.shop-category');
+        shopCategories.forEach(category => {
+            category.classList.toggle('hidden', category.id !== `shop-${tabName}`);
+        });
+        
+        // Загрузка данных категории
+        this.loadWithCache(`shop-${tabName}`, updateShopUI);
+    }
+
+    // ============================================
+    // СИСТЕМА КЭШИРОВАНИЯ ДАННЫХ
+    // ============================================
+
+    async loadWithCache(cacheKey, dataLoader, forceRefresh = false) {
+        const now = Date.now();
+        const cachedItem = ApplicationState.cachedData.get(cacheKey);
+        
+        // Проверка актуальности кэша
+        if (!forceRefresh && cachedItem && 
+            (now - cachedItem.timestamp) < MobileUISettings.cacheTTL) {
+            console.log(`📦 Используем кэш: ${cacheKey}`);
+            return cachedItem.data;
+        }
+        
+        // Загрузка новых данных
+        try {
+            console.log(`🔄 Загрузка данных: ${cacheKey}`);
+            const data = await dataLoader();
+            
+            // Сохранение в кэш
+            ApplicationState.cachedData.set(cacheKey, {
+                data: data,
+                timestamp: now,
+                expires: now + MobileUISettings.cacheTTL
+            });
+            
+            return data;
+        } catch (error) {
+            console.error(`❌ Ошибка загрузки ${cacheKey}:`, error);
+            
+            // Использование устаревших данных при ошибке
+            if (cachedItem) {
+                console.log(`⚠️ Используем устаревшие данные из кэша: ${cacheKey}`);
+                return cachedItem.data;
+            }
+            
+            throw error;
+        }
+    }
+
+    clearCache(cacheKey = null) {
+        if (cacheKey) {
+            ApplicationState.cachedData.delete(cacheKey);
+        } else {
+            ApplicationState.cachedData.clear();
+        }
+        console.log('🧹 Кэш очищен');
+    }
+
+    // ============================================
+    // ОПТИМИЗИРОВАННЫЕ ФУНКЦИИ UI
+    // ============================================
+
+    async updateUsersList() {
+        const usersList = this.frequentlyUsedElements.usersList;
+        const searchTerm = document.getElementById('userSearch')?.value.toLowerCase() || '';
+        
+        if (!usersList) return;
+        
+        // Отображение состояния загрузки
+        usersList.innerHTML = this.createLoadingIndicator('Загрузка игроков...');
+        
+        try {
+            const data = await this.loadWithCache('allPlayers', () => 
+                window.apiRequest('/api/all_players')
+            );
+            
+            const apiPlayers = data.players || [];
+            
+            // Оптимизированная фильтрация
+            const filteredUsers = apiPlayers.filter(player => {
+                if (player.userId === window.userData?.userId) return false;
+                if (searchTerm && player.username) {
+                    return player.username.toLowerCase().includes(searchTerm);
+                }
+                return true;
+            });
+            
+            if (filteredUsers.length === 0) {
+                usersList.innerHTML = this.createEmptyState('Игроки не найдены');
+                return;
+            }
+            
+            // Виртуальный скроллинг для больших списков
+            if (filteredUsers.length > MobileUISettings.lazyLoadThreshold) {
+                this.renderVirtualList(usersList, filteredUsers, this.renderUserItem);
+            } else {
+                usersList.innerHTML = '';
+                filteredUsers.forEach(player => {
+                    usersList.appendChild(this.renderUserItem(player));
+                });
+            }
+            
+        } catch (error) {
+            console.error('Ошибка загрузки списка игроков:', error);
+            usersList.innerHTML = this.createErrorState('Ошибка загрузки');
+        }
+    }
+
+    renderUserItem(player) {
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+        userItem.dataset.userId = player.userId;
+        
+        // Определение общей скорости
+        const totalSpeed = player.totalSpeed || player.total_speed || 0;
+        
+        userItem.innerHTML = `
+            <div class="user-name">${this.escapeHtml(player.username || 'Игрок')}</div>
+            <div class="user-balance">${(player.balance || 0).toFixed(9)} S</div>
+            <div class="user-speed">
+                ${totalSpeed.toFixed(9)} S/сек
+            </div>
+        `;
+        
+        // Оптимизированный обработчик клика
+        userItem.addEventListener('click', () => this.selectUserForTransfer(player), { once: true });
+        
+        return userItem;
+    }
+
+    async updateLeaderboard() {
+        try {
+            const data = await this.loadWithCache('leaderboardData', () =>
+                window.apiRequest('/api/leaderboard?type=balance&limit=20')
+            );
+            
+            if (!data || !data.success || !data.leaderboard) {
+                this.frequentlyUsedElements.leaderboard.innerHTML = 
+                    this.createEmptyState('🏆 Стань первым в рейтинге!');
+                return;
+            }
+            
+            this.renderLeaderboard(data.leaderboard, 'balance');
+            
+        } catch (error) {
+            console.error('Ошибка обновления рейтинга:', error);
+            this.frequentlyUsedElements.leaderboard.innerHTML = 
+                this.createErrorState('Ошибка загрузки рейтинга');
+        }
+    }
+
+    async updateSpeedLeaderboard() {
+        try {
+            const data = await this.loadWithCache('speedLeaderboardData', () =>
+                window.apiRequest('/api/leaderboard?type=speed&limit=20')
+            );
+            
+            if (!data || !data.success || !data.leaderboard) {
+                this.frequentlyUsedElements.speedLeaderboard.innerHTML = 
+                    this.createEmptyState('🏆 Стань первым в рейтинге скорости!');
+                return;
+            }
+            
+            this.renderLeaderboard(data.leaderboard, 'speed');
+            
+        } catch (error) {
+            console.error('Ошибка обновления рейтинга скорости:', error);
+            this.frequentlyUsedElements.speedLeaderboard.innerHTML = 
+                this.createErrorState('Ошибка загрузки рейтинга');
+        }
+    }
+
+    renderLeaderboard(players, type) {
+        const isSpeed = type === 'speed';
+        const currentUserId = window.userData?.userId;
+        
+        const leaderboardHTML = players.map((player, index) => {
+            if (!player || typeof player !== 'object') return '';
+            
+            const rank = index + 1;
+            const name = player.username || `Игрок ${rank}`;
+            const isCurrent = player.userId === currentUserId;
+            const currentClass = isCurrent ? 'current-player' : '';
+            
+            if (isSpeed) {
+                const totalSpeed = player.totalSpeed || player.total_speed || 0;
+                return `
+                    <div class="leader-item ${currentClass}" data-rank="${rank}">
+                        <div class="leader-rank">${rank} место</div>
+                        <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                        <div class="leader-speed">${totalSpeed.toFixed(9)} S/сек</div>
+                    </div>
+                `;
+            } else {
+                const balance = player.balance || 0;
+                return `
+                    <div class="leader-item ${currentClass}" data-rank="${rank}">
+                        <div class="leader-rank">${rank} место</div>
+                        <div class="leader-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
+                        <div class="leader-balance">${balance.toFixed(9)} S</div>
+                    </div>
+                `;
+            }
+        }).join('');
+        
+        const targetElement = isSpeed ? 
+            this.frequentlyUsedElements.speedLeaderboard : 
+            this.frequentlyUsedElements.leaderboard;
+            
+        if (targetElement) {
+            targetElement.innerHTML = leaderboardHTML;
+        }
+    }
+
+    // ============================================
+    // СИСТЕМА УВЕДОМЛЕНИЙ
+    // ============================================
+
+    showNotification(message, type = 'info', duration = 3000) {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        
+        const titles = {
+            success: 'Успех',
+            error: 'Ошибка',
+            warning: 'Внимание',
+            info: 'Информация'
+        };
+        
+        notification.innerHTML = `
+            <div class="notification-icon">${icons[type]}</div>
+            <div class="notification-content">
+                <div class="notification-title">${titles[type]}</div>
+                <div class="notification-message">${this.escapeHtml(message)}</div>
+            </div>
+            <button class="notification-close" aria-label="Закрыть">×</button>
+        `;
+        
+        // Добавление стилей
+        notification.style.cssText = `
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background: ${this.getNotificationColor(type)};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+            max-width: 100%;
+            min-width: 280px;
+        `;
+        
+        // Добавление в контейнер
+        this.domCache.notificationContainer.appendChild(notification);
+        
+        // Обработчик закрытия
+        const closeButton = notification.querySelector('.notification-close');
+        closeButton.addEventListener('click', () => this.removeNotification(notification));
+        
+        // Автоматическое закрытие
+        if (duration > 0) {
+            setTimeout(() => this.removeNotification(notification), duration);
+        }
+        
+        return notification;
+    }
+
+    getNotificationColor(type) {
+        const colors = {
+            success: '#4CAF50',
+            error: '#F44336',
+            warning: '#FF9800',
+            info: '#2196F3'
+        };
+        return colors[type] || '#2196F3';
+    }
+
+    removeNotification(notification) {
+        if (!notification || !notification.parentNode) return;
+        
+        notification.style.animation = 'slideOut 0.3s ease-out';
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
-        }, 400);
-    }, duration);
-}
-
-function showResultPopup(isWin, amount, emoji) {
-    const popup = document.getElementById('resultPopup');
-    const emojiElement = document.getElementById('resultEmoji');
-    const textElement = document.getElementById('resultText');
-    const amountElement = document.getElementById('resultAmount');
-    
-    if (!popup || !emojiElement || !textElement || !amountElement) return;
-    
-    popup.className = `result-popup ${isWin ? 'win' : 'lose'}`;
-    emojiElement.textContent = emoji;
-    textElement.textContent = isWin ? 'Победа!' : 'Проигрыш';
-    amountElement.textContent = `${amount >= 0 ? '+' : ''}${amount.toFixed(9)} S`;
-    amountElement.style.color = isWin ? '#4CAF50' : '#f44336';
-    
-    popup.style.display = 'block';
-}
-
-function closeResultPopup() {
-    const popup = document.getElementById('resultPopup');
-    if (popup) {
-        popup.style.display = 'none';
+        }, 300);
     }
-}
 
-// Функция для обновления топа победителей
-async function updateTopWinners() {
-    try {
-        const data = await apiRequest('/api/top/winners?limit=20');
-        const topWinnersElement = document.getElementById('topWinners');
-        
-        if (!topWinnersElement) return;
-        
-        if (!data || !data.success || !data.winners) {
-            topWinnersElement.innerHTML = '<div class="winner-item">🏆 Стань первым победителем!</div>';
-            return;
-        }
-        
-        let newHTML = '';
-        
-        // Сортируем по чистым выигрышам
-        const sortedWinners = [...data.winners].sort((a, b) => {
-            const aNet = a.netWinnings || 0;
-            const bNet = b.netWinnings || 0;
-            return bNet - aNet;
-        });
-        
-        sortedWinners.forEach((winner, index) => {
-            if (!winner || typeof winner !== 'object') {
-                return;
-            }
-            
-            const rank = index + 1;
-            const name = winner.username || `Игрок ${rank}`;
-            const netWinnings = winner.netWinnings || 0;
-            const isCurrent = winner.username === window.userData?.username;
-            const currentClass = isCurrent ? 'current-player' : '';
-            
-            newHTML += `
-                <div class="winner-item ${currentClass}">
-                    <div class="winner-rank">${rank}</div>
-                    <div class="winner-name ${currentClass}">${name} ${isCurrent ? '👑' : ''}</div>
-                    <div class="winner-amount ${netWinnings >= 0 ? 'positive' : 'negative'}">
-                        ${netWinnings.toFixed(9)} S
-                    </div>
-                </div>
-            `;
-        });
-        
-        topWinnersElement.innerHTML = newHTML;
-        
-    } catch (error) {
-        console.error('Ошибка обновления топа победителей:', error);
-        const topWinnersElement = document.getElementById('topWinners');
-        if (topWinnersElement) {
-            topWinnersElement.innerHTML = '<div class="winner-item">Ошибка загрузки топа победителей</div>';
-        }
-    }
-}
+    // ============================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ И УТИЛИТЫ
+    // ============================================
 
-// Функция для загрузки реферальной статистики
-async function loadReferralStats() {
-    try {
-        const userId = window.userData?.userId;
-        if (!userId) return;
-        
-        const data = await apiRequest(`/api/referral/stats/${userId}`);
-        
-        if (data && data.success) {
-            updateReferralUI(data);
-        }
-    } catch (error) {
-        console.error('Ошибка загрузки реферальной статистики:', error);
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
-}
 
-// Функция для обновления реферальной статистики (новая)
-window.updateReferralStats = async function() {
-    try {
-        const userId = window.userData?.userId;
-        if (!userId) return;
-        
-        const data = await apiRequest(`/api/referral/stats/${userId}`);
-        
-        if (data && data.success) {
-            updateReferralUI(data);
-            console.log('✅ Реферальная статистика обновлена');
-        }
-    } catch (error) {
-        console.error('❌ Ошибка загрузки реферальной статистики:', error);
-    }
-};
-
-// Обновление UI реферальной системы - ИСПРАВЛЕННАЯ ССЫЛКА НА БОТА @bytecoinbeta_bot
-function updateReferralUI(data) {
-    // Формируем правильную реферальную ссылку для бота @bytecoinbeta_bot
-    const referralCode = data.referralCode || `REF-${window.userData?.userId?.slice(-8)?.toUpperCase() || 'DEFAULT'}`;
-    const referralLink = `https://t.me/bytecoinbeta_bot?start=${referralCode}`;
-    
-    const elements = [
-        { id: 'referralsCount', value: data.stats?.referralsCount || 0 },
-        { id: 'referralEarnings', value: (data.stats?.totalEarnings || 0).toFixed(9) + ' S' },
-        { id: 'referralsCountNew', value: data.stats?.referralsCount || 0 },
-        { id: 'referralEarningsNew', value: (data.stats?.totalEarnings || 0).toFixed(9) + ' S' },
-        { id: 'referralLink', value: referralCode }
-    ];
-    
-    elements.forEach(element => {
-        const el = document.getElementById(element.id);
-        if (el) el.textContent = element.value;
-    });
-    
-    // Обновляем ссылку
-    const referralLinkElement = document.getElementById('referralLinkCode');
-    if (referralLinkElement) {
-        referralLinkElement.textContent = referralLink;
-        referralLinkElement.href = referralLink;
-    }
-    
-    // Обновляем кнопку копирования
-    const copyButton = document.querySelector('[onclick="copyReferralLink()"]');
-    if (copyButton) {
-        copyButton.onclick = function() {
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(referralLink).then(() => {
-                    showNotification('Ссылка скопирована в буфер обмена!', 'success');
-                }).catch(() => {
-                    fallbackCopy(referralLink);
-                });
-            } else {
-                fallbackCopy(referralLink);
+    throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
             }
         };
     }
-}
 
-// Функция для копирования реферальной ссылки (новая)
-window.copyReferralLink = function() {
-    const linkElement = document.getElementById('referralLinkCode');
-    if (linkElement) {
-        const link = linkElement.textContent || linkElement.href;
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(link).then(() => {
-                showNotification('Ссылка скопирована в буфер обмена!', 'success');
-            }).catch(() => {
-                fallbackCopy(link);
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    createLoadingIndicator(text) {
+        return `
+            <div class="loading-indicator">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">${text}</div>
+            </div>
+        `;
+    }
+
+    createEmptyState(text) {
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-text">${text}</div>
+            </div>
+        `;
+    }
+
+    createErrorState(text) {
+        return `
+            <div class="error-state">
+                <div class="error-state-icon">⚠️</div>
+                <div class="error-state-text">${text}</div>
+            </div>
+        `;
+    }
+
+    // ============================================
+    // ВИРТУАЛЬНЫЙ СКРОЛЛИНГ И ЛЕНИВАЯ ЗАГРУЗКА
+    // ============================================
+
+    initializeVirtualScroll() {
+        this.virtualScrollContainers = new Set();
+        this.intersectionObserver = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        this.loadLazyContent(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+    }
+
+    renderVirtualList(container, items, renderItem) {
+        // Простая реализация виртуального скроллинга
+        const visibleItems = 10;
+        let startIndex = 0;
+        
+        const renderVisibleItems = () => {
+            const endIndex = Math.min(startIndex + visibleItems, items.length);
+            const visibleSlice = items.slice(startIndex, endIndex);
+            
+            container.innerHTML = '';
+            visibleSlice.forEach(item => {
+                container.appendChild(renderItem(item));
             });
-        } else {
-            fallbackCopy(link);
+        };
+        
+        // Обработчик скролла
+        container.addEventListener('scroll', this.throttle(() => {
+            const scrollTop = container.scrollTop;
+            const itemHeight = 60;
+            startIndex = Math.floor(scrollTop / itemHeight);
+            renderVisibleItems();
+        }, MobileUISettings.throttleDelay));
+        
+        renderVisibleItems();
+    }
+
+    setupImageLazyLoading() {
+        const lazyImages = document.querySelectorAll('img[data-src]');
+        lazyImages.forEach(img => {
+            this.intersectionObserver.observe(img);
+        });
+    }
+
+    loadLazyContent(element) {
+        if (element.tagName === 'IMG' && element.dataset.src) {
+            element.src = element.dataset.src;
+            element.removeAttribute('data-src');
+            this.intersectionObserver.unobserve(element);
         }
     }
-};
 
-function fallbackCopy(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-        document.execCommand('copy');
-        showNotification('Ссылка скопирована в буфер обмена!', 'success');
-    } catch (err) {
-        showNotification('Не удалось скопировать ссылку', 'error');
-    }
-    document.body.removeChild(textArea);
-}
+    // ============================================
+    // МОНИТОРИНГ ПРОИЗВОДИТЕЛЬНОСТИ
+    // ============================================
 
-// Функция обновления магазина (улучшенная)
-window.updateShopUIFixed = function() {
-    console.log('🛒 Обновляем интерфейс магазина (фиксированная версия)');
-    
-    if (!window.userData || !window.isDataLoaded) {
-        console.log('⏳ Данные не загружены, откладываем обновление магазина');
-        setTimeout(window.updateShopUIFixed, 1000);
-        return;
-    }
-    
-    try {
-        // Обновляем все категории улучшений
-        updateShopCategory('gpu');
-        updateShopCategory('cpu'); 
-        updateShopCategory('mouse');
-        
-        console.log('✅ Магазин обновлен');
-    } catch (error) {
-        console.error('❌ Ошибка обновления магазина:', error);
-    }
-};
-
-function updateShopCategory(category) {
-    const prefix = category;
-    const upgrades = Object.keys(UPGRADES).filter(key => key.startsWith(prefix));
-    
-    upgrades.forEach(upgradeId => {
-        const upgrade = UPGRADES[upgradeId];
-        if (!upgrade) return;
-        
-        const currentLevel = window.upgrades[upgradeId]?.level || 0;
-        const price = upgrade.basePrice * Math.pow(2, currentLevel);
-        
-        // Обновляем отображение
-        const ownedElement = document.getElementById(upgradeId + '-owned');
-        const priceElement = document.getElementById(upgradeId + '-price');
-        
-        if (ownedElement) ownedElement.textContent = currentLevel;
-        if (priceElement) priceElement.textContent = price.toFixed(9);
-        
-        // Обновляем кнопку
-        const buyButton = document.querySelector(`button[onclick="buyUpgrade('${upgradeId}')"]`);
-        if (buyButton) {
-            const canAfford = window.userData && parseFloat(window.userData.balance) >= price;
-            buyButton.disabled = !canAfford;
-            buyButton.innerHTML = canAfford ? 
-                'Купить' : 
-                'Недостаточно средств';
-            buyButton.style.opacity = canAfford ? '1' : '0.6';
+    setupPerformanceMonitoring() {
+        if (window.PerformanceObserver) {
+            // Мониторинг Long Tasks
+            const observer = new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                    if (entry.duration > 50) {
+                        console.warn('⚠️ Долгая задача:', entry);
+                    }
+                }
+            });
+            
+            observer.observe({ entryTypes: ['longtask'] });
         }
-    });
-}
-
-// Функция для обновления баланса немедленно
-window.updateBalanceImmediately = function() {
-    if (!window.userData) return;
-    
-    const balanceElement = document.getElementById('balanceValue');
-    if (balanceElement) {
-        balanceElement.textContent = (window.userData.balance || 0.000000100).toFixed(9) + ' S';
+        
+        // Мониторинг использования памяти
+        setInterval(() => {
+            if (window.performance && window.performance.memory) {
+                const memory = window.performance.memory;
+                if (memory.usedJSHeapSize > 100 * 1024 * 1024) {
+                    console.warn('⚠️ Высокое использование памяти:', 
+                        Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB');
+                    this.clearCache();
+                }
+            }
+        }, 30000);
     }
-    
-    const clickValueElement = document.getElementById('clickValue');
-    if (clickValueElement) {
-        const clickPower = typeof calculateClickPower === 'function' ? calculateClickPower() : 0.000000001;
-        clickValueElement.textContent = clickPower.toFixed(9);
+
+    // ============================================
+    // ОБРАБОТЧИКИ СОСТОЯНИЯ СЕТИ
+    // ============================================
+
+    handleOnlineStatus() {
+        ApplicationState.isOnline = true;
+        this.showNotification('Соединение восстановлено', 'success');
+        
+        // Автоматическая синхронизация
+        setTimeout(() => {
+            if (window.syncUserData) {
+                window.syncUserData();
+            }
+        }, 2000);
     }
-};
 
-// Заглушки для отсутствующих функций
-if (typeof updateTopWinners === 'undefined') {
-    window.updateTopWinners = updateTopWinners;
-}
+    handleOfflineStatus() {
+        ApplicationState.isOnline = false;
+        this.showNotification('Работаем в офлайн-режиме', 'warning');
+    }
 
-if (typeof updateUsersList === 'undefined') {
-    window.updateUsersList = updateUsersList;
-}
+    // ============================================
+    // ОПТИМИЗИРОВАННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+    // ============================================
 
-if (typeof updateLeaderboard === 'undefined') {
-    window.updateLeaderboard = updateLeaderboard;
-}
+    updateUI() {
+        if (!window.userData) return;
+        
+        // Оптимизированное обновление только измененных элементов
+        requestAnimationFrame(() => {
+            this.updateBalance();
+            this.updateClickStats();
+            this.updateMiningStats();
+        });
+    }
 
-if (typeof updateSpeedLeaderboard === 'undefined') {
-    window.updateSpeedLeaderboard = updateSpeedLeaderboard;
-}
-
-if (typeof updateShopUI === 'undefined') {
-    window.updateShopUI = function() {
-        console.log('🛒 Обновляем интерфейс магазина');
-        if (window.updateShopUIFixed) {
-            window.updateShopUIFixed();
+    updateBalance() {
+        const balanceElement = this.frequentlyUsedElements.balanceValue;
+        if (balanceElement && window.userData) {
+            const balance = window.userData.balance || 0.000000100;
+            if (balanceElement.textContent !== balance.toFixed(9) + ' S') {
+                balanceElement.textContent = balance.toFixed(9) + ' S';
+            }
         }
-    };
-}
+    }
 
-if (typeof startLotteryAutoUpdate === 'undefined') {
-    window.startLotteryAutoUpdate = function() {
-        console.log('🎰 Запускаем автообновление лотереи');
-    };
-}
+    updateClickStats() {
+        const clickValueElement = this.frequentlyUsedElements.clickValue;
+        const clickSpeedElement = this.frequentlyUsedElements.clickSpeed;
+        
+        if (clickValueElement || clickSpeedElement) {
+            const clickPower = typeof window.calculateClickPower === 'function' ? 
+                window.calculateClickPower() : 0.000000001;
+            
+            if (clickValueElement && clickValueElement.textContent !== clickPower.toFixed(9)) {
+                clickValueElement.textContent = clickPower.toFixed(9);
+            }
+            
+            if (clickSpeedElement) {
+                const speedText = clickPower.toFixed(9) + ' S/сек';
+                if (clickSpeedElement.textContent !== speedText) {
+                    clickSpeedElement.textContent = speedText;
+                }
+            }
+        }
+    }
 
-if (typeof startClassicLotteryUpdate === 'undefined') {
-    window.startClassicLotteryUpdate = function() {
-        console.log('🎲 Запускаем автообновление классической лотереи');
-    };
-}
+    updateMiningStats() {
+        const mineSpeedElement = this.frequentlyUsedElements.mineSpeed;
+        if (mineSpeedElement) {
+            let miningSpeed = 0.000000000;
+            try {
+                miningSpeed = typeof window.calculateMiningSpeed === 'function' ? 
+                    window.calculateMiningSpeed() : 0.000000000;
+                
+                if (isNaN(miningSpeed) || !isFinite(miningSpeed) || miningSpeed < 0) {
+                    miningSpeed = 0.000000000;
+                }
+            } catch (error) {
+                console.error('Ошибка получения скорости майнинга:', error);
+                miningSpeed = 0.000000000;
+            }
+            
+            const speedText = miningSpeed.toFixed(9) + ' S/сек';
+            if (mineSpeedElement.textContent !== speedText) {
+                mineSpeedElement.textContent = speedText;
+            }
+        }
+    }
 
-if (typeof loadReferralStats === 'undefined') {
-    window.loadReferralStats = loadReferralStats;
-}
+    // ============================================
+    // ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+    // ============================================
 
-if (typeof calculateClickPower === 'undefined') {
-    window.calculateClickPower = function() {
-        return 0.000000001;
-    };
-}
+    initializeApplication() {
+        console.log('🚀 Инициализация приложения...');
+        
+        // Загрузка пользовательских данных
+        this.loadUserData();
+        
+        // Проверка API соединения
+        this.checkApiConnection();
+        
+        // Установка интервалов обновления
+        this.setupUpdateIntervals();
+        
+        console.log('✅ Приложение полностью инициализировано!');
+    }
 
-if (typeof calculateMiningSpeed === 'undefined') {
-    window.calculateMiningSpeed = function() {
-        return 0.000000000;
-    };
-}
+    async loadUserData() {
+        try {
+            // Загрузка данных пользователя
+            if (window.loadUserDataFromStorage) {
+                await window.loadUserDataFromStorage();
+            }
+            
+            // Первоначальное обновление UI
+            this.updateUI();
+            
+            // Загрузка начальных данных
+            this.loadInitialData();
+            
+        } catch (error) {
+            console.error('Ошибка загрузки данных пользователя:', error);
+            this.showNotification('Ошибка загрузки данных', 'error');
+        }
+    }
 
-if (typeof saveUserData === 'undefined') {
-    window.saveUserData = function() {
-        console.log('💾 Сохранение данных (заглушка)');
-    };
-}
+    async checkApiConnection() {
+        try {
+            const isConnected = await window.checkApiConnection();
+            if (isConnected) {
+                console.log('✅ API подключено');
+            } else {
+                console.log('📴 API недоступно, работаем офлайн');
+            }
+        } catch (error) {
+            console.error('Ошибка проверки соединения:', error);
+        }
+    }
 
-// Глобальные функции для доступа из HTML
-window.makeTransfer = makeTransfer;
-window.searchUsers = searchUsers;
-window.selectUserForTransfer = selectUserForTransfer;
+    setupUpdateIntervals() {
+        // Обновление баланса каждые 30 секунд
+        setInterval(() => {
+            if (window.userData && this.shouldUpdateBalance()) {
+                this.updateUI();
+            }
+        }, 30000);
+        
+        // Синхронизация с сервером каждые 2 минуты
+        setInterval(() => {
+            if (ApplicationState.isOnline && window.syncUserData) {
+                window.syncUserData();
+            }
+        }, 120000);
+        
+        // Очистка кэша каждые 5 минут
+        setInterval(() => {
+            this.clearCache();
+        }, 300000);
+    }
 
-// Инициализация интерфейса при загрузке
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎨 Инициализация UI...');
-    
-    // Инициализация полей ввода
-    const betInputs = document.querySelectorAll('.bet-input, .transfer-amount-input');
-    betInputs.forEach(input => {
-        input.addEventListener('input', function() {
-            // Ограничение минимального значения
-            const minValue = parseFloat(this.getAttribute('min')) || 0.000000001;
-            if (this.value < minValue) {
-                this.value = minValue;
+    shouldUpdateBalance() {
+        // Логика определения необходимости обновления баланса
+        return ApplicationState.isOnline || 
+               Date.now() - ApplicationState.lastUpdateTimestamp > 60000;
+    }
+
+    loadInitialData() {
+        // Отложенная загрузка некритичных данных
+        setTimeout(() => {
+            this.loadWithCache('leaderboardData', window.updateLeaderboard);
+            this.loadWithCache('referralStats', window.loadReferralStats);
+        }, 2000);
+    }
+
+    // ============================================
+    // ГОРЯЧИЕ КЛАВИШИ И ДОСТУПНОСТЬ
+    // ============================================
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (event) => {
+            // Только если не в поле ввода
+            if (event.target.tagName === 'INPUT' || 
+                event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            switch(event.key) {
+                case '1':
+                case 'ArrowLeft':
+                    this.navigateToPreviousSection();
+                    break;
+                case '2':
+                case 'ArrowRight':
+                    this.navigateToNextSection();
+                    break;
+                case 'Escape':
+                    this.goToMainSection();
+                    break;
             }
         });
-    });
-    
-    // Инициализация поиска
-    const searchInput = document.getElementById('userSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', searchUsers);
     }
-    
-    // Инициализация реферальной системы
-    setTimeout(() => {
-        if (window.userData && window.isDataLoaded) {
-            loadReferralStats();
+
+    navigateToPreviousSection() {
+        const sections = ['main', 'top', 'transfer', 'shop', 'games', 'referral'];
+        const currentIndex = sections.indexOf(ApplicationState.currentSection);
+        if (currentIndex > 0) {
+            this.showSection(sections[currentIndex - 1]);
         }
-    }, 2000);
-    
-    // Инициализация кнопки "Назад" для всех секций
-    const backButtons = document.querySelectorAll('.back-button');
-    backButtons.forEach(button => {
-        if (!button.onclick) {
-            button.onclick = function() {
-                showSection('main');
-            };
+    }
+
+    navigateToNextSection() {
+        const sections = ['main', 'top', 'transfer', 'shop', 'games', 'referral'];
+        const currentIndex = sections.indexOf(ApplicationState.currentSection);
+        if (currentIndex < sections.length - 1) {
+            this.showSection(sections[currentIndex + 1]);
         }
+    }
+
+    goToMainSection() {
+        if (ApplicationState.currentSection !== 'main') {
+            this.showSection('main');
+        }
+    }
+
+    // ============================================
+    // ОЧИСТКА РЕСУРСОВ
+    // ============================================
+
+    cleanup() {
+        // Отключение всех слушателей событий
+        document.removeEventListener('click', this.handleDelegatedClick);
+        document.removeEventListener('touchstart', this.handleTouchStart);
+        document.removeEventListener('touchend', this.handleTouchEnd);
+        document.removeEventListener('input', this.handleDelegatedInput);
+        window.removeEventListener('online', this.handleOnlineStatus);
+        window.removeEventListener('offline', this.handleOfflineStatus);
+        
+        // Очистка интервалов
+        clearInterval(this.updateInterval);
+        clearInterval(this.syncInterval);
+        clearInterval(this.cacheCleanupInterval);
+        
+        // Очистка кэша
+        this.clearCache();
+        
+        // Отключение IntersectionObserver
+        if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+        }
+        
+        console.log('🧹 Ресурсы приложения очищены');
+    }
+}
+
+// ============================================
+// ГЛОБАЛЬНЫЙ ЭКСПОРТ И ИНИЦИАЛИЗАЦИЯ
+// ============================================
+
+// Создание глобального экземпляра интерфейса
+window.MobileInterface = new MobileInterfaceManager();
+
+// Экспорт основных функций для глобального доступа
+window.showSection = (sectionName) => window.MobileInterface.showSection(sectionName);
+window.showGameTab = (tabName) => window.MobileInterface.showGameTab(tabName);
+window.showShopTab = (tabName) => window.MobileInterface.showShopTab(tabName);
+window.showNotification = (message, type, duration) => 
+    window.MobileInterface.showNotification(message, type, duration);
+window.updateUI = () => window.MobileInterface.updateUI();
+window.updateUsersList = () => window.MobileInterface.updateUsersList();
+window.updateLeaderboard = () => window.MobileInterface.updateLeaderboard();
+window.updateSpeedLeaderboard = () => window.MobileInterface.updateSpeedLeaderboard();
+
+// Инициализация при загрузке DOM
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('📱 Инициализация мобильного интерфейса...');
+    
+    // Отложенная инициализация для улучшения времени загрузки
+    requestAnimationFrame(() => {
+        window.MobileInterface.initializeApplication();
     });
     
-    console.log('✅ UI полностью инициализирован!');
+    // Предотвращение быстрого двойного нажатия
+    document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+    
+    // Оптимизация для мобильных устройств
+    if ('ontouchstart' in window) {
+        document.documentElement.style.touchAction = 'manipulation';
+    }
 });
 
-console.log('✅ ui.js загружен! Все функции интерфейса готовы к работе!');
+// Экспорт для использования в других модулях
+export default MobileInterfaceManager;
