@@ -1,15 +1,16 @@
-// api.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ ДЛЯ SPARKCOIN
-console.log('🌐 API для Sparkcoin - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ');
+// api.js - ОПТИМИЗИРОВАННЫЙ API КЛИЕНТ
+console.log('🌐 Загружаем оптимизированный API клиент...');
 
 window.CONFIG = {
-    API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev'
+    API_BASE_URL: 'https://b9339c3b-8a22-434d-b97a-a426ac75c328-00-2vzfhw3hnozb6.sisko.replit.dev',
+    REQUEST_TIMEOUT: 10000,
+    MAX_RETRIES: 3,
+    RETRY_DELAY: 1000
 };
 
-// Основная функция API запросов
+// ========== ОСНОВНАЯ ФУНКЦИЯ ЗАПРОСА ==========
 window.apiRequest = async function(endpoint, options = {}) {
     const url = `${window.CONFIG.API_BASE_URL}${endpoint}`;
-    console.log(`🔄 API запрос: ${url}`);
-    
     const requestOptions = {
         method: options.method || 'GET',
         headers: {
@@ -25,23 +26,25 @@ window.apiRequest = async function(endpoint, options = {}) {
     }
     
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), window.CONFIG.REQUEST_TIMEOUT);
+        requestOptions.signal = controller.signal;
+        
         const response = await fetch(url, requestOptions);
+        clearTimeout(timeoutId);
         
         if (response.ok) {
             const data = await response.json();
-            console.log(`✅ API ответ: ${endpoint}`, data);
             return data;
         } else {
-            console.warn(`⚠️ API ошибка: ${response.status} ${endpoint}`);
             throw new Error(`HTTP ${response.status}`);
         }
     } catch (error) {
-        console.log('📴 API недоступно, используем офлайн режим:', error.message);
         return getOfflineResponse(endpoint, options);
     }
 };
 
-// Улучшенные офлайн ответы с учетом текущего пользователя
+// ========== ОФЛАЙН РЕЖИМ ==========
 function getOfflineResponse(endpoint, options = {}) {
     const currentUserId = window.userData?.userId || 'default_user';
     const currentUsername = window.userData?.username || 'Текущий Игрок';
@@ -63,13 +66,6 @@ function getOfflineResponse(endpoint, options = {}) {
             timestamp: new Date().toISOString()
         },
         
-        '/api/sync/telegram': {
-            success: true,
-            message: 'Офлайн режим для Telegram',
-            userId: currentUserId,
-            offline: true
-        },
-        
         '/api/all_players': {
             success: true,
             players: [
@@ -79,14 +75,6 @@ function getOfflineResponse(endpoint, options = {}) {
                     balance: currentBalance,
                     totalEarned: window.userData?.totalEarned || 0.000000100,
                     totalClicks: window.userData?.totalClicks || 0,
-                    lastUpdate: new Date().toISOString()
-                },
-                {
-                    userId: 'demo_player_2',
-                    username: 'Демо Игрок 2',
-                    balance: 0.000000050,
-                    totalEarned: 0.000000200,
-                    totalClicks: 25,
                     lastUpdate: new Date().toISOString()
                 }
             ],
@@ -106,16 +94,6 @@ function getOfflineResponse(endpoint, options = {}) {
                     mineSpeed: window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000,
                     totalSpeed: (window.calculateClickPower ? window.calculateClickPower() : 0.000000001) + 
                                (window.calculateMiningSpeed ? window.calculateMiningSpeed() : 0.000000000)
-                },
-                {
-                    rank: 2,
-                    username: 'Демо Игрок 2',
-                    balance: 0.000000080,
-                    totalEarned: 0.000000200,
-                    totalClicks: 45,
-                    clickSpeed: 0.000000002,
-                    mineSpeed: 0.000000001,
-                    totalSpeed: 0.000000003
                 }
             ],
             offline: true
@@ -135,13 +113,6 @@ function getOfflineResponse(endpoint, options = {}) {
             offline: true
         },
         
-        '/api/lottery/bet': {
-            success: true,
-            message: 'Ставка принята в офлайн режиме',
-            bet_id: 'offline_' + Date.now(),
-            offline: true
-        },
-        
         '/api/classic-lottery/status': {
             success: true,
             lottery: {
@@ -151,13 +122,6 @@ function getOfflineResponse(endpoint, options = {}) {
                 participants_count: 0,
                 history: []
             },
-            offline: true
-        },
-        
-        '/api/classic-lottery/bet': {
-            success: true,
-            message: 'Ставка принята в офлайн режиме',
-            bet_id: 'offline_' + Date.now(),
             offline: true
         },
         
@@ -179,31 +143,12 @@ function getOfflineResponse(endpoint, options = {}) {
                     totalWinnings: 0.000001000,
                     totalLosses: 0.000000200,
                     netWinnings: 0.000000800
-                },
-                {
-                    username: 'Демо Победитель',
-                    totalWinnings: 0.000000500,
-                    totalLosses: 0.000000100,
-                    netWinnings: 0.000000400
                 }
             ],
-            offline: true
-        },
-        
-        '/api/player': {
-            success: true,
-            player: {
-                userId: currentUserId,
-                username: currentUsername,
-                balance: currentBalance,
-                totalEarned: window.userData?.totalEarned || 0.000000100,
-                totalClicks: window.userData?.totalClicks || 0
-            },
             offline: true
         }
     };
 
-    // Для POST запросов возвращаем успешный ответ
     if (options.method === 'POST') {
         return {
             success: true,
@@ -214,14 +159,12 @@ function getOfflineResponse(endpoint, options = {}) {
         };
     }
     
-    // Ищем подходящий ответ
     for (const [key, value] of Object.entries(offlineResponses)) {
         if (endpoint.includes(key.replace('/:userId', '').replace('/:id', ''))) {
             return value;
         }
     }
     
-    // Ответ по умолчанию
     return { 
         success: true, 
         userId: currentUserId,
@@ -231,24 +174,20 @@ function getOfflineResponse(endpoint, options = {}) {
     };
 }
 
-// Функция проверки соединения
+// ========== ФУНКЦИИ ПРОВЕРКИ СОЕДИНЕНИЯ ==========
 window.checkApiConnection = async function() {
-    console.log('🔍 Проверка соединения с API...');
     try {
         const response = await window.apiRequest('/api/health');
         if (response && (response.status === 'healthy' || response.offline)) {
-            console.log('✅ API подключено или работает в офлайн режиме!');
             window.updateApiStatus('connected', response.offline ? 'Офлайн режим' : 'Sparkcoin API');
             return true;
         }
     } catch (error) {
-        console.log('📴 API недоступно');
         window.updateApiStatus('disconnected', 'Офлайн режим');
     }
     return false;
 };
 
-// Функция для обновления статуса API
 window.updateApiStatus = function(status, message) {
     const apiStatus = document.getElementById('apiStatus');
     if (apiStatus) {
@@ -256,15 +195,11 @@ window.updateApiStatus = function(status, message) {
         apiStatus.textContent = `API: ${message}`;
     }
     window.apiConnected = status === 'connected';
-    console.log(`📡 Статус API: ${status} - ${message}`);
 };
 
-// Улучшенная функция синхронизации данных с API
+// ========== ОПТИМИЗИРОВАННАЯ СИНХРОНИЗАЦИЯ ==========
 window.syncPlayerDataWithAPI = async function() {
-    console.log('🔄 Синхронизация с API...');
-    
     if (!window.userData || !window.isDataLoaded) {
-        console.log('❌ Данные пользователя не загружены');
         return false;
     }
     
@@ -287,15 +222,10 @@ window.syncPlayerDataWithAPI = async function() {
         });
         
         if (response && response.success) {
-            console.log('✅ Данные синхронизированы с API');
-            
-            // Обновляем данные если сервер вернул лучший баланс
             if (response.bestBalance && response.bestBalance > window.userData.balance) {
-                console.log(`💰 Баланс обновлен: ${window.userData.balance} -> ${response.bestBalance}`);
                 window.userData.balance = response.bestBalance;
                 if (window.updateUI) window.updateUI();
             }
-            
             return true;
         }
     } catch (error) {
@@ -305,160 +235,7 @@ window.syncPlayerDataWithAPI = async function() {
     return false;
 };
 
-// Функция загрузки всех игроков
-window.loadAllPlayers = async function() {
-    console.log('👥 Загрузка списка игроков...');
-    try {
-        const data = await window.apiRequest('/api/all_players');
-        if (data && data.success) {
-            window.allPlayers = data.players || [];
-            console.log(`✅ Загружено ${window.allPlayers.length} игроков`);
-            return window.allPlayers;
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки игроков');
-        window.allPlayers = [];
-    }
-    return [];
-};
-
-// Функция загрузки топа игроков
-window.loadLeaderboard = async function() {
-    console.log('🏆 Загрузка рейтинга...');
-    try {
-        const data = await window.apiRequest('/api/leaderboard');
-        if (data && data.success) {
-            console.log(`✅ Загружен рейтинг из ${data.leaderboard.length} игроков`);
-            return data.leaderboard;
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки рейтинга');
-    }
-    return [];
-};
-
-// Функция загрузки топа победителей
-window.loadTopWinners = async function() {
-    console.log('🎯 Загрузка топа победителей...');
-    try {
-        const data = await window.apiRequest('/api/top/winners?limit=50');
-        if (data && data.success) {
-            console.log(`✅ Загружено ${data.winners.length} победителей`);
-            return data.winners;
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки топа победителей');
-    }
-    return [];
-};
-
-// Функция загрузки статуса командной лотереи
-window.loadLotteryStatus = async function() {
-    console.log('🎰 Загрузка статуса командной лотереи...');
-    try {
-        const data = await window.apiRequest('/api/lottery/status');
-        if (data && data.success) {
-            console.log('✅ Статус лотереи загружен');
-            return data.lottery;
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки статуса лотереи');
-    }
-    return null;
-};
-
-// Функция загрузки статуса классической лотереи
-window.loadClassicLotteryStatus = async function() {
-    console.log('🎲 Загрузка статуса классической лотереи...');
-    try {
-        const data = await window.apiRequest('/api/classic-lottery/status');
-        if (data && data.success) {
-            console.log('✅ Статус классической лотереи загружен');
-            return data.lottery;
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки статуса классической лотереи');
-    }
-    return null;
-};
-
-// Функция загрузки реферальной статистики
-window.loadReferralStats = async function() {
-    console.log('👥 Загрузка реферальной статистики...');
-    try {
-        const userId = window.userData?.userId;
-        if (!userId) {
-            console.log('❌ Нет userID для загрузки рефералов');
-            return null;
-        }
-        
-        const data = await window.apiRequest(`/api/referral/stats/${userId}`);
-        if (data && data.success) {
-            console.log('✅ Реферальная статистика загружена');
-            return data;
-        }
-    } catch (error) {
-        console.log('📴 Ошибка загрузки реферальной статистики');
-    }
-    return null;
-};
-
-// Функция для ставки в командной лотерее
-window.placeLotteryBet = async function(team, amount) {
-    console.log(`🎯 Ставка в лотерею: ${team}, ${amount}`);
-    
-    if (!window.userData) {
-        console.log('❌ Нет данных пользователя');
-        return { success: false, error: 'Нет данных пользователя' };
-    }
-    
-    try {
-        const response = await window.apiRequest('/api/lottery/bet', {
-            method: 'POST',
-            body: JSON.stringify({
-                userId: window.userData.userId,
-                team: team,
-                amount: amount,
-                username: window.userData.username
-            })
-        });
-        
-        return response;
-    } catch (error) {
-        console.log('📴 Ошибка ставки в лотерею');
-        return { success: false, error: 'Ошибка соединения' };
-    }
-};
-
-// Функция для ставки в классической лотерее
-window.placeClassicLotteryBet = async function(amount) {
-    console.log(`🎲 Ставка в классическую лотерею: ${amount}`);
-    
-    if (!window.userData) {
-        console.log('❌ Нет данных пользователя');
-        return { success: false, error: 'Нет данных пользователя' };
-    }
-    
-    try {
-        const response = await window.apiRequest('/api/classic-lottery/bet', {
-            method: 'POST',
-            body: JSON.stringify({
-                userId: window.userData.userId,
-                amount: amount,
-                username: window.userData.username
-            })
-        });
-        
-        return response;
-    } catch (error) {
-        console.log('📴 Ошибка ставки в классическую лотерею');
-        return { success: false, error: 'Ошибка соединения' };
-    }
-};
-
-// ========== УНИВЕРСАЛЬНЫЕ ФУНКЦИИ СИНХРОНИЗАЦИИ ==========
-
-// Функция для получения улучшений для синхронизации
+// ========== УТИЛИТЫ ДЛЯ РАБОТЫ С ДАННЫМИ ==========
 if (typeof window.getUpgradesForSync === 'undefined') {
     window.getUpgradesForSync = function() {
         const upgradesData = {};
@@ -471,31 +248,21 @@ if (typeof window.getUpgradesForSync === 'undefined') {
                 }
             }
         }
-        console.log('🔄 Улучшения для синхронизации:', upgradesData);
         return upgradesData;
     };
 }
 
-// Функция для загрузки синхронизированных данных
 if (typeof window.loadSyncedData === 'undefined') {
     window.loadSyncedData = async function() {
-        console.log('📥 Загрузка синхронизированных данных...');
-        
         try {
             const userId = window.userData?.userId;
-            if (!userId) {
-                console.log('❌ Нет userID для загрузки');
-                return false;
-            }
+            if (!userId) return false;
             
             const response = await window.apiRequest(`/api/sync/unified/${userId}`);
             
             if (response && response.success && response.userData) {
-                console.log('✅ Данные загружены с сервера');
-                
                 const serverData = response.userData;
                 
-                // Объединяем данные, сохраняя локальный прогресс
                 if (serverData.balance > window.userData.balance) {
                     window.userData.balance = serverData.balance;
                 }
@@ -506,7 +273,6 @@ if (typeof window.loadSyncedData === 'undefined') {
                     window.userData.totalClicks = serverData.totalClicks;
                 }
                 
-                // Обновляем другие данные с сервера
                 window.userData.userId = serverData.userId || window.userData.userId;
                 window.userData.username = serverData.username || window.userData.username;
                 window.userData.lotteryWins = serverData.lotteryWins || 0;
@@ -516,16 +282,12 @@ if (typeof window.loadSyncedData === 'undefined') {
                 window.userData.totalWinnings = serverData.totalWinnings || 0;
                 window.userData.totalLosses = serverData.totalLosses || 0;
                 
-                // Синхронизируем улучшения
                 if (serverData.upgrades) {
-                    console.log('🔄 Синхронизация улучшений с сервера:', serverData.upgrades);
                     for (const key in serverData.upgrades) {
                         const serverLevel = serverData.upgrades[key];
                         const localLevel = window.upgrades[key]?.level || window.upgrades[key] || 0;
                         
-                        // Берем максимальный уровень
                         if (serverLevel > localLevel) {
-                            console.log(`📈 Обновление улучшения ${key}: ${localLevel} -> ${serverLevel}`);
                             if (!window.upgrades[key] || typeof window.upgrades[key] === 'number') {
                                 window.upgrades[key] = { level: serverLevel };
                             } else {
@@ -544,20 +306,15 @@ if (typeof window.loadSyncedData === 'undefined') {
                 }
                 return true;
             }
-            
         } catch (error) {
             console.log('📴 Ошибка загрузки данных:', error);
         }
-        
         return false;
     };
 }
 
-// Функция для синхронизации данных
 if (typeof window.syncUserData === 'undefined') {
     window.syncUserData = async function(force = false) {
-        console.log('🔄 Синхронизация данных...');
-        
         if (!window.userData) return false;
         
         try {
@@ -579,18 +336,12 @@ if (typeof window.syncUserData === 'undefined') {
             });
             
             if (response && response.success) {
-                console.log('✅ Данные синхронизированы с сервером');
-                
-                // Если сервер вернул другой userId (при объединении записей)
                 if (response.userId && response.userId !== window.userData.userId) {
-                    console.log(`🆔 Объединение записей: ${window.userData.userId} -> ${response.userId}`);
                     window.userData.userId = response.userId;
                     if (window.saveUserData) window.saveUserData();
                 }
                 
-                // Если серверный баланс больше - используем его
                 if (response.bestBalance && response.bestBalance > window.userData.balance) {
-                    console.log(`💰 Баланс обновлен: ${window.userData.balance} -> ${response.bestBalance}`);
                     window.userData.balance = response.bestBalance;
                     if (window.updateUI) window.updateUI();
                     if (window.saveUserData) window.saveUserData();
@@ -599,48 +350,20 @@ if (typeof window.syncUserData === 'undefined') {
                 localStorage.setItem('last_sync_time', Date.now().toString());
                 return true;
             }
-            
         } catch (error) {
             console.log('📴 Ошибка синхронизации:', error);
         }
-        
         return false;
     };
 }
 
-// ========== ФУНКЦИИ ДЛЯ УВЕДОМЛЕНИЙ И УТИЛИТ ==========
-
-// Функция для уведомлений
+// ========== ПОЛИФИЛЛЫ ДЛЯ ОТСУТСТВУЮЩИХ ФУНКЦИЙ ==========
 if (typeof window.showNotification === 'undefined') {
     window.showNotification = function(message, type = 'info', duration = 3000) {
         console.log(`🔔 ${type.toUpperCase()}: ${message}`);
-        
-        // Создаем уведомление
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <h4>${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'} ${type.charAt(0).toUpperCase() + type.slice(1)}</h4>
-            <p>${message}</p>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Показываем с анимацией
-        setTimeout(() => notification.classList.add('show'), 100);
-        
-        // Убираем через указанное время
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 400);
-        }, duration);
     };
 }
 
-// Функция для расчета силы клика
 if (typeof window.calculateClickPower === 'undefined') {
     window.calculateClickPower = function() {
         let power = 0.000000001;
@@ -661,7 +384,6 @@ if (typeof window.calculateClickPower === 'undefined') {
     };
 }
 
-// Функция для расчета скорости майнинга
 if (typeof window.calculateMiningSpeed === 'undefined') {
     window.calculateMiningSpeed = function() {
         let speed = 0.000000000;
@@ -682,7 +404,6 @@ if (typeof window.calculateMiningSpeed === 'undefined') {
     };
 }
 
-// Функция для обновления UI
 if (typeof window.updateUI === 'undefined') {
     window.updateUI = function() {
         if (!window.userData) return;
@@ -710,7 +431,6 @@ if (typeof window.updateUI === 'undefined') {
     };
 }
 
-// Функция для обновления баланса
 if (typeof window.updateBalanceImmediately === 'undefined') {
     window.updateBalanceImmediately = function() {
         if (!window.userData) return;
@@ -727,7 +447,6 @@ if (typeof window.updateBalanceImmediately === 'undefined') {
     };
 }
 
-// Функция для сохранения данных
 if (typeof window.saveUserData === 'undefined') {
     window.saveUserData = function() {
         try {
@@ -747,14 +466,12 @@ if (typeof window.saveUserData === 'undefined') {
                 }
                 localStorage.setItem('sparkcoin_upgrades_' + window.userData.userId, JSON.stringify(upgradesData));
             }
-            
         } catch (error) {
             console.error('❌ Ошибка сохранения:', error);
         }
     };
 }
 
-// Функция для генерации Device ID
 if (typeof window.generateDeviceId === 'undefined') {
     window.generateDeviceId = function() {
         let deviceId = localStorage.getItem('sparkcoin_device_id');
@@ -767,19 +484,16 @@ if (typeof window.generateDeviceId === 'undefined') {
 }
 
 // ========== АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ ==========
-
-// Автоматическая проверка соединения при загрузке
 setTimeout(() => {
     if (window.checkApiConnection) {
         window.checkApiConnection();
     }
 }, 1000);
 
-// Периодическая проверка соединения
 setInterval(() => {
     if (window.checkApiConnection) {
         window.checkApiConnection();
     }
-}, 60000); // Каждую минуту
+}, 60000);
 
-console.log('✅ API для Sparkcoin загружен! ВСЕ ФУНКЦИИ ОПРЕДЕЛЕНЫ И ИСПРАВЛЕНЫ');
+console.log('✅ Оптимизированный API клиент загружен!');
